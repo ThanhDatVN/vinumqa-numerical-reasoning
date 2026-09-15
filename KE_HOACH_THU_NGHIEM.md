@@ -29,14 +29,39 @@ có**; xem mục "Nếu không xin được A100" ở cuối.
 
 ## Tổng quan
 
-| Gói | Notebook | Giờ A100 | ~CU |
-|---|---|---:|---:|
-| **A — kết quả chính** | 00, 01, 02, 04, 05, 07 | 1.9 | ~23 |
-| **B — SFT** | 03 | 1.2 | ~14 |
-| **C — ma trận tổ hợp** | 04b, 05b, 06 | 1.5 | ~20 |
-| | **Tổng** | **4.6** | **~57 / 100** |
+### Chi phí cố định mỗi session — đừng bỏ sót
 
-Còn ~43 CU dự phòng cho chạy lại.
+Mỗi lần mở một notebook GPU mới, trước khi tính toán gì đã mất:
+
+| Việc | Thời gian | ~CU |
+|---|---:|---:|
+| `pip install` unsloth + vLLM | **12–20 phút** | ~3.5 |
+| Nạp Qwen3-8B 4-bit vào vLLM | ~4 phút | ~0.8 |
+| **Cộng mỗi session** | **~22 phút** | **~4.3** |
+
+Restart runtime **không** phải cài lại (chỉ nạp lại model), nên `03` với hai lần restart chỉ
+tốn một lần cài.
+
+### Tổng — đã tính cả chi phí cố định
+
+| Gói | Notebook | Session GPU | Chi phí cố định | Tính toán | Giờ A100 | ~CU |
+|---|---|:--:|---:|---:|---:|---:|
+| **A — kết quả chính** | 00, 01, 02, 04, 05, 07 | 4 | 1.5 h | 2.0 h | 3.4 | **~40** |
+| **B — SFT** | 03 | 1 | 0.5 h | 1.2 h | 1.7 | **~20** |
+| **C — ma trận tổ hợp** | 04b, 05b, 06 | 3 | 1.1 h | 1.7 h | 2.8 | **~32** |
+| | **Tổng** | **8** | **3.1 h** | **4.9 h** | **7.9** | **~92 / 100** |
+
+**Chi phí cố định chiếm ~36 CU, tức 40 % ngân sách** — gần bằng cả gói B. Ước tính trước đó
+(~57 CU) chỉ đếm thời gian tính toán nên thấp hơn thực tế đáng kể.
+
+Với 100 CU/tháng thì chạy trọn cả ba gói là **vừa khít, không còn dự phòng**. Hai lựa chọn:
+
+| Cách | Bỏ gì | Còn lại | Mất gì |
+|---|---|---:|---|
+| **Khuyến nghị** | Chạy A + B trước, quyết định C sau khi xem kết quả | ~60 CU dùng, ~40 dự phòng | Chưa có ma trận tương tác — nhưng đã đủ một bài hoàn chỉnh |
+| Chạy hết | — | ~92 CU dùng, ~8 dự phòng | Một lần chạy lại vì lỗi là hết ngân sách |
+
+Đừng mở notebook GPU chỉ để "xem thử" — mỗi lần mở là 4.3 CU dù không chạy gì.
 
 ### Thứ tự chạy khác với số thứ tự notebook
 

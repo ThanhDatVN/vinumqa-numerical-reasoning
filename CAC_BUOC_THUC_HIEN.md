@@ -42,8 +42,16 @@ và tốn bao nhiêu; tài liệu này là *làm gì, theo thứ tự nào, bấ
 | 12 | Ma trận 2×2×2 | `06` | A100 | 18 ph | 3,5 | `06_comb_E_A`, `06_comb_F_A` |
 | 13 | Báo cáo cuối | `07` | CPU | 1 ph | 0 | CSV để dán vào bài |
 
-**Tổng ~57 CU / 100 CU/tháng.** Hết ngân sách giữa chừng thì dừng sau **bước 6** vẫn có một
-bài hoàn chỉnh — xem mục "Cắt theo thứ tự nào" trong [KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md).
+Cột "Thời gian" ở trên là **thời gian tính toán**. Mỗi session GPU còn mất thêm
+**~22 phút cố định** trước đó: `pip install` unsloth + vLLM (12–20 phút) rồi nạp model
+(~4 phút). Tám session ⇒ **~36 CU chỉ để cài đặt và nạp model**.
+
+**Tổng thật ~92 CU / 100 CU/tháng**, gần như hết sạch. Khuyến nghị: chạy **bước 1–9**
+(~60 CU), xem kết quả rồi hãy quyết có chạy buổi 3 không. Dừng sau **bước 6** đã là một bài
+hoàn chỉnh — xem [KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md).
+
+> Mỗi lần mở một notebook GPU là **~4,3 CU** dù chưa chạy gì. Đừng mở để "xem thử".
+> Restart runtime thì **không** phải cài lại — chỉ nạp lại model (~4 phút).
 
 ---
 
