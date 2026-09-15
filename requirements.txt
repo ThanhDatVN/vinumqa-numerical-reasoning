@@ -1,0 +1,10 @@
+# Chỉ để chạy TEST dưới máy (CPU, không cần GPU):
+#     pip install -r requirements.txt && python -m pytest tests/ -q
+#
+# Phần nặng — unsloth, vLLM, transformers, trl — KHÔNG nằm ở đây: mỗi notebook tự
+# cài bản đã ghim ở cell đầu, vì chúng chỉ chạy được trên GPU của Colab.
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7
+pytest>=7.4
+nbformat>=5.9

@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# kết quả chạy — ghi ra OUTPUT_DIR (Drive), không commit
+runs/
+ace_runs/
+outputs/
+.vinumqa_paths.json
+
+# rác môi trường
+.venv/
+venv/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.zip
+
+# bài báo gốc — giữ ở máy, không đẩy lên repo công khai
+# (bỏ dòng này sau khi bài đã công bố)
+FINReseaning_FJCAI2026.pdf

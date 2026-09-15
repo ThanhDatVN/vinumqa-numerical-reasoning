@@ -1,0 +1,12 @@
+# Chuẩn hoá xuống dòng LF cho mọi file văn bản: máy Windows và Colab (Linux)
+# cùng thấy một nội dung, notebook không sinh diff giả vì CRLF.
+* text=auto eol=lf
+
+*.ipynb text eol=lf
+*.py    text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.csv   text eol=lf
+
+*.png binary
+*.pdf binary
