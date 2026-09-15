@@ -19,6 +19,17 @@ và tốn bao nhiêu; tài liệu này là *làm gì, theo thứ tự nào, bấ
 > `RUN_RANDOM_CONTROL = True`). Nên ở bước 10–11 phải **đặt lại cờ mỗi lần mở**. Đây là điều
 > tốt: không bao giờ vô tình chạy nhầm cấu hình còn sót từ lần trước.
 
+## Hai luật phải nhớ
+
+**1. Luôn mở notebook từ GitHub, đừng mở bản đã lưu trong Drive.**
+Bản Drive là bản sao đông cứng từ lúc mở; mọi sửa lỗi sau đó không có trong nó. Mở bằng huy
+hiệu **Mở trong Colab** ở [README](README.md), hoặc *File → Open notebook → GitHub*.
+
+**2. Xong mỗi notebook thì ngắt runtime trước khi làm việc khác.**
+*Thời gian chạy → Ngắt kết nối và xoá thời gian chạy.* Colab tính tiền theo **thời gian
+session GPU còn kết nối**, không theo lượng tính toán — để A100 bật mà ngồi đọc kết quả là
+mất ~0,2 CU mỗi phút. Kết quả đã nằm trên Drive nên không mất gì.
+
 ---
 
 ## Toàn cảnh 13 bước
@@ -50,12 +61,39 @@ Tám session ⇒ **~20 CU chỉ để cài đặt và nạp model**.
 > tìm. Lần chạy đầu chưa ghim mất 24 phút rồi vẫn thất bại. Ô cài đặt in
 > `[CÀI ĐẶT] xong sau X phút` để đối chiếu.
 
-**Tổng thật ~92 CU / 100 CU/tháng**, gần như hết sạch. Khuyến nghị: chạy **bước 1–9**
-(~60 CU), xem kết quả rồi hãy quyết có chạy buổi 3 không. Dừng sau **bước 6** đã là một bài
-hoàn chỉnh — xem [KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md).
+**Tổng thật ~81 CU / 100 CU/tháng** — buổi 1 ~34, buổi 2 ~19, buổi 3 ~28. Khuyến nghị:
+chạy **bước 1–9** (~53 CU), xem kết quả rồi hãy quyết có chạy buổi 3 không. Dừng sau
+**bước 6** đã là một bài hoàn chỉnh — xem [KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md).
 
-> Mỗi lần mở một notebook GPU là **~4,3 CU** dù chưa chạy gì. Đừng mở để "xem thử".
+> Mỗi lần mở một notebook GPU là **~2,8 CU** dù chưa chạy gì. Đừng mở để "xem thử".
 > Restart runtime thì **không** phải cài lại — chỉ nạp lại model (~4 phút).
+
+---
+
+## Dừng ở đâu, gửi lại gì
+
+Cuối mỗi nấc notebook **tự in ra khối meta** giữa hai đường kẻ ngang — bôi đen copy là xong,
+không phải vào Drive lục file. Khối đó có EA/PA, phân rã theo số phép toán, phân bố kiểu lỗi,
+phiên bản thư viện thật và commit của code.
+
+| Bước | Sau khi xong | Gửi đi |
+|:--:|---|---|
+| 1 · `00` | chạy tiếp ngay | không — trừ khi §2 không ra `test = 100 %` |
+| 2 · `01` | chạy tiếp ngay | không — tự kiểm ba dòng |
+| 3 · `02` | ⛔ **ngắt runtime, dừng** | **khối meta** |
+| 4 · `04` | ⛔ **ngắt runtime, dừng** | **khối meta** |
+| 5 · `05` | chạy hết 3 pha rồi dừng | **khối meta** + `playbook_ace_base.txt` |
+| 6 · `07` | hết buổi 1 | `bang_ket_qua_*.csv`, `kiem_dinh_*.csv` |
+| 7 · `03`A | chạy tiếp nếu ≥ 800 mẫu | chỉ khi **< 800** |
+| 8 · `03`B | chạy tiếp nếu loss không tăng ngược | chỉ khi **tăng ngược** |
+| 9 · `03`C | hết buổi 2 | **khối meta** |
+| 10 · `04` lần 2 | chạy tiếp ngay | không |
+| 11 · `05` lần 2 | chạy tiếp ngay | không |
+| 12 · `06` | hết buổi 3 | `ma_tran_to_hop_*.csv` |
+| 13 · `07` cuối | xong | cả thư mục `vinumqa_runs/` (nén lại) |
+
+Ba lần dừng bắt buộc là **sau bước 3, 4 và 5** — đó là ba cổng mà nếu sai, mọi thứ phía sau
+đều vô nghĩa. Còn lại chạy thẳng.
 
 ---
 
@@ -148,23 +186,33 @@ GPU** để có.
 
 | Cell | Việc | Bình thường mất |
 |---|---|---|
-| #1 | cài unsloth + vLLM | 5–10 phút |
-| #2 | cấu hình, clone repo | 15 giây |
-| #3 | self-test executor | tức thì |
+| #1 | cài unsloth + vLLM (phiên bản đã ghim) | 8–15 phút |
+| #2 | cấu hình, clone repo | 20 giây |
+| #3 | kiểm gói + self-test executor | tức thì |
 | #4–#5 | nạp Qwen3-8B 4-bit | 3–4 phút |
 | #8 | chạy 497 mẫu | 9 phút |
 
 > Colab hiện nút **RESTART SESSION** sau cell #1 là chuyện bình thường. Bấm restart rồi
 > **Run all lại** — cell #1 sẽ bỏ qua vì thư viện đã có sẵn.
 
-**⛔ Cổng — cell #3 phải in:**
+**⛔ Cổng — cell #3 phải in đủ ba dòng:**
 
 ```
+[GÓI] vllm=0.23.0+cu129 | unsloth=… | transformers=4.57.6 | trl=0.24.0 | …
 [SELF-TEST] executor tái tạo exe_ans trên test: 497/497
 [SELF-TEST] ✅ executor / PA / EA đạt
 ```
 
-Cell này cố tình đặt **trước** khi nạp model, để hỏng thì chưa tốn gì.
+Dòng `[GÓI]` quan trọng không kém dòng self-test:
+
+| Thấy gì | Nghĩa là |
+|---|---|
+| `vllm=0.23.0+cu129` | ✅ đúng wheel khớp CUDA 12.x |
+| `vllm=0.23.0` (không có `+cu`) | ⚠ bản PyPI dựng cho CUDA 13 — cell nạp model sẽ báo `No module named 'vllm'` |
+| `transformers=5.x` | ⛔ cell tự dừng — vLLM 0.23 không chạy với transformers 5 |
+| thiếu gói nào đó | ⛔ cell tự dừng, in sẵn lệnh chữa |
+
+Cả ô này cố tình đặt **trước** khi nạp model, để hỏng thì chưa tốn gì.
 
 **⛔ Cổng — §3 phải in:**
 
