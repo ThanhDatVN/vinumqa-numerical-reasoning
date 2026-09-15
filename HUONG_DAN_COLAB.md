@@ -216,7 +216,8 @@ Hai lưu ý:
 | `Không thấy dữ liệu tại …/data` | Repo thiếu `data/`. Kiểm tra `.gitignore` không chặn `data/`, rồi `git add data/ && git push`. |
 | `compute capability 6.0 không chạy được vLLM` | Đang ở T4/P100. Runtime → Change runtime type → A100. |
 | `[PROMPT] ⚠ đã bật cắt ngữ cảnh` | Đang ở T4. Đổi sang A100 hoặc L4 — kết quả có cắt không trộn chung được với kết quả không cắt. |
-| Cell cài đặt chạy 5–10 phút | Bình thường, nó cài unsloth + vLLM. Chỉ chạy một lần mỗi session. |
+| Cell cài đặt chạy 6–12 phút | Bình thường, nó cài unsloth + vLLM. Chỉ chạy một lần mỗi session. |
+| Cài đặt chạy >25 phút rồi vẫn thiếu `vllm`/`unsloth` | Phiên bản ghim không còn wheel cho image Colab mới. Mở terminal, chạy `pip install -U unsloth vllm`, xem lỗi thật, rồi ghim lại bộ mới vào ô cài đặt. |
 | Colab bảo cần restart sau khi cài | Restart rồi Run all lại — cell cài đặt sẽ bỏ qua vì đã có sẵn. |
 | OOM khi nạp model | Ở cell cấu hình GPU: `GPU_MEM_UTIL = 0.80`, `MAX_NUM_SEQS = 32`. |
 | Mất session giữa pha A của `05` | Có checkpoint mỗi vòng — mở lại, Run all, nó tự tiếp từ vòng dở. |

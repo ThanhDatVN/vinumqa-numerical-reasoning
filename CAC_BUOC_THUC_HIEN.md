@@ -43,8 +43,12 @@ và tốn bao nhiêu; tài liệu này là *làm gì, theo thứ tự nào, bấ
 | 13 | Báo cáo cuối | `07` | CPU | 1 ph | 0 | CSV để dán vào bài |
 
 Cột "Thời gian" ở trên là **thời gian tính toán**. Mỗi session GPU còn mất thêm
-**~22 phút cố định** trước đó: `pip install` unsloth + vLLM (12–20 phút) rồi nạp model
-(~4 phút). Tám session ⇒ **~36 CU chỉ để cài đặt và nạp model**.
+**~12–15 phút cố định** trước đó: `pip install` (6–12 phút) rồi nạp model (~4 phút).
+Tám session ⇒ **~20 CU chỉ để cài đặt và nạp model**.
+
+> Phiên bản thư viện nay đã **ghim sẵn** theo bộ xác minh chạy được, nên pip không phải dò
+> tìm. Lần chạy đầu chưa ghim mất 24 phút rồi vẫn thất bại. Ô cài đặt in
+> `[CÀI ĐẶT] xong sau X phút` để đối chiếu.
 
 **Tổng thật ~92 CU / 100 CU/tháng**, gần như hết sạch. Khuyến nghị: chạy **bước 1–9**
 (~60 CU), xem kết quả rồi hãy quyết có chạy buổi 3 không. Dừng sau **bước 6** đã là một bài
@@ -191,7 +195,12 @@ Giống hệt bước 2, chỉ khác `PROMPT_LEVEL = "engineered"` (đã đặt 
 | Quan sát | Kết luận |
 |---|---|
 | PA_loose ≈ **51 %** (tham chiếu: 51,34 %) | ✅ môi trường khớp, chạy tiếp |
-| Lệch > 5 điểm | ⛔ **Dừng.** Kiểm tra theo thứ tự: (1) `[PROMPT]` có báo cắt ngữ cảnh không; (2) cell #1 đã cài đúng `transformers==4.56.2` và `trl==0.22.2` chưa; (3) `TEMPERATURE` có đúng 0.1 không |
+| Lệch > 5 điểm | ⛔ **Dừng.** Kiểm tra theo thứ tự: (1) `[PROMPT]` có báo cắt ngữ cảnh không; (2) `env` trong `02_prompt_eng_meta.json` có đúng bộ phiên bản đã ghim không; (3) `TEMPERATURE` có đúng 0.1 không |
+
+> ⚠ **Môi trường đã trôi so với bản tham chiếu.** Image Colab hiện tại buộc phải dùng
+> `transformers 4.57.6` / `trl 0.24.0` thay vì `4.56.2` / `0.22.2`. Vì vậy lệch vài điểm ở
+> cổng này có thể là do môi trường chứ không phải lỗi. Phiên bản thật được ghi trong `env`
+> của mỗi `_meta.json` — báo cáo phải nêu rõ chỗ lệch này.
 
 **Cũng xem §5:** Δ so với nấc 1 + kiểm định McNemar. Nếu Δ dương và p < 0,05 thì prompt
 engineering có đóng góp đo được — đó là con số của nấc 2.
