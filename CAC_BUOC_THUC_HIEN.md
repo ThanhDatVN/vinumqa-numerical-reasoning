@@ -14,6 +14,11 @@ và tốn bao nhiêu; tài liệu này là *làm gì, theo thứ tự nào, bấ
 - **"§N"** = mục trong notebook, thấy ở panel mục lục bên trái Colab.
 - ⛔ = cổng kiểm tra. Trượt thì **dừng lại xử lý**, đừng chạy tiếp cho tốn compute unit.
 
+> ⚠ **Sửa cờ trong Colab không lưu ngược về GitHub.** Mở notebook từ GitHub là mở một bản
+> sao; đóng tab rồi mở lại thì cờ trở về mặc định (`USE_SFT_ADAPTER = False`,
+> `RUN_RANDOM_CONTROL = True`). Nên ở bước 10–11 phải **đặt lại cờ mỗi lần mở**. Đây là điều
+> tốt: không bao giờ vô tình chạy nhầm cấu hình còn sót từ lần trước.
+
 ---
 
 ## Toàn cảnh 13 bước
@@ -57,6 +62,25 @@ Kiểm lại ba thứ trước khi tốn CU đầu tiên:
 - [ ] `pytest` xanh 114/114
 - [ ] Repo trên GitHub có thư mục `data/` với đủ `train.json`, `valid.json`, `test.json`
 - [ ] Colab Pro còn ≥ 60 compute unit
+
+---
+
+## Không có "input" nào phải chuẩn bị
+
+Code **và** dữ liệu nằm trong repo, notebook tự clone về. Không upload gì, không kéo thả file
+nào vào Colab, không đặt đường dẫn.
+
+Thao tác duy nhất giống "nhập liệu" là **cho phép gắn Drive**, hỏi một lần mỗi session:
+
+1. Cell cấu hình chạy tới `drive.mount(...)` → Colab hiện hộp thoại
+   **Permit this notebook to access your Google Drive files?**
+2. Bấm **Connect to Google Drive** → chọn tài khoản → **Allow**.
+
+Drive chỉ dùng để **chứa kết quả**. Thư mục `MyDrive/vinumqa_runs/` tự tạo — không cần vào
+Drive tạo trước.
+
+> Cell cấu hình treo ở `drive.mount` mà không thấy hộp thoại: kiểm tra trình duyệt có chặn
+> pop-up không, hoặc cuộn lên xem output của cell.
 
 ---
 
