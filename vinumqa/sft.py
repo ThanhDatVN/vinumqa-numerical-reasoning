@@ -182,7 +182,7 @@ def lora_config() -> dict:
 
 
 def training_config(vram_gb: float, n_train: int, *, epochs=3, output_dir="outputs",
-                    bf16=True) -> dict:
+                    bf16=True, max_seq: int = 8192) -> dict:
     """Tham số ``TrainingArguments``, tự chỉnh batch theo VRAM.
 
     Notebook cũ dùng ``per_device_train_batch_size=112`` cho A100 80GB. Trên L4 24GB
@@ -197,6 +197,12 @@ def training_config(vram_gb: float, n_train: int, *, epochs=3, output_dir="outpu
         bs, accum, eval_bs = 8, 2, 8
     else:                         # A100 80GB — như notebook cũ
         bs, accum, eval_bs = 16, 1, 16
+
+    # Chuỗi dài hơn thì activation nặng hơn tương ứng → hạ batch, tăng accum để
+    # BATCH HIỆU DỤNG không đổi (lr 2e-4 chỉ hợp lệ ở batch hiệu dụng 16).
+    while max_seq > 8192 * (2 ** 0) and bs > 1 and max_seq / 8192 > 1.2:
+        bs, accum, eval_bs = max(1, bs // 2), accum * 2, max(1, eval_bs // 2)
+        max_seq /= 2
 
     effective = bs * accum
     steps_per_epoch = max(1, n_train // effective)
