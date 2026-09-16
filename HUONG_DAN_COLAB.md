@@ -220,7 +220,7 @@ Hai lưu ý:
 | Cài đặt chạy >25 phút rồi vẫn thiếu `vllm`/`unsloth` | Phiên bản ghim không còn wheel cho image Colab mới. Mở terminal, chạy `pip install -U unsloth vllm`, xem lỗi thật, rồi ghim lại bộ mới vào ô cài đặt. |
 | Colab bảo cần restart sau khi cài | Restart rồi Run all lại — cell cài đặt sẽ bỏ qua vì đã có sẵn. |
 | OOM khi nạp model | Ở cell cấu hình GPU: `GPU_MEM_UTIL = 0.80`, `MAX_NUM_SEQS = 32`. |
-| `Following weights were not initialized from checkpoint` | Model tải dở trong cache. Mở terminal: `rm -rf ~/.cache/huggingface/hub/models--unsloth--Qwen3-8B*` rồi `export HF_HUB_ENABLE_HF_TRANSFER=0`, Restart session, chạy lại từ cell #2. Kiểm `df -h /` trước — cần ≥ 20 GB trống. |
+| `Following weights were not initialized from checkpoint` | Model tải dở trong cache. Mở terminal: `rm -rf ~/.cache/huggingface/hub/models--unsloth--Qwen3-8B*` rồi đặt `TAI_CHAM_CHO_CHAC = True` ở đầu ô nạp model (`export` trong terminal KHÔNG tới được kernel notebook), Restart session, chạy lại từ cell #2. Kiểm `df -h /` trước — cần ≥ 20 GB trống. |
 | Mất session giữa pha A của `05` | Có checkpoint mỗi vòng — mở lại, Run all, nó tự tiếp từ vòng dở. |
 | Muốn chạy thử nhanh trước | Thêm một cell ngay sau cell cấu hình: `test_all = test_all[:40]`. Nhớ bỏ đi khi chạy thật. |
 
