@@ -77,8 +77,14 @@ class PromptKit:
 
         self.tokenizer = tokenizer
         self.model_name = model_name
-        if enable_thinking is None:
-            enable_thinking = False if "qwen3" in model_name.lower() else None
+        # None = KHÔNG truyền enable_thinking, để chat template tự quyết — đúng như bản
+        # tham chiếu gọi ``apply_chat_template(messages, tokenize=False,
+        # add_generation_prompt=True)``. Với Qwen3, mặc định của template là **bật** suy
+        # nghĩ.
+        #
+        # ⚠ Đừng ép False ở đây. Bản trước ép tắt cho Qwen3 và mất 10 điểm PA_loose
+        # (41.05 % thay vì ~51 %), vì bài toán suy luận số cần chuỗi suy luận. Dấu hiệu
+        # nhận ra: 497 mẫu chạy xong trong ~1 phút thay vì ~9 phút.
         self.enable_thinking = enable_thinking
 
         self.max_ctx_chars = max_ctx_chars

@@ -805,3 +805,40 @@ class TestPrompts:
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v", "--tb=short"]))
+
+
+class TestCheDoSuyNghi:
+    """Chế độ suy nghĩ phải để chat template tự quyết, đúng như bản tham chiếu.
+
+    Bản trước ép enable_thinking=False cho Qwen3 và mất ~10 điểm PA_loose.
+    """
+
+    def test_mac_dinh_khong_ep_tat_cho_qwen3(self):
+        kit = prompts_mod.PromptKit(model_name="unsloth/Qwen3-8B")
+        assert kit.enable_thinking is None, (
+            "Qwen3 phải để template tự quyết (mặc định BẬT suy nghĩ), không ép tắt")
+
+    def test_mac_dinh_giong_nhau_moi_model(self):
+        for name in ("unsloth/Qwen3-8B", "microsoft/phi-4", "mistralai/Mistral-7B", ""):
+            assert prompts_mod.PromptKit(model_name=name).enable_thinking is None
+
+    def test_van_ep_duoc_khi_can(self):
+        assert prompts_mod.PromptKit(model_name="unsloth/Qwen3-8B",
+                                 enable_thinking=False).enable_thinking is False
+        assert prompts_mod.PromptKit(model_name="unsloth/Qwen3-8B",
+                                 enable_thinking=True).enable_thinking is True
+
+    def test_chat_khong_truyen_enable_thinking_khi_None(self):
+        ghi = {}
+
+        class _Tok:
+            chat_template = "x"
+
+            def apply_chat_template(self, messages, **kw):
+                ghi.update(kw)
+                return "PROMPT"
+
+        kit = prompts_mod.PromptKit(tokenizer=_Tok(), model_name="unsloth/Qwen3-8B")
+        kit.chat([{"role": "user", "content": "hi"}])
+        assert "enable_thinking" not in ghi, (
+            "Phải gọi apply_chat_template y như bản tham chiếu: không truyền tham số này")
