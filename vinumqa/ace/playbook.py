@@ -472,7 +472,7 @@ class QualityGate:
     """
 
     def __init__(self, embedder: Embedder | None = None, retriever: Retriever | None = None,
-                 min_len=30, max_len=220, dedup_thresh=0.93, overlap_thresh=0.80,
+                 min_len=30, max_len=220, dedup_thresh=0.98, overlap_thresh=0.80,
                  enabled=True, min_ops=1):
         """``dedup_thresh`` phải khớp với embedder đang dùng — ngưỡng KHÔNG chuyển được
         giữa các model.
@@ -481,6 +481,8 @@ class QualityGate:
         cho cosine ~0.1–0.3 nên 0.85 là "trùng" thật. Ta dùng ``multilingual-e5-base``,
         vốn nén mọi cặp vào dải ~0.70–0.90 — 0.85 ở đó gần như là SÀN, không phải trùng.
         Giữ 0.85 khiến 113/217 đề xuất bị loại oan dù playbook chỉ có 1 bullet.
+        Log của lượt sau (đã ghi kèm giá trị thật) cho thấy phân bố dồn ở 0.94–0.97,
+        nên sàn của e5 là ~0.95 → đặt 0.98 mới chỉ chặn trùng lặp thật.
 
         ``min_ops`` = số phép DSL tối thiểu. Bản gốc ép 2. Nhưng 64 % tập test ViNumQA
         là câu MỘT phép (319/497), nên ép 2 là chặn hẳn mọi lời khuyên cho nhóm lớn nhất.
