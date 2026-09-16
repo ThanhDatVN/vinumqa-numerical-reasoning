@@ -19,9 +19,12 @@ Khi ``use_selfeval=True``, chương trình cuối lấy theo đúng logic của 
 from __future__ import annotations
 
 import gc
+import re
+import statistics
 from collections import Counter, defaultdict
 
 from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
+                  ly_do_khong_chay,
                   extract_program_answer, n_ops)
 from .prompts import strip_assistant
 
@@ -77,6 +80,11 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
         final_ans_text = ans2 if prog2 else ans1
         value = execute_program(final_prog, s.get("table") or []) if final_prog else None
 
+        # Vì sao executor từ chối — tính NGAY ở đây vì chỉ chỗ này còn giữ `s["table"]`,
+        # và lưu vào row để file jsonl sau này phân tích lại được mà không cần bảng.
+        ly_do = (ly_do_khong_chay(final_prog, s.get("table") or [])
+                 if final_prog and value is None else None)
+
         gold_prog = s.get("qa", {}).get("program", "") or ""
         gold_ans = s.get("qa", {}).get("exe_ans")
         ea = check_ea(value, gold_ans) if gold_ans is not None else False
@@ -97,12 +105,28 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
             "pa_strict": pa_strict, "pa_loose": pa_loose,
             "n_ops_gold": n_ops(gold_prog),
             "outcome": classify_outcome(ea, pa_strict, final_prog, value),
+            "ly_do_khong_chay": ly_do,
             "used_bullets": ids,
             "bullets_text": bt,
             "raw_step1": r1 if keep_raw else "",
             "raw_step2": r2 if keep_raw else "",
         })
     return rows
+
+
+def ty_le_lap(text: str, n: int = 60) -> float:
+    """Mức LẶP của đoạn cuối một lượt sinh. 0 = không lặp, gần 1 = quay vòng một câu.
+
+    Dùng để phân biệt hai lý do rất khác nhau khi model chạm trần token:
+    suy luận dài thật (lặp thấp — nâng trần sẽ cứu được) và quay vòng vô hạn
+    (lặp cao — nâng trần chỉ tốn thêm thời gian, thuốc nằm ở repetition_penalty).
+    """
+    t = re.sub(r"\s+", " ", text or "").strip()[-4000:]
+    if len(t) < n * 3:
+        return 0.0
+    buoc = max(1, n // 3)
+    grams = [t[i:i + n] for i in range(0, len(t) - n + 1, buoc)]
+    return round(1 - len(set(grams)) / len(grams), 3) if grams else 0.0
 
 
 def phan_loai_khong_co_program(rows) -> dict | None:
@@ -121,18 +145,72 @@ def phan_loai_khong_co_program(rows) -> dict | None:
     if not any(r.get("raw_step1") or r.get("raw_step2") for r in rows):
         return None
     bi_cat = sai_dinh_dang = 0
+    lap = []
     for r in rows:
         if r.get("final_program"):
             continue
         raws = [r.get("raw_step1") or "", r.get("raw_step2") or ""]
-        if any("<think>" in t and "</think>" not in t for t in raws):
+        cat = [t for t in raws if "<think>" in t and "</think>" not in t]
+        if cat:
             bi_cat += 1
+            lap.append(max(ty_le_lap(t) for t in cat))
         else:
             sai_dinh_dang += 1
     n = len(rows) or 1
-    return {"bi_cat_giua_suy_nghi": bi_cat, "sai_dinh_dang": sai_dinh_dang,
-            "ty_le_bi_cat": round(bi_cat / n, 4),
-            "ty_le_sai_dinh_dang": round(sai_dinh_dang / n, 4)}
+    out = {"bi_cat_giua_suy_nghi": bi_cat, "sai_dinh_dang": sai_dinh_dang,
+           "ty_le_bi_cat": round(bi_cat / n, 4),
+           "ty_le_sai_dinh_dang": round(sai_dinh_dang / n, 4)}
+    if lap:
+        # Trung vị mức lặp của CHÍNH những lượt bị cắt: cao thì nâng trần là vô ích.
+        out["lap_trung_vi"] = round(statistics.median(lap), 3)
+        out["so_ca_lap_nang"] = sum(1 for x in lap if x >= 0.5)
+    return out
+
+
+def bo_sung_ly_do(rows, samples) -> int:
+    """Điền ``ly_do_khong_chay`` cho row đọc từ file chạy TRƯỚC khi có trường này.
+
+    Phải có ``samples`` vì lý do phụ thuộc vào BẢNG của mẫu, mà jsonl không lưu bảng.
+    Nhờ hàm này, những nấc đã chạy xong vẫn phân tích lại được, không phải tốn GPU.
+
+    Trả về số row vừa điền.
+    """
+    bang = {s.get("id"): (s.get("table") or []) for s in samples}
+    n = 0
+    for r in rows:
+        if r.get("ly_do_khong_chay") or not r.get("final_program"):
+            continue
+        if r.get("pred_value") is not None:
+            continue
+        r["ly_do_khong_chay"] = ly_do_khong_chay(r["final_program"],
+                                                 bang.get(r.get("id"), []))
+        n += 1
+    return n
+
+
+def phan_loai_khong_chay_duoc(rows) -> dict | None:
+    """Tách "program không chạy được" theo LÝ DO executor từ chối.
+
+    Ở nấc prompt cơ bản đây là ô LỚN NHẤT của bảng kết cục (33 %) — lớn hơn cả ô "sai".
+    Gộp chung thì không biết chữa đường nào, vì mỗi lý do cần một cách sửa khác hẳn:
+
+    * ``nhan_bang_khong_khop`` — gọi ``table_*`` với nhãn không có hàng nào khớp. Chữa
+      bằng hướng dẫn đọc bảng, không phải bằng quy tắc định dạng.
+    * ``phep_long_nhau`` — ``divide(5310, add(1, 0.15))``. Prompt có hẳn một dòng cấm;
+      con số này cho biết dòng đó có tác dụng hay không.
+    * ``tham_chieu_sai`` — ``#N`` trỏ tới phép chưa có. Lỗi lập kế hoạch nhiều bước.
+    * ``tham_so_khong_phai_so`` — nhét chữ vào chỗ cần số.
+
+    Trả ``None`` nếu không mẫu nào thuộc diện này (khỏi in một khối rỗng).
+    """
+    dem = Counter(r["ly_do_khong_chay"] for r in rows
+                  if r.get("ly_do_khong_chay"))
+    if not dem:
+        return None
+    n = len(rows) or 1
+    return {"tong": sum(dem.values()),
+            "theo_ly_do": dict(dem.most_common()),
+            "ty_le": {k: round(v / n, 4) for k, v in dem.most_common()}}
 
 
 def summarize(rows, label="") -> dict:
@@ -156,6 +234,8 @@ def summarize(rows, label="") -> dict:
         "by_steps": {str(k): v for k, v in sorted(by_steps.items())},
         # vì sao "không sinh được program": bị cắt hay sai định dạng
         "vi_sao_khong_co_program": phan_loai_khong_co_program(rows),
+        # vì sao "program không chạy được": nhãn bảng, lồng nhau, #N sai…
+        "vi_sao_khong_chay_duoc": phan_loai_khong_chay_duoc(rows),
     }
 
 
@@ -168,7 +248,18 @@ def print_summary(m) -> None:
     print(f"  Không sinh được program : {m['no_program']:.4f}"
           + (f"   (bị cắt {_vs['bi_cat_giua_suy_nghi']} | "
              f"sai định dạng {_vs['sai_dinh_dang']})" if _vs else ""))
+    if _vs and _vs.get("lap_trung_vi") is not None:
+        _l = _vs["lap_trung_vi"]
+        print(f"      lặp của lượt bị cắt (trung vị) : {_l:.0%}"
+              f"   {_vs['so_ca_lap_nang']}/{_vs['bi_cat_giua_suy_nghi']} ca lặp nặng")
+        print("      → " + ("quay vòng, NÂNG TRẦN VÔ ÍCH — thuốc ở repetition_penalty"
+                            if _l >= 0.5 else
+                            "suy luận dài thật, nâng trần có thể cứu thêm"))
     print(f"  Program không chạy được : {m['exec_none']:.4f}")
+    _kc = m.get("vi_sao_khong_chay_duoc")
+    if _kc:
+        for _k, _v in _kc["theo_ly_do"].items():
+            print(f"      {_k:<32}{_v:>5} ({_v/m['n']:.1%})")
     print(f"\n  {'số phép':<9}{'mẫu':>6}{'EA':>9}{'PA':>9}")
     for k, (tot, ea, pa) in m["by_steps"].items():
         print(f"  {k:<9}{tot:>6}{ea/tot:>9.1%}{pa/tot:>9.1%}")

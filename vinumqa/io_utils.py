@@ -16,7 +16,8 @@ import json
 import os
 from collections import Counter, defaultdict
 
-from .dsl import (check_ea, check_pa, classify_outcome, execute_program, n_ops)
+from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
+                  ly_do_khong_chay, n_ops)
 
 __all__ = ["LEGACY_COLS", "save_details_csv", "save_full_jsonl", "save_raw_jsonl",
            "load_predictions", "score_saved_predictions", "save_metrics_csv",
@@ -136,6 +137,8 @@ def score_saved_predictions(csv_path: str, samples: list[dict], label: str = "",
             "pa_strict": pa_strict, "pa_loose": pa_loose,
             "n_ops_gold": n_ops(gold_prog),
             "outcome": classify_outcome(ea, pa_strict, final_prog, value),
+            "ly_do_khong_chay": (ly_do_khong_chay(final_prog, s.get("table") or [])
+                                 if final_prog and value is None else None),
             "used_bullets": [],
             "bullets_text": "",
             "raw_step1": "", "raw_step2": "",

@@ -154,10 +154,17 @@ _TABLE_FUNCS = {
 
 # ─────────────────────────────── thực thi ───────────────────────────────
 
-def execute_program(program, table):
-    """Thực thi program DSL. Trả ``None`` nếu bất hợp lệ (fail-closed)."""
+_LOI_THUC_THI = (ArithmeticError, OverflowError, TypeError, ValueError, IndexError)
+
+
+def _thuc_thi(program, table):
+    """Lõi thực thi — NÉM lỗi kèm lý do.
+
+    ``execute_program`` nuốt lỗi để fail-closed; ``ly_do_khong_chay`` giữ lại lý do.
+    Dùng chung một lõi nên chẩn đoán không bao giờ lệch khỏi thực thi thật.
+    """
     if not isinstance(program, str) or not program.strip():
-        return None
+        raise ValueError("không có program")
     results = []
 
     def resolve(token):
@@ -167,48 +174,107 @@ def execute_program(program, table):
             if idx >= len(results) or isinstance(results[idx], str):
                 raise ValueError("tham chiếu #N không hợp lệ")
             return float(results[idx])
-        return parse_numeric_literal(token)
+        # Lồng nhau là lỗi RIÊNG, không phải "tham số đọc không ra số". Prompt có hẳn
+        # một dòng cấm lồng nhau, nên phải đếm riêng mới biết dòng đó có tác dụng không.
+        if re.fullmatch(r"[a-z_]+\s*\(.*\)", token, re.I | re.S):
+            raise ValueError("phép toán lồng nhau")
+        try:
+            return parse_numeric_literal(token)
+        except (TypeError, ValueError):
+            raise ValueError("tham số không phải số") from None
 
-    try:
-        for command in split_dsl_items(program.strip()):
-            m = re.fullmatch(r"([a-z_]+)\s*\((.*)\)", command, re.I | re.S)
-            if not m:
-                raise ValueError("phép toán dị dạng")
-            op, args = m.group(1).casefold(), split_dsl_items(m.group(2))
-            if len(args) != 2:
-                raise ValueError("phép toán cần đúng 2 tham số")
-            left, right = args
-            if op.startswith("table_"):
-                if right.strip().casefold() != "none":
-                    raise ValueError("table_* cần tham số thứ hai là none")
-                if op not in _TABLE_FUNCS:
-                    raise ValueError("table_* không hỗ trợ")
-                vals = table_row_values(table, left.strip().strip('"').strip("'"))
-                out = float(_TABLE_FUNCS[op](vals))
+    for command in split_dsl_items(program.strip()):
+        m = re.fullmatch(r"([a-z_]+)\s*\((.*)\)", command, re.I | re.S)
+        if not m:
+            raise ValueError("phép toán dị dạng")
+        op, args = m.group(1).casefold(), split_dsl_items(m.group(2))
+        if len(args) != 2:
+            raise ValueError("phép toán cần đúng 2 tham số")
+        left, right = args
+        if op.startswith("table_"):
+            if right.strip().casefold() != "none":
+                raise ValueError("table_* cần tham số thứ hai là none")
+            if op not in _TABLE_FUNCS:
+                raise ValueError("table_* không hỗ trợ")
+            vals = table_row_values(table, left.strip().strip('"').strip("'"))
+            out = float(_TABLE_FUNCS[op](vals))
+        else:
+            a, b = resolve(left), resolve(right)
+            if op == "add":
+                out = a + b
+            elif op == "subtract":
+                out = a - b
+            elif op == "multiply":
+                out = a * b
+            elif op == "divide":
+                if b == 0:
+                    raise ValueError("chia cho 0")
+                out = a / b
+            elif op == "exp":
+                out = a ** b
+            elif op == "greater":
+                out = "yes" if a > b else "no"
             else:
-                a, b = resolve(left), resolve(right)
-                if op == "add":
-                    out = a + b
-                elif op == "subtract":
-                    out = a - b
-                elif op == "multiply":
-                    out = a * b
-                elif op == "divide":
-                    if b == 0:
-                        raise ValueError("chia cho 0")
-                    out = a / b
-                elif op == "exp":
-                    out = a ** b
-                elif op == "greater":
-                    out = "yes" if a > b else "no"
-                else:
-                    raise ValueError("phép toán không hỗ trợ")
-            if isinstance(out, float) and not math.isfinite(out):
-                raise ValueError("kết quả không hữu hạn")
-            results.append(out)
-    except (ArithmeticError, OverflowError, TypeError, ValueError, IndexError):
+                raise ValueError("phép toán không hỗ trợ")
+        if isinstance(out, float) and not math.isfinite(out):
+            raise ValueError("kết quả không hữu hạn")
+        results.append(out)
+    if not results:
+        raise ValueError("program rỗng")
+    return results[-1]
+
+
+def execute_program(program, table):
+    """Thực thi program DSL. Trả ``None`` nếu bất hợp lệ (fail-closed)."""
+    try:
+        return _thuc_thi(program, table)
+    except _LOI_THUC_THI:
         return None
-    return results[-1] if results else None
+
+
+# Thông điệp lỗi → nhóm lý do. Gom theo CÁCH CHỮA, không theo chỗ ném lỗi: hai lỗi khác
+# dòng mà cùng một cách sửa thì để chung một nhóm.
+_NHOM_LY_DO = (
+    ("không có hàng nào khớp nhãn", "nhan_bang_khong_khop"),
+    ("hàng không có giá trị số",    "nhan_bang_khong_khop"),
+    ("nhãn hàng khớp nhiều hàng",   "nhan_bang_mo_ho"),
+    ("không có bảng",               "dung_table_khi_khong_co_bang"),
+    ("table_*",                     "table_sai_cu_phap"),
+    ("phép toán lồng nhau",         "phep_long_nhau"),
+    ("tham chiếu #N",               "tham_chieu_sai"),
+    ("tham số không phải số",       "tham_so_khong_phai_so"),
+    ("phép toán không hỗ trợ",      "phep_toan_la"),
+    ("cần đúng 2 tham số",          "sai_so_tham_so"),
+    ("dị dạng",                     "cu_phap_di_dang"),
+    ("ngoặc",                       "cu_phap_di_dang"),
+    ("chia cho 0",                  "chia_cho_0"),
+    ("không hữu hạn",               "so_tran"),
+    ("không có program",            "khong_co_program"),
+    ("program rỗng",                "cu_phap_di_dang"),
+)
+
+
+def ly_do_khong_chay(program, table) -> str | None:
+    """Vì sao ``execute_program`` trả ``None``. Trả ``None`` nghĩa là chạy được."""
+    try:
+        _thuc_thi(program, table)
+        return None
+    except (OverflowError, ArithmeticError) as e:
+        # Python ném OverflowError với thông điệp tiếng Anh của riêng nó, không khớp
+        # khoá nào bên dưới — bắt theo KIỂU lỗi mới đúng.
+        if not isinstance(e, ValueError):
+            return "so_tran"
+        thong_diep = str(e)
+        for khoa, nhom in _NHOM_LY_DO:
+            if khoa in thong_diep:
+                return nhom
+        return "khac"
+    except _LOI_THUC_THI as e:
+        thong_diep = str(e)
+        for khoa, nhom in _NHOM_LY_DO:
+            if khoa in thong_diep:
+                return nhom
+        return "khac"
 
 
 # ─────────────────────────────── trích xuất ───────────────────────────────
