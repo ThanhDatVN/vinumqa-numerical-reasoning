@@ -1,238 +1,278 @@
-# Hướng dẫn chạy trên Colab
+# Chạy trên Colab — bảng kiểm từng bước
 
-**Câu trả lời ngắn:** làm **một lần** ở máy (push lên GitHub), sau đó mỗi notebook chỉ là
-*mở → chọn runtime → Run all*. Không phải upload gì, không phải sửa đường dẫn.
+Số ô (`ô #n`) đếm theo **ô code**, bỏ qua ô chữ — đúng như Colab đánh số khi chạy.
+Thời gian **đã gồm** ~15 phút cài đặt + nạp model mỗi phiên GPU.
 
-Cách hoạt động: **code và dữ liệu nằm trong repo GitHub**, cell đầu mỗi notebook tự
-`git clone` về máy ảo Colab. **Chỉ kết quả ghi lên Drive**, nên mất session cũng không mất
-kết quả. Sửa code dưới máy chỉ cần `git push` — lần chạy sau Colab tự lấy bản mới.
+> ⚠ Các mốc thời gian là **ước lượng sau khi nâng trần sinh 4096 → 8192**. Phần đội thêm
+> rơi gần hết vào ~5 % mẫu khó nhất; số còn lại kết thúc sớm nên không đổi.
 
----
-
-## Phần A — làm một lần, ở máy
-
-### 1. Tạo repo trống trên GitHub
-
-github.com → **New repository** → đặt tên (ví dụ `vinumqa-ladder`) → **Create**.
-Đừng tick "Add a README" — repo phải trống.
-
-Public hay private đều được. Private thì Colab cần token (xem [Trục trặc](#trục-trặc)),
-nên nếu không có gì phải giữ kín thì để **public** cho đỡ phiền.
-
-### 2. Điền URL rồi push
-
-```bash
-cd <thư mục dự án>
-python tools/set_repo.py https://github.com/ThanhDatVN/vinumqa-numerical-reasoning --init
-git push -u origin main
-```
-
-`set_repo.py` điền URL vào **cả 10 cell cấu hình** của 8 notebook và các liên kết trong tài
-liệu, rồi `git init` + commit đầu + gắn `origin`. Push xong là **Colab không cần sửa gì
-nữa**.
-
-> Bỏ `--init` nếu muốn tự chạy các lệnh git. Đổi tên repo sau này thì chạy lại script với
-> URL mới.
-
-Repo khoảng **25 MB** (`data/train.json` 18 MB) — thoải mái so với hạn mức GitHub.
-
-### 3. Kiểm tra trước khi đốt compute unit
-
-```bash
-python -m pytest tests/ -q      # 114 test, ~1,5 giây, không cần GPU
-```
+Thang bậc: **1** prompt cơ bản → **2** prompt hoàn chỉnh → **4** self-eval → **3** SFT →
+**5** ACE, cộng ba nhánh rẽ (**2b** bỏ few-shot, **5c** ACE trên prompt cơ bản, đối chứng
+bullet ngẫu nhiên) và **6** ma trận tổ hợp.
 
 ---
 
-## Phần B — trên Colab
+## BUỔI 1 — kết quả chính (~4,5 h)
 
-### 1. Mở notebook
+### Bước 1 · `00_data_audit` · CPU · 2 ph
 
-Vào repo trên GitHub, mở file `.ipynb`, bấm huy hiệu **Mở trong Colab** ở đầu notebook.
+Mở → CPU → Chạy tất cả → cho phép gắn Drive.
 
-Hoặc trong Colab: **File → Open notebook → GitHub** → dán URL repo → chọn notebook.
-
-> Mở kiểu này thì notebook luôn là bản mới nhất trên GitHub. Sửa gì trong Colab sẽ **không**
-> lưu ngược lại repo (trừ khi bấm *File → Save a copy to GitHub*) — không sao, vì kết quả
-> nằm ở Drive chứ không nằm trong notebook.
-
-### 2. Chọn runtime
-
-**Runtime → Change runtime type**:
-
-| Notebook | Runtime | Vì sao |
-|---|---|---|
-| `00`, `07` | **CPU** | không nạp model — chọn CPU thì tốn 0 compute unit |
-| `01`–`06` | **A100 GPU** | |
-
-### 3. Run all
-
-**Runtime → Run all**. Bật **Background execution** để đóng tab cũng không chết session.
-
-Cell đầu sẽ in:
-
-```
-[CODE] đang clone https://github.com/ThanhDatVN/vinumqa-numerical-reasoning.git … (~25 MB, khoảng 15 giây)
-[CODE] → /content/<tên-repo>
-[MÔI TRƯỜNG] Colab | vinumqa v2.0.0
-[REPO]  /content/<tên-repo>
-[RA]    /content/drive/MyDrive/vinumqa_runs
-[DỮ LIỆU] /content/<tên-repo>/data
-          train=2993 valid=584 test=497
-```
-
-kèm **bảng tiến độ** cho biết nấc nào đã chạy.
-
----
-
-## Nếu không dùng `set_repo.py`
-
-Sửa **một dòng, một lần**, ở code cell #2 của notebook `00`:
-
-```python
-GITHUB_REPO = "https://github.com/ThanhDatVN/vinumqa-numerical-reasoning"   # ← URL repo của bạn
-OUTPUT_DIR  = "/content/drive/MyDrive/vinumqa_runs"               # không cần sửa
-```
-
-Chạy xong cell này, URL được **ghi nhớ** vào `MyDrive/.vinumqa_paths.json`; bảy notebook còn
-lại tự đọc, kể cả sau khi restart runtime.
-
----
-
-## Cần nhập gì cho từng notebook
-
-| Notebook | Cần sửa | Ở đâu |
-|---|---|---|
-| `00_data_audit` | `GITHUB_REPO`, nếu chưa chạy `set_repo.py` | code cell #2 |
-| `01_baseline_basic` | — | chỉ Run all |
-| `02_prompt_engineering` | — | chỉ Run all |
-| `03_sft_qwen3` | **2 lần restart** (xem dưới) | |
-| `04_self_evaluation` | `USE_SFT_ADAPTER` | code cell #6 |
-| `05_ace` | `USE_SFT_ADAPTER`, `RUN_RANDOM_CONTROL` | cell #6, #15 |
-| `06_combination` | — | chỉ Run all |
-| `07_final_report` | — | chỉ Run all |
-
-### `04` và `05` chạy hai lần
-
-| Lần | Cờ ở code cell #6 | So với nấc | Khi nào |
-|---|---|---|---|
-| 1 | `USE_SFT_ADAPTER = False` | model gốc | gói A |
-| 2 | `USE_SFT_ADAPTER = True` | model đã SFT | gói C, sau khi chạy `03` |
-
-Notebook tự đặt tên nấc (`04_selfeval_base` / `04_selfeval_sft`) nên hai lần chạy **không đè
-lên nhau**.
-
-Ở `05`, code cell #15 có `RUN_RANDOM_CONTROL = True` — giữ nguyên ở lần 1 (đây là nhóm đối
-chứng quan trọng), đặt `False` ở lần 2 cho đỡ tốn.
-
-### `03` — ba phần, hai lần restart
-
-| Phần | Chạy cell | Việc | Sau đó |
-|---|---|---|---|
-| **A** | #1 → #10 | Sinh lời giải trên train, ghi JSONL | **Runtime → Restart session** |
-| **B** | #11 → #16 | Huấn luyện LoRA | **Restart session** lần nữa |
-| **C** | #17 → #26 | Nạp adapter, chấm test | xong |
-
-Cách làm: Run all → dừng ở cell #10 → Restart → chạy từ cell #11 → dừng ở #16 → Restart →
-chạy từ #17. Trong notebook có sẵn hai ô markdown **⚠ RESTART RUNTIME TẠI ĐÂY** làm mốc.
-
-Lý do phải restart: engine vLLM giữ VRAM rất chặt, không nhả đủ cho huấn luyện. Dữ liệu SFT
-đã ghi ra Drive nên phần B đọc lại được, không mất gì.
-
-> Sau restart, cell cấu hình chạy lại **không clone lại** — thư mục `/content/...` vẫn còn
-> nguyên sau khi restart runtime (chỉ mất khi *Disconnect and delete runtime*).
-
----
-
-## Thứ tự chạy
-
-```
-00 → 01 → 02 → 04 → 05 → [KẾT QUẢ CHÍNH] → 03 → 04(lần 2) → 05(lần 2) → 06 → 07
-```
-
-`03` chạy sau `05` dù số nhỏ hơn — lý do ở [KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md).
-
-> Từng bước một — sửa cell nào, chạy cell nào, phải thấy gì, sai thì làm gì — xem
-> [CAC_BUOC_THUC_HIEN.md](CAC_BUOC_THUC_HIEN.md). Đó là tài liệu mở ra lúc ngồi chạy.
-
-Notebook nào cũng in bảng tiến độ ở cell đầu, nên mở ra là biết đang ở đâu:
-
-```
-  nấc                           n       EA  PA_strict        chạy lúc
-  01_basic              ✓     497   0.xxxx     0.xxxx   20260915_1030
-  02_prompt_eng         ⊘       —        —          —       chưa chạy
-```
-
-Chạy nhầm thứ tự cũng không sao: notebook cần kết quả nấc trước sẽ báo
-`⚠ chưa có 'xx' — chạy notebook tương ứng trước` rồi bỏ qua phần kiểm định, phần còn lại
-vẫn chạy.
-
----
-
-## Kết quả nằm ở đâu
-
-Tất cả trong `MyDrive/vinumqa_runs/` — **không nằm trong repo**, nên `git push` không bao
-giờ động tới kết quả:
-
-```
-vinumqa_runs/
-├── stages/       <nấc>.jsonl       ← notebook sau đọc file này
-│                 <nấc>_program.csv ← 6 cột, mở bằng Excel/Sheets được
-│                 <nấc>_meta.json   ← cấu hình + metrics
-├── logs/         output thô của model (để soi khi cần)
-├── artifacts/    playbook, biểu đồ
-├── sft_adapter_qwen3/   LoRA adapter sau khi chạy 03
-└── bang_ket_qua_*.csv   bảng cuối cùng từ notebook 07
-```
-
-Không cần tải gì về — `07` đọc lại tất cả và xuất bảng để dán vào bài.
-
----
-
-## Sửa code sau khi đã chạy
-
-```bash
-# ở máy
-git add -A && git commit -m "sửa gì đó" && git push
-```
-
-Lần chạy Colab sau, cell đầu tự `git clone`/`git pull` bản mới. Không phải upload lại gì.
-
-Hai lưu ý:
-
-- Muốn lấy bản mới **ngay trong session đang chạy**: `Runtime → Restart session` rồi chạy
-  lại cell đầu (nó sẽ `git pull`).
-- Nếu sửa chính **notebook**, phải **mở lại** notebook từ GitHub — bản đang mở trong Colab
-  là một bản sao.
-
----
-
-## Trục trặc
-
-| Hiện tượng | Xử lý |
+| ⛔ Cổng | |
 |---|---|
-| `Chưa điền GITHUB_REPO` | Chạy `tools/set_repo.py`, hoặc sửa tay dòng `GITHUB_REPO` ở cell đầu notebook `00`. |
-| `git clone thất bại … not found` | Sai URL, hoặc repo private. Kiểm tra URL; repo private thì dùng `https://<token>@github.com/<tài-khoản>/<repo>` với token tạo ở *GitHub → Settings → Developer settings → Personal access tokens* (quyền `repo`). |
-| `Không thấy dữ liệu tại …/data` | Repo thiếu `data/`. Kiểm tra `.gitignore` không chặn `data/`, rồi `git add data/ && git push`. |
-| `compute capability 6.0 không chạy được vLLM` | Đang ở T4/P100. Runtime → Change runtime type → A100. |
-| `[PROMPT] ⚠ đã bật cắt ngữ cảnh` | Đang ở T4. Đổi sang A100 hoặc L4 — kết quả có cắt không trộn chung được với kết quả không cắt. |
-| Cell cài đặt chạy 6–12 phút | Bình thường, nó cài unsloth + vLLM. Chỉ chạy một lần mỗi session. |
-| Cài đặt chạy >25 phút rồi vẫn thiếu `vllm`/`unsloth` | Phiên bản ghim không còn wheel cho image Colab mới. Mở terminal, chạy `pip install -U unsloth vllm`, xem lỗi thật, rồi ghim lại bộ mới vào ô cài đặt. |
-| Colab bảo cần restart sau khi cài | Restart rồi Run all lại — cell cài đặt sẽ bỏ qua vì đã có sẵn. |
-| OOM khi nạp model | Ở cell cấu hình GPU: `GPU_MEM_UTIL = 0.80`, `MAX_NUM_SEQS = 32`. |
-| `Following weights were not initialized from checkpoint` | Model tải dở trong cache. Mở terminal: `rm -rf ~/.cache/huggingface/hub/models--unsloth--Qwen3-8B*` rồi đặt `TAI_CHAM_CHO_CHAC = True` ở đầu ô nạp model (`export` trong terminal KHÔNG tới được kernel notebook), Restart session, chạy lại từ cell #2. Kiểm `df -h /` trước — cần ≥ 20 GB trống. |
-| Mất session giữa pha A của `05` | Có checkpoint mỗi vòng — mở lại, Run all, nó tự tiếp từ vòng dở. |
-| Muốn chạy thử nhanh trước | Thêm một cell ngay sau cell cấu hình: `test_all = test_all[:40]`. Nhớ bỏ đi khi chạy thật. |
+| §2 — `test … 497/497  100.0%` | không đạt → **dừng hẳn**, executor sai thì mọi số sau vô nghĩa |
+
+§5 — chụp bảng đính chính EA, dùng cho báo cáo.
 
 ---
 
-## Vẫn muốn để tất cả trên Drive?
+### Bước 2 · `01_baseline_basic` · A100 · ~30 ph
 
-Vẫn được — không cần GitHub. Upload cả thư mục lên `MyDrive/`, rồi ở cell cấu hình điền:
+Mở → A100 → bật **Thực thi nền** → Chạy tất cả.
 
-```python
-REPO_DIR = "/content/drive/MyDrive/<tên-thư-mục-vừa-upload>"
+Colab sẽ hiện **RESTART SESSION** sau ô #1 → bấm, rồi bấm ô #2 → `Ctrl+F10` (chạy ô này
+và các ô sau).
+
+| ⛔ Cổng | Phải thấy |
+|---|---|
+| ô #3 | `[GÓI] vllm=0.23.0+cu129 \| transformers=4.57.6 \| trl=0.24.0` — **`vllm` phải có đuôi `+cu129`** |
+| ô #3 | `[SELF-TEST] executor tái tạo exe_ans trên test: 497/497` |
+| ô #4 | `[CFG] max_seq=25000 max_tokens=8192 temp=0.1 (cố định mọi GPU)` |
+| ô #6 | `[PROMPT] ✅ mọi prompt đều lọt ngân sách, không cần cắt` |
+| ô #6 | `thang lồng nhau: basic=2535 ký tự ⊂ no_fewshot=5408 ⊂ engineered=5924` |
+
+Thấy `[PROMPT] ⚠ đã bật cắt ngữ cảnh` là đang không ở A100/L4 — đổi runtime rồi chạy lại.
+**Kết quả có cắt ngữ cảnh không trộn chung bảng được với kết quả không cắt.**
+
+Nấc 1 dùng `PROMPT_LEVEL = "basic"`: model **đã biết** có những phép toán nào và phải trả
+lời theo định dạng nào, chỉ chưa được mách chọn phép nào cho loại câu hỏi nào và chưa thấy
+ví dụ mẫu. Không sửa gì.
+
+**Cuối §4** — dòng mới, đây là chỗ kiểm trần token:
+
+```
+   Bị cắt vì trần token, tách theo bước:
+     step1        0.x%  (n/497 lượt)
 ```
 
-Điền `REPO_DIR` thì bước clone bị bỏ qua và `GITHUB_REPO` không còn tác dụng. Đổi lại: mỗi
-lần sửa code là phải upload lại 25 MB.
+| Quan sát | |
+|---|---|
+| `step1` < 1 % | ✅ trần 8192 đủ |
+| `step1` > 1 % | ⛔ báo lại — trần còn thiếu, đừng chạy tiếp cả thang rồi mới phát hiện |
+
+→ Chạy tiếp ngay, **không cần dừng**.
+
+---
+
+### Bước 3 · `02_prompt_engineering` · A100 · ~30 ph
+
+Mở → A100 → Chạy tất cả. **Ô #6 giữ `DUNG_VI_DU_MAU = True`** (mặc định, không sửa).
+
+Ô #7 in bảng kiểm thang prompt — phải thấy cả hai dòng `✅ chèn thuần`. Không thấy nghĩa là
+ba mức prompt đã lệch nhau ở phần dùng chung, hiệu số giữa các nấc mất ý nghĩa.
+
+| Quan sát ở §4 (`PA_loose` lặp lại ở bảng §5) | |
+|---|---|
+| `PA_loose` ≥ 55 % **và** `step1` < 1 % | ✅ |
+| `PA_loose` < 53 % | ⛔ dừng, báo lại |
+| `step1` > 1 % | ⛔ trần 8192 chưa đủ |
+
+→ **DỪNG. Gửi khối meta.**
+
+---
+
+### Bước 3b · `02` lần 2 — bỏ few-shot · +~15 ph · **cùng phiên, đừng ngắt runtime**
+
+Model đã nạp sẵn nên không mất 15 phút cài đặt lại.
+
+1. Ô #6 → sửa `DUNG_VI_DU_MAU = False`
+2. Bấm ô #6 → `Ctrl+F10`
+
+Tên nấc tính lại ở ô #9 theo chính cờ đó, nên không có cách nào ghi nhầm đè lên nấc 2.
+
+Phải in `[NẤC] 2b — BỎ ví dụ mẫu | system prompt 5408 ký tự (516 ký tự đã bỏ)`.
+Ghi sang `02b_no_fewshot`, **không đè** nấc 2.
+
+Nấc này đo đóng góp của **2 ví dụ mẫu có khung**. Lưu ý khi viết báo cáo: prompt 2b vẫn còn
+9 ví dụ thu nhỏ nằm trong phần hướng dẫn, nên đây **không** phải zero-shot.
+
+→ Ngắt runtime. **Gửi khối meta.**
+
+---
+
+### Bước 4 · `04_self_evaluation` · A100 · ~45 ph
+
+Mở → A100 → **ô #6 giữ `USE_SFT_ADAPTER = False`** → Chạy tất cả.
+
+Phải in `[MODEL] dùng Qwen3-8B gốc (chưa SFT)`.
+
+| ⛔ Cổng §7 | |
+|---|---|
+| `PA_loose` cao hơn nấc 2 ít nhất **2 điểm** | sàn nhiễu đo được là 1,6 điểm |
+
+**Đọc kỹ dòng bị cắt ở §5** — nấc này sinh hai lượt mỗi mẫu:
+
+```
+     step1        0.x%
+     step2        0.y%
+```
+
+`step2` cao hơn `step1` quá 2 điểm thì notebook tự cảnh báo: prompt bước 2 chứa nguyên lời
+giải bước 1 nên dài hơn, bị cắt nhiều hơn nghĩa là self-eval **mất cơ hội sửa** chứ không
+phải sửa sai — hiệu số đo được khi đó là **cận dưới**.
+
+→ **DỪNG. Gửi khối meta.**
+
+---
+
+### Bước 5 · `05_ace` · A100 · ~150 ph
+
+Trước khi chạy: nạp `OPENAI_API_KEY` vào **Colab Secrets** (🔑 bên trái), bật *Notebook
+access*.
+
+Mở → A100. Ba cờ đều đã đúng mặc định:
+
+| Ô | Cờ | Giá trị |
+|---|---|---|
+| #6 | `USE_SFT_ADAPTER` | `False` |
+| #8 | `ACE_TREN_PROMPT` | `"engineered"` |
+| #15 | `RUN_RANDOM_CONTROL` | `True` |
+
+Phải thấy `[ACE] ✅ gọi thử gpt-4o-mini OK`. Không thấy thì dừng — Reflector hỏng là cả pha
+A vô ích.
+
+**Pha A (§5, ~70 ph).** Checkpoint của lần chạy cũ phải tự bị loại:
+
+```
+[RESUME] ⚠ CẤU HÌNH ĐÃ ĐỔI → KHÔNG nối tiếp, học lại từ đầu.
+```
+
+Thấy `[RESUME] tiếp từ vòng 19` → **dừng ngay**, xoá tay `progress_ace_base.json` rồi chạy lại.
+
+| ⛔ Cổng cuối §5 | |
+|---|---|
+| playbook ≥ 5 bullet, composite dương | dưới mức đó thì ACE chưa học được gì để đo |
+
+→ **DỪNG. Gửi khối meta + `playbook_ace_base.txt`.**
+
+---
+
+### Bước 6 · `07_final_report` · CPU · 2 ph
+
+| ⛔ Cổng ô #4 | |
+|---|---|
+| `✅ Mọi nấc cùng GPU, cùng trần token…` | |
+| Cột **bước 1** mọi nấc < 1 % | |
+| `⚠ KHÔNG KIỂM ĐƯỢC … thiếu '<nấc>_meta.json'` | ⛔ thiếu file meta — bảng công bằng không kết luận được gì |
+
+→ Gửi `bang_ket_qua_*.csv` + `kiem_dinh_*.csv`.
+
+---
+
+## BUỔI 2 — SFT (~2,4 h)
+
+Một notebook `03_sft_qwen3`, **ba phần, hai lần restart**. Mở → A100.
+
+### Bước 7 · phần A — dựng dữ liệu · ~80 ph
+
+Bấm ô chữ **⚠ RESTART RUNTIME TẠI ĐÂY** (cái thứ nhất) → *Thời gian chạy* → **Chạy trước**.
+Tức là chạy ô #1 → #10.
+
+Ô #7 để nguyên `SFT_TRAIN_SUBSET = 2000`, `ADD_GOLD_FALLBACK = False`.
+
+Ô #9 giờ có reset riêng — lượt sinh này dựng **dữ liệu huấn luyện**, bị cắt ở đây là mất
+đúng những mẫu khó nhất khỏi tập SFT. Xem dòng `step1`.
+
+| ⛔ Cổng §5 | |
+|---|---|
+| mẫu SFT ≥ 800, phân bố có mẫu ≥ 3 bước | |
+
+→ **Khởi động lại phiên.** Chỉ báo em nếu < 800.
+
+### Bước 8 · phần B — huấn luyện · ~40 ph
+
+Bấm ô #11, `Shift`+bấm ô #16 → **Chạy phần đã chọn**.
+
+| ⛔ Cổng | Phải thấy |
+|---|---|
+| ô #12 | `[SFT] dữ liệu: …` — số mẫu khớp phần A |
+| ô #13 | `MAX_SEQ_LENGTH = 12288` (dài hơn trần sinh 8192 + prompt) |
+| ô #14 | `[DATA] train X → Y (lọc mẫu > 12288 token)` và `[DATA] mất Z% vì quá dài` |
+| ô #16 | val loss không tăng ngược |
+
+`Z` **trên 5 %** là notebook cảnh báo — báo em, đừng train tiếp. Mất nhiều nghĩa là đang
+cắt mất chính những mẫu dài mà SFT cần học.
+
+→ **Restart session lần nữa.**
+
+### Bước 9 · phần C — chấm test · ~24 ph
+
+Bấm ô chữ **⚠ RESTART RUNTIME TẠI ĐÂY** (lần 2) → bấm ô #17 → **Chạy ô này và các ô sau**.
+
+> ⚠ Đừng chạy lại ô #11–#16 — ô #15 là ô huấn luyện, mất thêm 30 phút vô ích.
+
+Ô #23 phải in `[LoRA] đã nạp adapter từ …`.
+
+Ô #25 so với nấc 2. **Cả ba khả năng (hơn / ngang / kém) đều đáng báo cáo** — bảng cuối
+notebook gợi ý câu chữ cho từng trường hợp.
+
+→ **DỪNG. Gửi khối meta.**
+
+---
+
+## BUỔI 3 — nấc 5c: ACE trên prompt cơ bản · ~110 ph
+
+Mở lại `05_ace` từ GitHub → A100 → **ô #8 sửa một dòng**:
+
+```python
+ACE_TREN_PROMPT = "basic"
+```
+
+Phải in:
+
+```
+[ACE] chồng lên prompt 'basic' | self-eval=False | so với nấc '01_basic'
+```
+
+Ghi sang `05c_ace_basic_base`, **không đè** nấc 5. Checkpoint và playbook của nấc này
+mang tên riêng (`progress_ace_basic_base.json`, `playbook_ace_basic_base.txt`).
+
+Câu hỏi nấc này trả lời: *ACE có tự khám phá lại được thứ mà người viết prompt đã viết tay
+không?* Trên prompt hoàn chỉnh, ACE gần như hết đất diễn vì prompt đã chứa sẵn ánh xạ từ
+khoá → phép toán. Trên prompt cơ bản thì khoảng trống để lấp rộng hơn hẳn.
+
+| Δ so với nấc 1 | |
+|---|---|
+| > +15 điểm | ACE thay được phần lớn công viết prompt tay — luận điểm mạnh nhất |
+| +5 … +15 | khám phá được một phần |
+| < +2 | không tự tìm ra — **vẫn là kết quả đáng báo cáo** |
+
+→ **DỪNG. Gửi khối meta + playbook.**
+
+---
+
+## BUỔI 4 — ma trận tổ hợp (~3,3 h)
+
+### Bước 11 · `04` lần 2 · ~45 ph
+Mở `04` → ô #6 → `USE_SFT_ADAPTER = True` → Chạy tất cả.
+Phải in `[MODEL] dùng adapter đã SFT` và `nấc trước để so sánh: 03_sft`.
+
+### Bước 12 · `05` lần 2 · ~120 ph
+Mở `05` → ô #6 → `True`; ô #8 → `"engineered"`; ô #15 → `False`.
+
+### Bước 13 · `06` rồi `07` · ~50 ph
+`06` → A100 → Chạy tất cả (§5 phải hiện **6/8 ô đã có sẵn**, chỉ chạy 2 ô mới).
+`07` → CPU → Chạy tất cả.
+
+→ Gửi `ma_tran_to_hop_*.csv` + gói zip cuối.
+
+---
+
+## Gửi lại gì
+
+**Năm lần dừng bắt buộc:** sau bước 3, 3b, 4, 5, 9.
+
+Cuối mỗi nấc notebook tự in khối meta giữa hai đường kẻ ngang — bôi đen copy nguyên khối.
+
+Kèm theo, mỗi lần: dòng **`Bị cắt vì trần token, tách theo bước`**. Đó là thứ quyết định
+đọc hiệu số giữa các nấc như thế nào.
