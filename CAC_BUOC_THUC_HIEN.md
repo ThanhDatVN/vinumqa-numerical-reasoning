@@ -38,8 +38,8 @@ mất ~0,2 CU mỗi phút. Kết quả đã nằm trên Drive nên không mất 
 |:--:|---|---|---|--:|--:|---|
 | | **BUỔI 1 — kết quả chính** | | | **1,9 h** | **~23** | |
 | 1 | Audit & chốt thước đo | `00` | CPU | 1 ph | 0 | bảng đính chính EA |
-| 2 | Nấc 1 — inference thường | `01` | A100 | 9 ph | 1,8 | `01_plain` |
-| 3 | Nấc 2 — prompt engineering | `02` | A100 | 9 ph | 1,8 | `02_prompt_eng` |
+| 2 | Nấc 1 — prompt cơ bản | `01` | A100 | 12 ph | 2,4 | `01_basic` |
+| 3 | Nấc 2 — prompt hoàn chỉnh | `02` | A100 | 9 ph | 1,8 | `02_prompt_eng` |
 | 4 | Nấc 4 — self-eval (gốc) | `04` | A100 | 18 ph | 3,5 | `04_selfeval_base` |
 | 5 | Nấc 5 — ACE (gốc) | `05` | A100 | 81 ph | 15,8 | `05_ace_base` + playbook + đối chứng |
 | 6 | Báo cáo giữa kỳ | `07` | CPU | 1 ph | 0 | bảng + biểu đồ |
@@ -52,6 +52,11 @@ mất ~0,2 CU mỗi phút. Kết quả đã nằm trên Drive nên không mất 
 | 11 | ACE trên model SFT | `05` | A100 | 63 ph | 12,4 | `05_ace_sft` |
 | 12 | Ma trận 2×2×2 | `06` | A100 | 18 ph | 3,5 | `06_comb_E_A`, `06_comb_F_A` |
 | 13 | Báo cáo cuối | `07` | CPU | 1 ph | 0 | CSV để dán vào bài |
+
+> ⚠ **Các con số thời gian dưới đây đo ở trần sinh 4096 token.** Trần nay là **8192**
+> (để không còn mẫu nào mất trắng vì bị cắt giữa lúc suy nghĩ), nên hãy cộng thêm
+> khoảng **30–50 %** cho mọi bước có sinh văn bản. Phần trăm đó rơi gần hết vào ~5 %
+> mẫu khó nhất — số còn lại kết thúc sớm nên không đổi.
 
 Cột "Thời gian" ở trên là **thời gian tính toán**. Mỗi session GPU còn mất thêm
 **~12–15 phút cố định** trước đó: `pip install` (6–12 phút) rồi nạp model (~4 phút).
@@ -175,7 +180,7 @@ GPU** để có.
 
 ---
 
-## Bước 2 — `01_baseline_plain` · A100 · 9 phút · 1,8 CU
+## Bước 2 — `01_baseline_basic` · A100 · 12 phút · 2,4 CU
 
 **Runtime:** Runtime → Change runtime type → **A100 GPU**. Bật **Background execution**
 (Colab Pro) để đóng tab không chết session.
@@ -228,7 +233,22 @@ lại — **kết quả có cắt ngữ cảnh không trộn chung bảng đư�
 **Ghi lại:** EA, PA_strict, PA_loose ở §4. Đây là **mốc dưới** của cả lộ trình, chưa có ngưỡng
 nào phải đạt.
 
-**Sinh ra:** `vinumqa_runs/stages/01_plain.{jsonl,csv,meta}`.
+> Nấc 1 dùng `PROMPT_LEVEL = "basic"`: model **đã biết** có những phép toán nào và phải
+> trả lời theo định dạng nào, chỉ chưa được mách chọn phép nào cho loại câu hỏi nào và
+> chưa thấy ví dụ mẫu. Nhờ vậy hiệu số nấc 1 → 2 đo đúng phần đáng đo. Bản trước dùng
+> prompt trần 530 ký tự, thiếu cả quy tắc định dạng, nên 32 % mẫu sinh ra program không
+> chạy được — hiệu số khi ấy chủ yếu là công dạy cú pháp DSL.
+
+**Cũng nên liếc dòng bị cắt** cuối §4:
+
+```
+   Bị cắt vì trần token, tách theo bước:
+     step1        0.x%  (n/497 lượt)
+```
+
+`step1` còn trên 1 % thì báo lại — trần 8192 lẽ ra phải đưa con số này về gần 0.
+
+**Sinh ra:** `vinumqa_runs/stages/01_basic.{jsonl,csv,meta}`.
 
 ---
 
@@ -557,7 +577,7 @@ Xuất ra `bang_ket_qua_<stamp>.csv` — dán thẳng vào bài.
 
 | Nấc | EA | PA_strict | PA_loose | Δ EA so với nấc trước | p | Phút |
 |---|--:|--:|--:|--:|--:|--:|
-| `01_plain` | | | | — | — | |
+| `01_basic` | | | | — | — | |
 | `02_prompt_eng` | | | | | | |
 | `03_sft` | | | | | | |
 | `04_selfeval_base` | | | | | | |
@@ -600,7 +620,7 @@ trước khi chạy thật** — và xoá luôn file nấc đã ghi bằng 40 m�
 
 ```python
 import glob, os
-for f in glob.glob(os.path.join(RESULT_DIR, "01_plain*")): os.remove(f)
+for f in glob.glob(os.path.join(RESULT_DIR, "01_basic*")): os.remove(f)
 ```
 
 ---

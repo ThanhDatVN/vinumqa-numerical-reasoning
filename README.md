@@ -22,7 +22,7 @@ tools/        set_repo.py — điền URL repo vào notebook, chạy một lần
 | Nấc | Kỹ thuật | Notebook | GPU | Mở |
 |:---:|---|---|:---:|:---:|
 | — | Audit dữ liệu & chốt thước đo | [`00_data_audit`](notebooks/00_data_audit.ipynb) | ❌ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/00_data_audit.ipynb) |
-| 1 | Inference thông thường | [`01_baseline_plain`](notebooks/01_baseline_plain.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/01_baseline_plain.ipynb) |
+| 1 | Prompt cơ bản (danh sách phép toán + yêu cầu) | [`01_baseline_basic`](notebooks/01_baseline_basic.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/01_baseline_basic.ipynb) |
 | 2 | + Prompt engineering | [`02_prompt_engineering`](notebooks/02_prompt_engineering.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/02_prompt_engineering.ipynb) |
 | 3 | + SFT trên Qwen3-8B | [`03_sft_qwen3`](notebooks/03_sft_qwen3.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/03_sft_qwen3.ipynb) |
 | 4 | + Self-evaluation 2 bước | [`04_self_evaluation`](notebooks/04_self_evaluation.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/04_self_evaluation.ipynb) |
@@ -103,7 +103,7 @@ Chạy lần lượt 00 → 07. Cell đầu của notebook nào cũng in **bản
 
 ```
   nấc                           n       EA  PA_strict        chạy lúc
-  01_plain              ✓     497   0.xxxx     0.xxxx   20260915_1030
+  01_basic              ✓     497   0.xxxx     0.xxxx   20260915_1030
   02_prompt_eng         ⊘       —        —          —       chưa chạy
 ```
 

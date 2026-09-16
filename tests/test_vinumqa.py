@@ -917,6 +917,68 @@ class TestMucNoFewshot:
             prompts_mod.PromptKit().step1(test_set[0], level="khong_ton_tai")
 
 
+class TestThangPromptLongNhau:
+    """Nấc 1 mới = ``basic``: biết phép toán và định dạng, chưa được mách chọn phép.
+
+    Thang phải LỒNG NHAU (basic ⊂ no_fewshot ⊂ engineered) thì hiệu số giữa hai nấc
+    kề nhau mới quy được về phần vừa thêm. Sửa chữ ở phần dùng chung là hỏng phép đo,
+    nên có test canh.
+    """
+
+    MUC = ("basic", "no_fewshot", "engineered")
+
+    def _thang(self):
+        kit = prompts_mod.PromptKit()
+        return kit, [getattr(kit, f"{m.upper()}_SYSTEM_PROMPT") for m in self.MUC]
+
+    def test_basic_co_phep_toan_va_dinh_dang(self):
+        _, (basic, _, _) = self._thang()
+        for moc in ("=== DANH SÁCH PHÉP TOÁN===", "- Trả lời đúng 2 dòng:",
+                    "==== CÂU HỎI ===="):
+            assert moc in basic, f"prompt cơ bản thiếu {moc!r}"
+
+    def test_basic_khong_co_huong_dan_tu_khoa_va_vi_du(self):
+        _, (basic, _, _) = self._thang()
+        assert "=== HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA ===" not in basic
+        assert "Ví dụ 1:" not in basic and "Ví dụ 2:" not in basic
+
+    def test_thang_long_nhau_moi_buoc_la_chen_thuan(self):
+        import difflib
+        _, ps = self._thang()
+        for (na, a), (nb, b) in zip(zip(self.MUC, ps), zip(self.MUC[1:], ps[1:])):
+            ops = [o for o in difflib.SequenceMatcher(None, a, b, autojunk=False)
+                   .get_opcodes() if o[0] != "equal"]
+            assert len(ops) == 1 and ops[0][0] == "insert", (
+                f"{na} → {nb} không phải chèn thuần ({[o[0] for o in ops]}) — "
+                "phần dùng chung bị sửa thì hiệu số hai nấc không còn quy về phần thêm")
+
+    def test_do_dai_tang_dan(self):
+        _, ps = self._thang()
+        assert len(ps[0]) < len(ps[1]) < len(ps[2])
+
+    def test_step1_basic_dung_chung_user_message_voi_engineered(self, test_set):
+        """Chỉ system prompt được khác — khác cả user message là lẫn biến."""
+        kit = prompts_mod.PromptKit()
+        mau = test_set[0]
+        pb_, pe = kit.step1(mau, level="basic"), kit.step1(mau, level="engineered")
+        duoi = kit._user_engineered(mau)
+        assert duoi in pb_ and duoi in pe
+
+    def test_basic_nam_trong_LEVELS(self):
+        assert "basic" in prompts_mod.PromptKit.LEVELS
+
+    def test_sft_messages_nhan_du_bon_muc(self, test_set):
+        kit = prompts_mod.PromptKit()
+        for muc in ("plain",) + self.MUC:
+            msgs = kit.sft_messages(test_set[0], "program: add(1, 2)", level=muc)
+            assert [m["role"] for m in msgs] == ["system", "user", "assistant"]
+            assert msgs[0]["content"], f"mức {muc} không có system prompt"
+
+    def test_moc_doi_thi_bao_loi_chu_khong_cat_bua(self):
+        with pytest.raises(ValueError):
+            prompts_mod.PromptKit.bo_huong_dan_tu_khoa("prompt không có mốc nào cả")
+
+
 class TestReflectorCaiTien:
     """Hai thứ Reflector trước đây không được biết, nên đề xuất thừa."""
 

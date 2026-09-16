@@ -86,8 +86,8 @@ Chạy gọn trong **một buổi**.
 | # | Notebook | Runtime | Thời gian | CU | Sinh ra |
 |---|---|---|---:|---:|---|
 | 1 | `00_data_audit` | **CPU** | 1 phút | 0 | Chốt thước đo + bảng đính chính EA |
-| 2 | `01_baseline_plain` | A100 | 9 phút | 1.8 | Mốc dưới |
-| 3 | `02_prompt_engineering` | A100 | 9 phút | 1.8 | Δ prompt engineering |
+| 2 | `01_baseline_basic` | A100 | 12 phút | 2.4 | Mốc dưới — prompt cơ bản |
+| 3 | `02_prompt_engineering` | A100 | 12 phút | 2.4 | Δ hướng dẫn từ khoá + few-shot |
 | 4 | `04_self_evaluation` | A100 | 18 phút | 3.5 | **Tái lập mốc tham chiếu** |
 | 5 | `05_ace` pha A | A100 | 45 phút | 8.8 | Playbook |
 | 6 | `05_ace` pha B | A100 | 18 phút | 3.5 | **Δ của ACE** |

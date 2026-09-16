@@ -64,7 +64,7 @@ class PromptKit:
         ``None`` = không cắt. Chỉ cần đặt khi chạy trên GPU nhỏ.
     """
 
-    LEVELS = ("plain", "engineered", "no_fewshot")
+    LEVELS = ("plain", "basic", "no_fewshot", "engineered")
 
     def __init__(self, repo_dir: str = "", tokenizer=None, model_name: str = "",
                  enable_thinking: bool | None = None,
@@ -74,6 +74,15 @@ class PromptKit:
         self.SELF_EVAL_SYSTEM_PROMPT = SYSTEM_PROMPT_STEP_2
         self.PLAIN_SYSTEM_PROMPT = PLAIN_SYSTEM_PROMPT
         self.NO_FEWSHOT_SYSTEM_PROMPT = self.bo_vi_du(SYSTEM_PROMPT_STEP_1)
+        # Thang prompt LỒNG NHAU — mỗi nấc thêm đúng một khối, cắt ra từ chính prompt
+        # hoàn chỉnh nên phần dùng chung giống nhau từng ký tự. Nhờ vậy hiệu số giữa hai
+        # nấc kề nhau đo đúng phần vừa thêm, không lẫn chữ nghĩa viết lại.
+        #
+        #   basic       = mở đầu + DANH SÁCH PHÉP TOÁN + yêu cầu định dạng
+        #   no_fewshot  = basic + HƯỚNG DẪN CHỌN PHÉP THEO TỪ KHÓA (14 mục)
+        #   engineered  = no_fewshot + 2 ví dụ mẫu có khung
+        self.BASIC_SYSTEM_PROMPT = self.bo_vi_du(
+            self.bo_huong_dan_tu_khoa(SYSTEM_PROMPT_STEP_1))
         self.table_to_str = staticmethod(_table_to_str).__func__
 
         self.tokenizer = tokenizer
@@ -174,12 +183,15 @@ Output:"""
 
     # ── API chính ──
     def step1(self, sample, bullets_text: str = "", level: str = "engineered") -> str:
-        """Prompt sinh program. ``level`` ∈ {``plain``, ``engineered``}."""
+        """Prompt sinh program. ``level`` ∈ :attr:`LEVELS` (thang lồng nhau)."""
         if level == "plain":
             return self._render(self.PLAIN_SYSTEM_PROMPT, self._user_plain(sample),
                                 bullets_text)
         if level == "engineered":
             return self._render(self.ENGINEERED_SYSTEM_PROMPT,
+                                self._user_engineered(sample), bullets_text)
+        if level == "basic":
+            return self._render(self.BASIC_SYSTEM_PROMPT,
                                 self._user_engineered(sample), bullets_text)
         if level == "no_fewshot":
             return self._render(self.NO_FEWSHOT_SYSTEM_PROMPT,
@@ -189,6 +201,27 @@ Output:"""
     # ── biến thể bỏ ví dụ mẫu ──
     _MOC_VI_DU = "=== VÍ DỤ ==="
     _MOC_SAU_VI_DU = "==== CÂU HỎI ===="
+    _MOC_HUONG_DAN = "=== HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA ==="
+    _MOC_DINH_DANG = "- Trả lời đúng 2 dòng:"
+
+    @classmethod
+    def bo_huong_dan_tu_khoa(cls, prompt: str) -> str:
+        """Cắt khối 14 mục ánh xạ từ khoá → phép toán, giữ nguyên phần còn lại.
+
+        Phần còn lại vẫn có: mở đầu, DANH SÁCH PHÉP TOÁN (mô tả từng phép) và TOÀN BỘ
+        yêu cầu định dạng đầu ra. Đó là "prompt cơ bản": model biết có những phép nào
+        và phải trả lời ra sao, nhưng không được mách chọn phép nào cho loại câu hỏi nào.
+
+        Khác hẳn ``PLAIN_SYSTEM_PROMPT`` (530 ký tự) — bản đó thiếu cả quy tắc định
+        dạng nên 32 % mẫu sinh ra program không chạy được, tức là một cái sàn hỏng:
+        hiệu số so với nấc 2 khi ấy chủ yếu là "model mới biết viết đúng cú pháp",
+        chứ không đo được prompt engineering.
+        """
+        i, j = prompt.find(cls._MOC_HUONG_DAN), prompt.find(cls._MOC_DINH_DANG)
+        if i == -1 or j == -1 or j <= i:
+            raise ValueError("không thấy khối hướng dẫn từ khoá — prompt đã đổi, "
+                             "kiểm tra lại mốc")
+        return prompt[:i] + prompt[j:]
 
     @classmethod
     def bo_vi_du(cls, prompt: str) -> str:
@@ -243,8 +276,12 @@ answer:...
     # ── dùng cho SFT: trả về messages thay vì chuỗi đã render ──
     def sft_messages(self, sample, target_text: str, level: str = "engineered") -> list[dict]:
         """Bộ ``messages`` để huấn luyện: system + user + assistant(target)."""
-        system = (self.PLAIN_SYSTEM_PROMPT if level == "plain"
-                  else self.ENGINEERED_SYSTEM_PROMPT)
+        system = {"plain": self.PLAIN_SYSTEM_PROMPT,
+                  "basic": self.BASIC_SYSTEM_PROMPT,
+                  "no_fewshot": self.NO_FEWSHOT_SYSTEM_PROMPT,
+                  "engineered": self.ENGINEERED_SYSTEM_PROMPT}[level]
+        # Chỉ ``plain`` dùng user message riêng; ba mức còn lại dùng chung một bản, nên
+        # hiệu số giữa chúng chỉ do system prompt — đúng điều kiện của phép ablation.
         user = (self._user_plain(sample) if level == "plain"
                 else self._user_engineered(sample))
         return [{"role": "system", "content": system},

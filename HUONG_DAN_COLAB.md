@@ -104,7 +104,7 @@ lại tự đọc, kể cả sau khi restart runtime.
 | Notebook | Cần sửa | Ở đâu |
 |---|---|---|
 | `00_data_audit` | `GITHUB_REPO`, nếu chưa chạy `set_repo.py` | code cell #2 |
-| `01_baseline_plain` | — | chỉ Run all |
+| `01_baseline_basic` | — | chỉ Run all |
 | `02_prompt_engineering` | — | chỉ Run all |
 | `03_sft_qwen3` | **2 lần restart** (xem dưới) | |
 | `04_self_evaluation` | `USE_SFT_ADAPTER` | code cell #6 |
@@ -159,7 +159,7 @@ Notebook nào cũng in bảng tiến độ ở cell đầu, nên mở ra là bi�
 
 ```
   nấc                           n       EA  PA_strict        chạy lúc
-  01_plain              ✓     497   0.xxxx     0.xxxx   20260915_1030
+  01_basic              ✓     497   0.xxxx     0.xxxx   20260915_1030
   02_prompt_eng         ⊘       —        —          —       chưa chạy
 ```
 
