@@ -152,16 +152,18 @@ class AceTrainer:
         added = []
         for c in candidates:
             if not c["passed"]:
+                # KHÔNG cách ly: verify chạy ở temperature 0.1 nên có yếu tố ngẫu nhiên,
+                # trượt một lần không có nghĩa bullet vô dụng.
                 self.qg_reasons["verify_khong_sua_duoc"] += 1
-                self.quarantine.add(_noi_dung_khoa(c["strategy"]))
                 continue
             self.playbook, action, reason, bid = self.curator(
                 c["strategy"], c["error_type"], self.playbook, c["cluster_id"])
             if action == "add":
                 added.append((bid, c["strategy"]))
             else:
+                # KHÔNG cách ly: đây là hạn ngạch cụm/mục, phụ thuộc trạng thái playbook —
+                # bullet bị chặn lúc này có thể hợp lệ sau khi có bullet khác bị trục xuất.
                 self.qg_reasons[reason] += 1
-                self.quarantine.add(_noi_dung_khoa(c["strategy"]))
 
         self.playbook, evicted = self.retriever.enforce_budget(self.playbook)
         baseline_pa = ((sum(h["pa_strict"] for h in self.history) / len(self.history))
