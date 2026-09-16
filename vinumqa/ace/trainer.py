@@ -38,7 +38,8 @@ class AceTrainer:
     def __init__(self, prompt_kit, generate_fn, retriever, curator, reflector, *,
                  prompt_level="engineered", use_selfeval=True,
                  sp_step1=None, sp_step2=None, round_size=32, max_reflect=12,
-                 use_verify=True, verify_require_pa=False, log_path=None):
+                 use_verify=True, verify_require_pa=False, log_path=None,
+                 verify_lan=2):
         self.prompt_kit = prompt_kit
         self.generate_fn = generate_fn
         self.retriever = retriever
@@ -49,6 +50,7 @@ class AceTrainer:
         self.sp_step1, self.sp_step2 = sp_step1, sp_step2
         self.round_size, self.max_reflect = round_size, max_reflect
         self.use_verify, self.verify_require_pa = use_verify, verify_require_pa
+        self.verify_lan = max(1, int(verify_lan))
         self.log_path = log_path
 
         self.playbook = render_playbook([])
@@ -87,19 +89,28 @@ class AceTrainer:
                 c["passed"], c["verify_note"] = True, "bo_qua_verify"
             return candidates
 
-        prompts = [self.prompt_kit.step1(
-                       c["sample"],
-                       (c["bullets_text"] + "\n- " + c["strategy"]).strip("\n"),
-                       level=self.prompt_level)
-                   for c in candidates]
-        outs = self.generate_fn(prompts, self.sp_step1, desc="verify")
-        for c, raw in zip(candidates, outs):
-            prog, _ = extract_program_answer(raw)
-            value = execute_program(prog, c["sample"].get("table") or []) if prog else None
-            ea = check_ea(value, c["sample"]["qa"].get("exe_ans"))
-            pa_s, _ = check_pa(prog, c["sample"]["qa"].get("program", ""))
-            c["passed"] = bool(pa_s) if self.verify_require_pa else bool(ea or pa_s)
-            c["verify_note"] = f"ea={ea} pa={pa_s} val={value}"
+        # Sinh LẠI 2 lần rồi lấy kết quả tốt nhất. Ở temperature 0.1 một lượt sinh vẫn
+        # ngẫu nhiên, mà lượt trước verify loại tới 55 ứng viên — trong đó chắc chắn có
+        # những bullet tốt bị trượt oan. Thêm một lượt sinh rẻ hơn nhiều so với mất bullet.
+        for c in candidates:
+            c["passed"], c["verify_note"] = False, ""
+        for lan in range(self.verify_lan):
+            con_lai = [c for c in candidates if not c["passed"]]
+            if not con_lai:
+                break
+            prompts = [self.prompt_kit.step1(
+                           c["sample"],
+                           (c["bullets_text"] + "\n- " + c["strategy"]).strip("\n"),
+                           level=self.prompt_level)
+                       for c in con_lai]
+            outs = self.generate_fn(prompts, self.sp_step1, desc=f"verify{lan + 1}")
+            for c, raw in zip(con_lai, outs):
+                prog, _ = extract_program_answer(raw)
+                value = execute_program(prog, c["sample"].get("table") or []) if prog else None
+                ea = check_ea(value, c["sample"]["qa"].get("exe_ans"))
+                pa_s, _ = check_pa(prog, c["sample"]["qa"].get("program", ""))
+                c["passed"] = bool(pa_s) if self.verify_require_pa else bool(ea or pa_s)
+                c["verify_note"] = f"lần{lan + 1} ea={ea} pa={pa_s} val={value}"
         return candidates
 
     def run_round(self, batch, round_idx):
@@ -116,7 +127,14 @@ class AceTrainer:
             self.retriever.record_outcome(r["used_bullets"], r["pa_strict"], r["ea"])
 
         failures = self._pick_failures(rows, self.max_reflect)
+        # Ca ĐÚNG cùng cụm, lấy ngay trong lô này — không tốn thêm lượt sinh nào.
+        dung_theo_cum = {}
+        for r in rows:
+            if r["ea"] and r["_cluster"] not in dung_theo_cum:
+                dung_theo_cum[r["_cluster"]] = r
+
         items = [{"sample": r["_sample"], "pred_prog": r["final_program"],
+                  "row_dung": dung_theo_cum.get(r["_cluster"]),
                   "pred_value": r["pred_value"], "bullets_text": r["bullets_text"],
                   "cluster_id": r["_cluster"],
                   "diag": diagnose(r["raw_step2"] or r["raw_step1"], r["final_program"],

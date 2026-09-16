@@ -915,3 +915,72 @@ class TestMucNoFewshot:
     def test_muc_la_van_bao_loi(self, test_set):
         with pytest.raises(ValueError):
             prompts_mod.PromptKit().step1(test_set[0], level="khong_ton_tai")
+
+
+class TestReflectorCaiTien:
+    """Hai thứ Reflector trước đây không được biết, nên đề xuất thừa."""
+
+    def test_biet_luat_da_co_de_khong_de_xuat_lai(self):
+        kit = prompts_mod.PromptKit()
+        luat = reflector.luat_dang_ap_dung(kit)
+        assert "TỪ KHÓA" in luat and 200 < len(luat) <= 1800
+
+    def test_ca_lam_dung_duoc_dua_vao(self, test_set):
+        kit = prompts_mod.PromptKit()
+        p = reflector.build_reflector_prompt(
+            test_set[0], "divide(1,2)", 0.5, "", "sai_phep_toan",
+            playbook.empty_playbook(), "C11_khac", kit, playbook.all_bullets,
+            row_dung={"question": "Doanh thu lớn nhất?",
+                      "final_program": "table_max(Doanh thu, none)"})
+        assert "table_max(Doanh thu, none)" in p
+        assert "ĐỪNG đề xuất lại" in p
+
+    def test_khong_co_ca_dung_van_chay(self, test_set):
+        p = reflector.build_reflector_prompt(
+            test_set[0], "divide(1,2)", 0.5, "", "sai_phep_toan",
+            playbook.empty_playbook(), "C11_khac", prompts_mod.PromptKit(),
+            playbook.all_bullets, row_dung=None)
+        assert "chưa có ca đúng nào" in p
+
+
+class TestVerifyHaiLan:
+    """Verify sinh lại 2 lần: temperature 0.1 vẫn ngẫu nhiên, trượt 1 lần chưa phải vô dụng."""
+
+    def _trainer(self, ket_qua):
+        """generate_fn giả: lần 1 trả sai, lần 2 trả đúng."""
+        goi = {"n": 0}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            goi["n"] += 1
+            prog = ket_qua[min(goi["n"], len(ket_qua)) - 1]
+            return ["```plaintext\nprogram: " + prog + "\nanswer: 0\n```"] * len(prompts)
+
+        t = ace_trainer.AceTrainer(prompts_mod.PromptKit(), gen, None, None, None,
+                                   verify_lan=2)
+        return t, goi
+
+    def _ung_vien(self, test_set):
+        s = next(x for x in test_set if x["qa"].get("program"))
+        return [{"sample": s, "strategy": "dùng divide(a, b) cho tỷ trọng",
+                 "bullets_text": "", "error_type": "khac", "cluster_id": "C11_khac"}]
+
+    def test_lan_hai_cuu_duoc_ung_vien(self, test_set):
+        uv = self._ung_vien(test_set)
+        dung = uv[0]["sample"]["qa"]["program"]
+        t, goi = self._trainer(["add(9999, 1)", dung])
+        out = t.verify_candidates(uv)
+        assert out[0]["passed"], "lần 2 đúng thì phải được nhận"
+        assert goi["n"] == 2, "phải sinh đúng 2 lần"
+
+    def test_dung_ngay_lan_dau_thi_khong_sinh_them(self, test_set):
+        uv = self._ung_vien(test_set)
+        dung = uv[0]["sample"]["qa"]["program"]
+        t, goi = self._trainer([dung, dung])
+        out = t.verify_candidates(uv)
+        assert out[0]["passed"] and goi["n"] == 1, "đúng ngay thì khỏi sinh lần 2"
+
+    def test_sai_ca_hai_lan_thi_loai(self, test_set):
+        uv = self._ung_vien(test_set)
+        t, goi = self._trainer(["add(9999, 1)", "add(8888, 2)"])
+        out = t.verify_candidates(uv)
+        assert not out[0]["passed"] and goi["n"] == 2

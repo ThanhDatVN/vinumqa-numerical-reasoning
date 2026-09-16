@@ -66,6 +66,17 @@ def diagnose(raw_text, pred_prog, pred_value, gold_prog, gold_ans) -> str:
 REFLECTOR_PROMPT = """Bạn đang phân tích vì sao một mô hình trả lời sai bài toán suy luận số học trên báo cáo tài chính tiếng Việt.
 Nhiệm vụ: rút ra MỘT CHIẾN LƯỢC TỔNG QUÁT giúp làm đúng các bài TƯƠNG TỰ — không phải lời giải cho riêng câu này.
 
+=== MODEL ĐÃ ĐƯỢC DẶN SẴN NHỮNG ĐIỀU NÀY ===
+{luat_da_co}
+
+⚠ ĐỪNG đề xuất lại bất cứ điều gì đã nằm trong danh sách trên — nó đã có hiệu lực rồi,
+nhắc lại không giúp gì. Chỉ đề xuất điều mà danh sách đó CHƯA nói tới.
+
+=== MỘT CA CÙNG LOẠI MÀ MODEL ĐÃ LÀM ĐÚNG ===
+{ca_dung}
+
+Hãy so ca sai với ca đúng này để tìm ra ĐIỂM KHÁC BIỆT cụ thể, rồi khái quát nó lên.
+
 === LUẬT DSL CỦA ViNumQA ===
 - Các phép: add(a,b), subtract(a,b), multiply(a,b), divide(a,b), table_max(nhãn, none), table_min(nhãn, none), table_average(nhãn, none), table_sum(nhãn, none)
 - Viết phẳng, KHÔNG lồng nhau: viết "add(1, 0.15), divide(5310, #0)", KHÔNG viết "divide(5310, add(1, 0.15))"
@@ -133,12 +144,40 @@ def summarize_playbook(playbook, all_bullets_fn, max_show=14) -> str:
     return "\n".join(lines)
 
 
+def luat_dang_ap_dung(prompt_kit, gioi_han=1800) -> str:
+    """Trích phần ánh xạ từ khoá → phép toán của system prompt.
+
+    Reflector trước đây KHÔNG biết system prompt đã dặn model những gì, nên nó đề xuất
+    lại chính các quy tắc đã có — bullet đúng nhưng thừa, không thêm được gì. Đưa phần
+    này vào để nó biết mà tránh.
+    """
+    p = getattr(prompt_kit, "ENGINEERED_SYSTEM_PROMPT", "") or ""
+    i = p.find("=== HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA ===")
+    j = p.find("=== VÍ DỤ ===")
+    doan = p[i:j] if 0 <= i < j else p[:gioi_han]
+    return doan.strip()[:gioi_han]
+
+
+def ca_lam_dung(row, prompt_kit, gioi_han=420) -> str:
+    """Một ca CÙNG CỤM LỖI mà model đã làm đúng — để Reflector thấy 'đúng trông thế nào'.
+
+    Bản ACE gốc gọi là counterfactual retrieval; bản port trước đây thiếu hẳn.
+    """
+    if not row:
+        return "(chưa có ca đúng nào cùng cụm trong lô này)"
+    q = row.get("question", "")[:200]
+    return f"Câu hỏi: {q}\nProgram đúng: {row.get('final_program', '')[:gioi_han]}"
+
+
 def build_reflector_prompt(sample, pred_prog, pred_value, bullets_text, diag,
-                           playbook, cluster_id, prompt_kit, all_bullets_fn) -> str:
+                           playbook, cluster_id, prompt_kit, all_bullets_fn,
+                           row_dung=None) -> str:
     c = CLUSTER_BY_ID.get(cluster_id, CLUSTER_BY_ID["C11_khac"])
     pre, post, table = prompt_kit.context_block(sample)
     context = (f"{pre} {post}".strip()[:500] + "\n" + table[:400]).strip()
     return REFLECTOR_PROMPT.format(
+        luat_da_co=luat_dang_ap_dung(prompt_kit),
+        ca_dung=ca_lam_dung(row_dung, prompt_kit),
         cluster_id=c["id"], cluster_lesson=c["lesson"], cluster_pattern=c["pattern"],
         cluster_wrong="\n".join(f"  - {w}" for w in c["wrong"]) or "  (chưa ghi nhận)",
         question=sample["qa"]["question"], context=context,
@@ -200,7 +239,8 @@ class Reflector:
     def build_prompts(self, items, playbook):
         return [build_reflector_prompt(it["sample"], it["pred_prog"], it["pred_value"],
                                        it["bullets_text"], it["diag"], playbook,
-                                       it["cluster_id"], self.prompt_kit, self.all_bullets_fn)
+                                       it["cluster_id"], self.prompt_kit, self.all_bullets_fn,
+                                   it.get('row_dung'))
                 for it in items]
 
     def __call__(self, items, playbook) -> list[dict]:
