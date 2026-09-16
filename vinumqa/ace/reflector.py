@@ -239,8 +239,8 @@ class Reflector:
     def build_prompts(self, items, playbook):
         return [build_reflector_prompt(it["sample"], it["pred_prog"], it["pred_value"],
                                        it["bullets_text"], it["diag"], playbook,
-                                       it["cluster_id"], self.prompt_kit, self.all_bullets_fn,
-                                   it.get('row_dung'))
+                                       it["cluster_id"], self.prompt_kit,
+                                       self.all_bullets_fn, it.get("row_dung"))
                 for it in items]
 
     def __call__(self, items, playbook) -> list[dict]:
