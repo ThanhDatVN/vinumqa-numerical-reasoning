@@ -64,7 +64,7 @@ class PromptKit:
         ``None`` = không cắt. Chỉ cần đặt khi chạy trên GPU nhỏ.
     """
 
-    LEVELS = ("plain", "engineered")
+    LEVELS = ("plain", "engineered", "no_fewshot")
 
     def __init__(self, repo_dir: str = "", tokenizer=None, model_name: str = "",
                  enable_thinking: bool | None = None,
@@ -73,6 +73,7 @@ class PromptKit:
         self.ENGINEERED_SYSTEM_PROMPT = SYSTEM_PROMPT_STEP_1
         self.SELF_EVAL_SYSTEM_PROMPT = SYSTEM_PROMPT_STEP_2
         self.PLAIN_SYSTEM_PROMPT = PLAIN_SYSTEM_PROMPT
+        self.NO_FEWSHOT_SYSTEM_PROMPT = self.bo_vi_du(SYSTEM_PROMPT_STEP_1)
         self.table_to_str = staticmethod(_table_to_str).__func__
 
         self.tokenizer = tokenizer
@@ -180,7 +181,28 @@ Output:"""
         if level == "engineered":
             return self._render(self.ENGINEERED_SYSTEM_PROMPT,
                                 self._user_engineered(sample), bullets_text)
+        if level == "no_fewshot":
+            return self._render(self.NO_FEWSHOT_SYSTEM_PROMPT,
+                                self._user_engineered(sample), bullets_text)
         raise ValueError(f"level lạ: {level!r}, chọn trong {self.LEVELS}")
+
+    # ── biến thể bỏ ví dụ mẫu ──
+    _MOC_VI_DU = "=== VÍ DỤ ==="
+    _MOC_SAU_VI_DU = "==== CÂU HỎI ===="
+
+    @classmethod
+    def bo_vi_du(cls, prompt: str) -> str:
+        """Cắt khối 2 ví dụ mẫu ra khỏi prompt engineered, giữ nguyên phần còn lại.
+
+        Tách được vì khối ví dụ nằm gọn giữa hai mốc tiêu đề. Mọi thứ khác — danh sách
+        phép toán, ánh xạ từ khoá tiếng Việt, quy tắc bắt buộc — giữ nguyên từng ký tự.
+        Nhờ vậy hiệu số so với nấc 2 đo đúng phần đóng góp của **ví dụ mẫu**, không lẫn
+        thứ gì khác.
+        """
+        i, j = prompt.find(cls._MOC_VI_DU), prompt.find(cls._MOC_SAU_VI_DU)
+        if i == -1 or j == -1 or j <= i:
+            raise ValueError("không thấy khối ví dụ — prompt đã đổi, kiểm tra lại mốc")
+        return prompt[:i] + prompt[j:]
 
     def step2(self, sample, initial_response: str, bullets_text: str = "") -> str:
         """Prompt self-evaluation — giữ nguyên bản tham chiếu."""

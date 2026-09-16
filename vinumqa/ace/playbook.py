@@ -472,11 +472,24 @@ class QualityGate:
     """
 
     def __init__(self, embedder: Embedder | None = None, retriever: Retriever | None = None,
-                 min_len=30, max_len=220, dedup_thresh=0.85, overlap_thresh=0.80,
-                 enabled=True):
+                 min_len=30, max_len=220, dedup_thresh=0.93, overlap_thresh=0.80,
+                 enabled=True, min_ops=1):
+        """``dedup_thresh`` phải khớp với embedder đang dùng — ngưỡng KHÔNG chuyển được
+        giữa các model.
+
+        Bản ACE gốc dùng ``all-MiniLM-L6-v2`` / ``bge-base-en``, cặp câu không liên quan
+        cho cosine ~0.1–0.3 nên 0.85 là "trùng" thật. Ta dùng ``multilingual-e5-base``,
+        vốn nén mọi cặp vào dải ~0.70–0.90 — 0.85 ở đó gần như là SÀN, không phải trùng.
+        Giữ 0.85 khiến 113/217 đề xuất bị loại oan dù playbook chỉ có 1 bullet.
+
+        ``min_ops`` = số phép DSL tối thiểu. Bản gốc ép 2. Nhưng 64 % tập test ViNumQA
+        là câu MỘT phép (319/497), nên ép 2 là chặn hẳn mọi lời khuyên cho nhóm lớn nhất.
+        Để 1: bullet vẫn phải có phép DSL thật, vẫn qua kiểm chứng + verify.
+        """
         self.embedder = embedder
         self.retriever = retriever
         self.min_len, self.max_len = min_len, max_len
+        self.min_ops = min_ops
         self.dedup_thresh, self.overlap_thresh = dedup_thresh, overlap_thresh
         self.enabled = enabled
 
@@ -487,8 +500,11 @@ class QualityGate:
         return any(tok.replace(",", ".") not in ALLOWED_LITERALS
                    for tok in _NUM_TOKEN_RE.findall(body))
 
+    def has_enough_ops(self, text: str) -> bool:
+        return len(OP_DETECT_RE.findall(text)) >= self.min_ops
+
     @staticmethod
-    def has_two_ops(text: str) -> bool:
+    def has_two_ops(text: str) -> bool:            # giữ cho test cũ
         return len(OP_DETECT_RE.findall(text)) >= 2
 
     @staticmethod
@@ -594,8 +610,11 @@ class QualityGate:
         if self.embedder and self.embedder.available and bullets and self.retriever:
             emb = self.embedder.encode([self.embedder.passage_prefix + new_content])[0]
             mat = self.retriever._bullet_embeddings(bullets)
-            if mat is not None and float((mat @ emb).max()) >= self.dedup_thresh:
-                return True, "trung_ngu_nghia"
+            if mat is not None:
+                sim = float((mat @ emb).max())
+                if sim >= self.dedup_thresh:
+                    # kèm giá trị để lần sau đọc log là biết phân bố, khỏi đoán ngưỡng
+                    return True, f"trung_ngu_nghia@{sim:.2f}"
         return False, "ok"
 
     # ── API ──
@@ -618,8 +637,8 @@ class QualityGate:
             return "reject", "chua_nam_cu_the"
         if self.has_forbidden_numbers(c):
             return "reject", "chua_so_lieu_cu_the"
-        if not self.has_two_ops(c):
-            return "reject", "duoi_2_phep_toan"
+        if not self.has_enough_ops(c):
+            return "reject", f"duoi_{self.min_ops}_phep_toan"
         if self.is_nested(c):
             return "reject", "phep_toan_long_nhau"
         if re.search(r"multiply\s*\(\s*#\d+\s*,\s*100\s*\)", low) or \

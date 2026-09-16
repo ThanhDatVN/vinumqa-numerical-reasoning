@@ -13,7 +13,9 @@ nhanh hơn nhiều so với vòng lặp tuần tự từng mẫu của bản ACE
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 from collections import Counter, defaultdict
 
 from ..dsl import check_ea, check_pa, execute_program, extract_program_answer
@@ -21,6 +23,13 @@ from ..pipeline import run_pipeline
 from .clusters import cluster_id_for_sample
 from .playbook import all_bullets, render_playbook, update_bullet_counts
 from .reflector import diagnose
+
+
+def _noi_dung_khoa(text: str) -> str:
+    """Khoá nhận dạng một đề xuất, bỏ qua khác biệt hoa/thường và khoảng trắng."""
+    return hashlib.md5(re.sub(r"\s+", " ", (text or "").strip().lower())
+                       .encode("utf-8")).hexdigest()[:12]
+
 
 __all__ = ["AceTrainer"]
 
@@ -45,6 +54,10 @@ class AceTrainer:
         self.playbook = render_playbook([])
         self.history: list[dict] = []
         self.qg_reasons: Counter = Counter()
+        # Nội dung đã bị loại thì đừng xét lại: Reflector không nhớ, sẽ đề xuất lặp,
+        # mỗi lần lặp tốn một lượt verify (một lượt sinh của model). Bản ACE gốc có
+        # cơ chế này, bản port trước đây thiếu.
+        self.quarantine: set[str] = set()
         self.stats: Counter = Counter()
 
     @staticmethod
@@ -121,9 +134,14 @@ class AceTrainer:
             if not strategy:
                 self.qg_reasons["reflector_khong_de_xuat"] += 1
                 continue
+            _key = _noi_dung_khoa(strategy)
+            if _key in self.quarantine:          # đã bị loại rồi, đừng verify lại
+                self.qg_reasons["bi_cach_ly"] += 1
+                continue
             action, reason = self.curator.gate(strategy, self.playbook)
             if action == "reject":
                 self.qg_reasons[reason] += 1
+                self.quarantine.add(_key)
                 continue
             candidates.append({"sample": it["sample"], "strategy": strategy,
                                "bullets_text": it["bullets_text"],
@@ -135,6 +153,7 @@ class AceTrainer:
         for c in candidates:
             if not c["passed"]:
                 self.qg_reasons["verify_khong_sua_duoc"] += 1
+                self.quarantine.add(_noi_dung_khoa(c["strategy"]))
                 continue
             self.playbook, action, reason, bid = self.curator(
                 c["strategy"], c["error_type"], self.playbook, c["cluster_id"])
@@ -142,6 +161,7 @@ class AceTrainer:
                 added.append((bid, c["strategy"]))
             else:
                 self.qg_reasons[reason] += 1
+                self.quarantine.add(_noi_dung_khoa(c["strategy"]))
 
         self.playbook, evicted = self.retriever.enforce_budget(self.playbook)
         baseline_pa = ((sum(h["pa_strict"] for h in self.history) / len(self.history))

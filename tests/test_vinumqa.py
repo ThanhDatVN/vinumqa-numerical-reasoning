@@ -358,9 +358,24 @@ class TestQualityGate:
         assert action == "reject"
         assert why.startswith(reason), f"kỳ vọng {reason}, nhận {why}"
 
-    def test_loai_bullet_mot_phep_toan(self, gate, pb):
+    def test_nhan_bullet_mot_phep_toan(self, gate, pb):
+        """64 % tập test là câu MỘT phép — ép ≥2 là chặn lời khuyên cho nhóm lớn nhất.
+
+        Bản ACE gốc ép 2 vì FinQA tiếng Anh khác phân bố; ta để 1.
+        """
         assert gate("Khi hỏi tỷ trọng của khoản mục, chỉ cần dùng divide(phan, tong).",
-                    pb)[1] == "duoi_2_phep_toan"
+                    pb)[0] == "add"
+
+    def test_van_loai_bullet_khong_co_phep_toan_nao(self, gate, pb):
+        assert gate("Khi gặp câu hỏi khó về bảng số liệu thì nên đọc kỹ đề bài hơn.",
+                    pb)[1].startswith("duoi_1_phep_toan")
+
+    def test_nguong_dedup_phai_hop_voi_embedder(self):
+        """Ngưỡng tương đồng không chuyển được giữa các embedder.
+
+        e5 nén mọi cặp vào dải ~0.70–0.90; giữ 0.85 của MiniLM/bge là loại oan.
+        """
+        assert playbook.QualityGate().dedup_thresh >= 0.90
 
     def test_do_dai(self, gate, pb):
         assert gate("Khi tính, dùng add(a,b).", pb)[1] == "qua_ngan"
@@ -872,3 +887,31 @@ class TestTrichXuatKhiBatSuyNghi:
                "</think>\n\nSau khi soát lại:\n" + self.KHOI)
         prog, _ = dsl.extract_program_answer(raw)
         assert prog == "subtract(100, 40)"
+
+
+class TestMucNoFewshot:
+    """Nấc 2b: đúng prompt engineered nhưng bỏ 2 ví dụ mẫu."""
+
+    def test_bo_dung_khoi_vi_du(self):
+        kit = prompts_mod.PromptKit()
+        day_du, bo_vd = kit.ENGINEERED_SYSTEM_PROMPT, kit.NO_FEWSHOT_SYSTEM_PROMPT
+        assert "Ví dụ 1:" in day_du and "Ví dụ 2:" in day_du
+        assert "Ví dụ 1:" not in bo_vd and "Ví dụ 2:" not in bo_vd
+        assert 0 < len(day_du) - len(bo_vd) < 800, "chỉ được bỏ khối ví dụ"
+
+    def test_giu_nguyen_phan_con_lai(self):
+        kit = prompts_mod.PromptKit()
+        bo_vd = kit.NO_FEWSHOT_SYSTEM_PROMPT
+        for moc in ("DANH SÁCH PHÉP TOÁN", "HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA",
+                    "==== CÂU HỎI ===="):
+            assert moc in bo_vd, f"mất mục {moc!r} — hiệu số 2−2b sẽ lẫn thứ khác"
+
+    def test_step1_chay_duoc_voi_muc_moi(self, test_set):
+        kit = prompts_mod.PromptKit()
+        mau = test_set[0]
+        p = kit.step1(mau, level="no_fewshot")
+        assert "Ví dụ 1:" not in p and mau["qa"]["question"] in p
+
+    def test_muc_la_van_bao_loi(self, test_set):
+        with pytest.raises(ValueError):
+            prompts_mod.PromptKit().step1(test_set[0], level="khong_ton_tai")
