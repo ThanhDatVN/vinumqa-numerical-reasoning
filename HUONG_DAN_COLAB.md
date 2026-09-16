@@ -7,12 +7,12 @@ Thời gian **đã gồm** ~15 phút cài đặt + nạp model mỗi phiên GPU.
 > rơi gần hết vào ~5 % mẫu khó nhất; số còn lại kết thúc sớm nên không đổi.
 
 Thang bậc: **1** prompt cơ bản → **2** prompt hoàn chỉnh → **4** self-eval → **3** SFT →
-**5** ACE, cộng ba nhánh rẽ (**2b** bỏ few-shot, **5c** ACE trên prompt cơ bản, đối chứng
-bullet ngẫu nhiên) và **6** ma trận tổ hợp.
+**5** ACE, cộng hai nhánh rẽ (**5c** ACE trên prompt cơ bản, đối chứng bullet ngẫu nhiên)
+và **6** ma trận tổ hợp.
 
 ---
 
-## BUỔI 1 — kết quả chính (~4,5 h)
+## BUỔI 1 — kết quả chính (~4,3 h)
 
 ### Bước 1 · `00_data_audit` · CPU · 2 ph
 
@@ -66,10 +66,11 @@ ví dụ mẫu. Không sửa gì.
 
 ### Bước 3 · `02_prompt_engineering` · A100 · ~30 ph
 
-Mở → A100 → Chạy tất cả. **Ô #6 giữ `DUNG_VI_DU_MAU = True`** (mặc định, không sửa).
+Mở → A100 → Chạy tất cả. Không sửa gì — ô #6 ghim sẵn `PROMPT_LEVEL = "engineered"`.
 
-Ô #7 in bảng kiểm thang prompt — phải thấy cả hai dòng `✅ chèn thuần`. Không thấy nghĩa là
-ba mức prompt đã lệch nhau ở phần dùng chung, hiệu số giữa các nấc mất ý nghĩa.
+Ô #7 in bảng tách đôi phần nấc 2 thêm vào so với nấc 1 (hướng dẫn từ khoá, rồi ví dụ mẫu)
+— phải thấy cả hai dòng `✅ chèn thuần`. Không thấy nghĩa là prompt đã bị sửa ở phần dùng
+chung, hiệu số nấc 1 → 2 khi đó lẫn cả chuyện đổi câu chữ.
 
 | Quan sát ở §4 (`PA_loose` lặp lại ở bảng §5) | |
 |---|---|
@@ -78,25 +79,6 @@ ba mức prompt đã lệch nhau ở phần dùng chung, hiệu số giữa các
 | `step1` > 1 % | ⛔ trần 8192 chưa đủ |
 
 → **DỪNG. Gửi khối meta.**
-
----
-
-### Bước 3b · `02` lần 2 — bỏ few-shot · +~15 ph · **cùng phiên, đừng ngắt runtime**
-
-Model đã nạp sẵn nên không mất 15 phút cài đặt lại.
-
-1. Ô #6 → sửa `DUNG_VI_DU_MAU = False`
-2. Bấm ô #6 → `Ctrl+F10`
-
-Tên nấc tính lại ở ô #9 theo chính cờ đó, nên không có cách nào ghi nhầm đè lên nấc 2.
-
-Phải in `[NẤC] 2b — BỎ ví dụ mẫu | system prompt 5408 ký tự (516 ký tự đã bỏ)`.
-Ghi sang `02b_no_fewshot`, **không đè** nấc 2.
-
-Nấc này đo đóng góp của **2 ví dụ mẫu có khung**. Lưu ý khi viết báo cáo: prompt 2b vẫn còn
-9 ví dụ thu nhỏ nằm trong phần hướng dẫn, nên đây **không** phải zero-shot.
-
-→ Ngắt runtime. **Gửi khối meta.**
 
 ---
 
@@ -270,7 +252,7 @@ Mở `05` → ô #6 → `True`; ô #8 → `"engineered"`; ô #15 → `False`.
 
 ## Gửi lại gì
 
-**Năm lần dừng bắt buộc:** sau bước 3, 3b, 4, 5, 9.
+**Bốn lần dừng bắt buộc:** sau bước 3, 4, 5, 9.
 
 Cuối mỗi nấc notebook tự in khối meta giữa hai đường kẻ ngang — bôi đen copy nguyên khối.
 
