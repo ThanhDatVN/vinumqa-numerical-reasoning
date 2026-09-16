@@ -279,12 +279,18 @@ USE_SFT_ADAPTER = False
 
 Thấy `dùng adapter đã SFT` ở lần chạy này là **sai cờ** — dừng, sửa lại `False`, Run all lại.
 
-**⛔ Cổng 3 — mốc tái lập chính.** §5 in PA_loose:
+**⛔ Cổng 3 — mốc tái lập chính.** §5 in PA_loose.
 
-| Quan sát | Kết luận |
+Đã hiệu chỉnh theo kết quả thật: nấc 2 của ta ra **55,73 %**, cao hơn mốc tham chiếu
+(51,34 %) **+4,4 điểm**. Nên nấc 4 phải chấm theo **mức tăng so với chính nấc 2 của ta**,
+đừng so thẳng với con số 59,56 %.
+
+| PA_loose nấc 4 | Kết luận |
 |---|---|
-| PA_loose ≈ **59,5 %** (tham chiếu: 59,56 %) | ✅ hạ tầng mới tái lập được mốc tham chiếu |
-| Lệch nhiều | ⛔ Sai ở đây thì **đừng tin nấc 5**. Cấu hình self-eval đang khác mốc tham chiếu. |
+| **60–66 %** | ✅ self-eval cộng thêm ~5–10 điểm, đúng biên độ của mốc tham chiếu |
+| 56–60 % | self-eval cộng ít hơn kỳ vọng — vẫn chạy tiếp được, nhưng ghi nhận |
+| ≤ 55,7 % | ⛔ self-eval **không cộng gì**. Dừng, kiểm lại cấu hình hai bước |
+| > 68 % | ⛔ tốt bất thường — kiểm lại xem có rò rỉ nhãn vàng không |
 
 Notebook chạy **2 lượt sinh/mẫu** nên lâu gấp đôi bước 3 — đúng như thiết kế.
 
