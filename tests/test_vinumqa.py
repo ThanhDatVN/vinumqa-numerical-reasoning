@@ -842,3 +842,33 @@ class TestCheDoSuyNghi:
         kit.chat([{"role": "user", "content": "hi"}])
         assert "enable_thinking" not in ghi, (
             "Phải gọi apply_chat_template y như bản tham chiếu: không truyền tham số này")
+
+
+class TestTrichXuatKhiBatSuyNghi:
+    """Output của Qwen3 ở chế độ suy nghĩ — ba dạng thẻ <think> đều phải xử lý đúng."""
+
+    KHOI = "```plaintext\nprogram: subtract(100, 40)\nanswer: 60\n```"
+
+    def test_du_cap_the(self):
+        raw = "<think>\nTa lấy 100 trừ 40. program: add(1,2) thử xem\n</think>\n\n" + self.KHOI
+        prog, ans = dsl.extract_program_answer(raw)
+        assert prog == "subtract(100, 40)", "phải bỏ phần suy luận, lấy khối chốt"
+        assert ans == "60"
+
+    def test_chi_co_the_dong(self):
+        """Template mở sẵn <think> nên phần sinh ra chỉ có thẻ đóng."""
+        raw = "Ta lấy 100 trừ 40. program: add(1,2) thử xem\n</think>\n\n" + self.KHOI
+        prog, _ = dsl.extract_program_answer(raw)
+        assert prog == "subtract(100, 40)", "phần trước </think> là suy luận, phải bỏ"
+
+    def test_chi_co_the_mo_thi_coi_nhu_khong_sinh_duoc(self):
+        """Chạm max_tokens giữa lúc suy luận — không có câu trả lời chốt."""
+        raw = "<think>\nTôi đang nghĩ, chưa xong thì bị cắt"
+        prog, _ = dsl.extract_program_answer(raw)
+        assert prog is None
+
+    def test_suy_luan_dai_nhieu_khoi_lay_khoi_cuoi(self):
+        raw = ("<think>\nThử ```plaintext\nprogram: add(1, 2)\nanswer: 3\n``` xem sao\n"
+               "</think>\n\nSau khi soát lại:\n" + self.KHOI)
+        prog, _ = dsl.extract_program_answer(raw)
+        assert prog == "subtract(100, 40)"

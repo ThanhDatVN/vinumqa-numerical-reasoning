@@ -218,6 +218,12 @@ def extract_program_answer(text):
     if not text:
         return None, None
     clean = _THINK_RE.sub("", text)
+    # Qwen3 ở chế độ suy nghĩ không phải lúc nào cũng nhả đủ cặp thẻ:
+    #   • chỉ có </think>  → template đã mở sẵn <think>, phần sinh ra bắt đầu từ suy luận
+    #   • chỉ có <think>   → bị cắt vì chạm max_tokens, không có câu trả lời chốt
+    # Trường hợp đầu phải bỏ phần suy luận đi; trường hợp sau đúng là "không sinh được".
+    if "</think>" in clean:
+        clean = clean.rsplit("</think>", 1)[-1]
     if "assistant" in clean[:200].lower():
         clean = clean.split("assistant", 1)[-1]
     clean = clean.strip()
