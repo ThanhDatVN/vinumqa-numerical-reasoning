@@ -984,3 +984,43 @@ class TestVerifyHaiLan:
         t, goi = self._trainer(["add(9999, 1)", "add(8888, 2)"])
         out = t.verify_candidates(uv)
         assert not out[0]["passed"] and goi["n"] == 2
+
+
+class TestViSaoKhongCoProgram:
+    """no_program gộp hai nguyên nhân cần cách chữa khác nhau — phải tách được."""
+
+    def _row(self, prog, raw):
+        return {"final_program": prog, "raw_step1": raw, "raw_step2": "",
+                "ea": False, "pa_strict": False, "pa_loose": False,
+                "ea_tol1e-3": False, "n_ops_gold": 1, "outcome": "x",
+                "pred_value": None}
+
+    def test_the_think_khuyet_la_bi_cat(self):
+        r = pipeline.phan_loai_khong_co_program(
+            [self._row("", "<think>đang nghĩ thì hết token")])
+        assert r["bi_cat_giua_suy_nghi"] == 1 and r["sai_dinh_dang"] == 0
+
+    def test_nghi_xong_ma_thieu_khoi_la_sai_dinh_dang(self):
+        r = pipeline.phan_loai_khong_co_program(
+            [self._row("", "<think>xong rồi</think> quên mất khối program")])
+        assert r["bi_cat_giua_suy_nghi"] == 0 and r["sai_dinh_dang"] == 1
+
+    def test_mau_co_program_khong_bi_dem(self):
+        r = pipeline.phan_loai_khong_co_program(
+            [self._row("add(1, 2)", "<think>chưa đóng thẻ")])
+        assert r["bi_cat_giua_suy_nghi"] == 0 and r["sai_dinh_dang"] == 0
+
+    def test_khong_giu_raw_thi_tra_None(self):
+        assert pipeline.phan_loai_khong_co_program([self._row("", "")]) is None
+
+    def test_summarize_co_kem_phan_loai(self, test_set):
+        rows = [{"id": s["id"], "question": s["qa"]["question"],
+                 "gold_program": s["qa"]["program"], "gold_answer": s["qa"].get("exe_ans"),
+                 "program_step1": "", "program_step2": "", "final_program": "",
+                 "pred_value": None, "pred_answer_text": None, "ea": False,
+                 "ea_tol1e-3": False, "pa_strict": False, "pa_loose": False,
+                 "n_ops_gold": 1, "outcome": "khong_co_program", "used_bullets": [],
+                 "raw_step1": "<think>bị cắt", "raw_step2": ""} for s in test_set[:4]]
+        m = pipeline.summarize(rows, "thử")
+        assert m["vi_sao_khong_co_program"]["bi_cat_giua_suy_nghi"] == 4
+        assert m["no_program"] == 1.0

@@ -25,7 +25,8 @@ from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
                   extract_program_answer, n_ops)
 from .prompts import strip_assistant
 
-__all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder"]
+__all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder",
+           "phan_loai_khong_co_program"]
 
 
 def run_pipeline(samples, prompt_kit, generate_fn, *,
@@ -104,6 +105,36 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
     return rows
 
 
+def phan_loai_khong_co_program(rows) -> dict | None:
+    """Tách "không sinh được program" thành BỊ CẮT vs SAI ĐỊNH DẠNG.
+
+    Hai thứ này cần cách chữa khác hẳn nhau, mà ``no_program`` gộp chung nên không
+    biết đường nào mà lần:
+
+    * **bị cắt giữa suy nghĩ** — output có ``<think>`` mở mà thiếu ``</think>``: model
+      đang suy luận thì chạm ``max_tokens``. Chữa bằng cách nâng trần.
+    * **sai định dạng** — nghĩ xong rồi nhưng không nhả ra khối ``program:`` đọc được.
+      Nâng trần KHÔNG chữa được; đây là chuyện của prompt.
+
+    Trả ``None`` nếu rows không giữ output thô (``keep_raw=False``).
+    """
+    if not any(r.get("raw_step1") or r.get("raw_step2") for r in rows):
+        return None
+    bi_cat = sai_dinh_dang = 0
+    for r in rows:
+        if r.get("final_program"):
+            continue
+        raws = [r.get("raw_step1") or "", r.get("raw_step2") or ""]
+        if any("<think>" in t and "</think>" not in t for t in raws):
+            bi_cat += 1
+        else:
+            sai_dinh_dang += 1
+    n = len(rows) or 1
+    return {"bi_cat_giua_suy_nghi": bi_cat, "sai_dinh_dang": sai_dinh_dang,
+            "ty_le_bi_cat": round(bi_cat / n, 4),
+            "ty_le_sai_dinh_dang": round(sai_dinh_dang / n, 4)}
+
+
 def summarize(rows, label="") -> dict:
     n = len(rows) or 1
     by_steps = defaultdict(lambda: [0, 0, 0])            # n_ops → [tổng, ea đúng, pa đúng]
@@ -123,6 +154,8 @@ def summarize(rows, label="") -> dict:
         "exec_none": round(sum(r["pred_value"] is None for r in rows) / n, 4),
         "outcome": dict(Counter(r["outcome"] for r in rows)),
         "by_steps": {str(k): v for k, v in sorted(by_steps.items())},
+        # vì sao "không sinh được program": bị cắt hay sai định dạng
+        "vi_sao_khong_co_program": phan_loai_khong_co_program(rows),
     }
 
 
@@ -131,7 +164,10 @@ def print_summary(m) -> None:
     print(f"  EA          : {m['EA']:.4f}")
     print(f"  PA (strict) : {m['PA_strict']:.4f}")
     print(f"  PA (loose)  : {m['PA_loose']:.4f}   ← so sánh được với bảng tham chiếu  ")
-    print(f"  Không sinh được program : {m['no_program']:.4f}")
+    _vs = m.get("vi_sao_khong_co_program")
+    print(f"  Không sinh được program : {m['no_program']:.4f}"
+          + (f"   (bị cắt {_vs['bi_cat_giua_suy_nghi']} | "
+             f"sai định dạng {_vs['sai_dinh_dang']})" if _vs else ""))
     print(f"  Program không chạy được : {m['exec_none']:.4f}")
     print(f"\n  {'số phép':<9}{'mẫu':>6}{'EA':>9}{'PA':>9}")
     for k, (tot, ea, pa) in m["by_steps"].items():
