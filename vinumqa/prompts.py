@@ -73,7 +73,7 @@ class PromptKit:
         ``None`` = không cắt. Chỉ cần đặt khi chạy trên GPU nhỏ.
     """
 
-    LEVELS = ("plain", "basic", "no_fewshot", "engineered")
+    LEVELS = ("plain", "basic", "no_fewshot", "engineered", "engineered_v2")
 
     def __init__(self, repo_dir: str = "", tokenizer=None, model_name: str = "",
                  enable_thinking: bool | None = None,
@@ -92,6 +92,8 @@ class PromptKit:
         #   engineered  = no_fewshot + 2 ví dụ mẫu có khung
         self.BASIC_SYSTEM_PROMPT = self.bo_vi_du(
             self.bo_huong_dan_tu_khoa(SYSTEM_PROMPT_STEP_1))
+        #: Nhánh rẽ: đúng ``engineered`` nhưng sửa chỗ dạy ngược về ``table_*``.
+        self.ENGINEERED_V2_SYSTEM_PROMPT = self.sua_nhan_bang(SYSTEM_PROMPT_STEP_1)
         self.table_to_str = staticmethod(_table_to_str).__func__
 
         self.tokenizer = tokenizer
@@ -205,11 +207,66 @@ Output:"""
         if level == "no_fewshot":
             return self._render(self.NO_FEWSHOT_SYSTEM_PROMPT,
                                 self._user_engineered(sample), bullets_text)
+        if level == "engineered_v2":
+            return self._render(self.ENGINEERED_V2_SYSTEM_PROMPT,
+                                self._user_engineered(sample), bullets_text)
         raise ValueError(f"level lạ: {level!r}, chọn trong {self.LEVELS}")
 
     # ── biến thể bỏ ví dụ mẫu ──
     _MOC_VI_DU = "=== VÍ DỤ ==="
     _MOC_SAU_VI_DU = "==== CÂU HỎI ===="
+    #: Chỗ prompt dạy NGƯỢC về ``table_*``. Xem :func:`sua_nhan_bang`.
+    _SUA_TABLE = (
+        ("- table_max(column, none): Giá trị lớn nhất của cột.",
+         "- table_max(nhãn_hàng, none): Giá trị lớn nhất của HÀNG mang nhãn đó."),
+        ("- table_min(column, none): Giá trị nhỏ nhất của cột.",
+         "- table_min(nhãn_hàng, none): Giá trị nhỏ nhất của HÀNG mang nhãn đó."),
+        ("- table_average(column, none): Giá trị trung bình của cột.",
+         "- table_average(nhãn_hàng, none): Giá trị trung bình của HÀNG mang nhãn đó."),
+        ("- table_sum(column, none): Tổng cả cột (chỉ dùng khi hỏi tổng cả cột/hàng, "
+         "không dùng cho 2-3 ô).",
+         "- table_sum(nhãn_hàng, none): Tổng cả HÀNG mang nhãn đó (chỉ dùng khi hỏi tổng "
+         "cả hàng, không dùng cho 2-3 ô)."),
+        ("→ Lưu ý quan trọng: table_ functions chỉ nhận đúng 1 cột, không thêm hàng.",
+         "→ ⚠ THAM SỐ LÀ NHÃN HÀNG, KHÔNG PHẢI TÊN CỘT. Nhãn hàng là chuỗi nằm ở Ô ĐẦU "
+         "TIÊN của mỗi dòng trong bảng. Chép lại NGUYÊN VĂN nhãn đó, không rút gọn, "
+         "không dịch, không thêm đơn vị. Tuyệt đối đừng truyền tên cột hay năm."),
+        ("   → table_max(tên cột, none)", "   → table_max(nhãn hàng, none)"),
+        ("   → table_min(tên cột, none)", "   → table_min(nhãn hàng, none)"),
+        ("   → table_average(tên cột, none)", "   → table_average(nhãn hàng, none)"),
+        ("11. Các cụm từ KHÔNG dùng table_sum (vì chỉ tính tổng 1 cột/hàng):",
+         "11. Các cụm từ KHÔNG dùng table_sum (vì nó chỉ tính tổng ĐÚNG MỘT hàng):"),
+        ("    - “tổng của cột X” → mới dùng table_sum(tên cột, none)",
+         "    - “tổng của hàng X” → mới dùng table_sum(nhãn hàng X, none)"),
+        ("12. Các từ khóa thường dùng table_ (không cần add/subtract thủ công):",
+         "12. Các từ khóa thường dùng table_ (không cần add/subtract thủ công) — nhớ "
+         "truyền NHÃN HÀNG:"),
+        ("13. Khi cần tìm số lớn nhất trong cột nhưng số đó được dùng để tính toán",
+         "13. Khi cần tìm số lớn nhất trong hàng nhưng số đó được dùng để tính toán"),
+        ("    - cao nhất, lớn nhất, thấp nhất, nhỏ nhất, trung bình, bình quân, tổng của "
+         "cột, sử dụng tên của cột chứ không cho mảng vào",
+         "    - cao nhất, lớn nhất, thấp nhất, nhỏ nhất, trung bình, bình quân, tổng của "
+         "hàng; truyền NHÃN HÀNG (ô đầu dòng) chứ không cho mảng vào"),
+    )
+
+    @classmethod
+    def sua_nhan_bang(cls, prompt: str) -> str:
+        """Sửa chỗ prompt dạy ngược về ``table_*``: "cột" → "nhãn hàng".
+
+        Executor (:func:`vinumqa.dsl.table_row_values`) đọc theo NHÃN HÀNG — chuỗi ở ô
+        đầu mỗi dòng. Đo trên tập test: **61/61** mẫu gold dùng ``table_*`` có nhãn khớp
+        nhãn hàng, **0/61** khớp tên cột. Prompt gốc lại nói "cột" ở mọi chỗ, thậm chí
+        "chỉ nhận đúng 1 cột, không thêm hàng" — lái thẳng khỏi đáp án đúng.
+
+        Không sửa đè lên ``ENGINEERED_SYSTEM_PROMPT``: giữ nấc 2 nguyên vẹn để còn so
+        được với mốc tham chiếu, và để chỗ sửa này trở thành một phép đo riêng.
+        """
+        for cu, moi in cls._SUA_TABLE:
+            if cu not in prompt:
+                raise ValueError(f"không thấy mốc cần sửa: {cu[:60]!r}")
+            prompt = prompt.replace(cu, moi, 1)
+        return prompt
+
     _MOC_HUONG_DAN = "=== HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA ==="
     _MOC_DINH_DANG = "- Trả lời đúng 2 dòng:"
 
@@ -307,7 +364,8 @@ answer:...
         system = {"plain": self.PLAIN_SYSTEM_PROMPT,
                   "basic": self.BASIC_SYSTEM_PROMPT,
                   "no_fewshot": self.NO_FEWSHOT_SYSTEM_PROMPT,
-                  "engineered": self.ENGINEERED_SYSTEM_PROMPT}[level]
+                  "engineered": self.ENGINEERED_SYSTEM_PROMPT,
+                  "engineered_v2": self.ENGINEERED_V2_SYSTEM_PROMPT}[level]
         # Chỉ ``plain`` dùng user message riêng; ba mức còn lại dùng chung một bản, nên
         # hiệu số giữa chúng chỉ do system prompt — đúng điều kiện của phép ablation.
         user = (self._user_plain(sample) if level == "plain"

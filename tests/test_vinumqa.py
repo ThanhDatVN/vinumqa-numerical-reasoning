@@ -982,6 +982,98 @@ class TestThangPromptLongNhau:
             prompts_mod.PromptKit.bo_huong_dan_tu_khoa("prompt không có mốc nào cả")
 
 
+class TestNhanBangLaHangKhongPhaiCot:
+    """Khoá lại bằng chứng mà cả nấc 2c dựa vào.
+
+    Executor đọc ``table_*`` theo NHÃN HÀNG (ô đầu mỗi dòng). Nếu dữ liệu đổi và nhãn
+    gold hoá ra khớp tên cột, thì mức ``engineered_v2`` thành sai — test này bắt ngay.
+    """
+
+    def test_gold_table_dung_nhan_hang(self, test_set):
+        import re
+        hang = cot = 0
+        for s in test_set:
+            g = s["qa"].get("program") or ""
+            if "table_" not in g:
+                continue
+            t = s.get("table") or []
+            if not t:
+                continue
+            nhan = dsl._norm_label(re.search(r"table_\w+\(([^,]+),", g).group(1).strip())
+            if any(nhan == dsl._norm_label(str(r[0]))
+                   for r in t[1:] if isinstance(r, list) and r):
+                hang += 1
+            elif any(nhan == dsl._norm_label(str(c)) for c in t[0]):
+                cot += 1
+        assert hang > 50 and cot == 0, (
+            f"nhãn gold khớp hàng={hang} cột={cot} — nếu đổi thì engineered_v2 sai")
+
+
+class TestPromptV2:
+    """``engineered_v2`` = ``engineered`` nhưng sửa chỗ dạy ngược về table_*."""
+
+    def test_khong_con_noi_cot_ve_table(self):
+        v = prompts_mod.PromptKit().ENGINEERED_V2_SYSTEM_PROMPT
+        con = [l for l in v.splitlines() if "table_" in l and "cột" in l]
+        assert not con, f"vẫn còn dạy 'cột' cho table_*: {con}"
+
+    def test_noi_ro_la_nhan_hang(self):
+        v = prompts_mod.PromptKit().ENGINEERED_V2_SYSTEM_PROMPT
+        assert "THAM SỐ LÀ NHÃN HÀNG, KHÔNG PHẢI TÊN CỘT" in v
+
+    def test_chi_dong_vao_phan_table(self):
+        """Mọi khối khác phải giữ nguyên — không thì hiệu số 2 → 2c lẫn thứ khác."""
+        k = prompts_mod.PromptKit()
+        e, v = k.ENGINEERED_SYSTEM_PROMPT, k.ENGINEERED_V2_SYSTEM_PROMPT
+        for moc in ("=== DANH SÁCH PHÉP TOÁN===", "=== VÍ DỤ ===", "==== CÂU HỎI ====",
+                    "- Trả lời đúng 2 dòng:"):
+            assert moc in v
+        # phần ví dụ mẫu giữ nguyên từng ký tự
+        assert (e[e.find("=== VÍ DỤ ==="):e.find("==== CÂU HỎI ====")]
+                == v[v.find("=== VÍ DỤ ==="):v.find("==== CÂU HỎI ====")])
+
+    def test_step1_chay_duoc(self, test_set):
+        k = prompts_mod.PromptKit()
+        p = k.step1(test_set[0], level="engineered_v2")
+        assert "NHÃN HÀNG" in p and test_set[0]["qa"]["question"] in p
+
+    def test_nam_trong_LEVELS(self):
+        assert "engineered_v2" in prompts_mod.PromptKit.LEVELS
+
+    def test_moc_doi_thi_bao_loi(self):
+        with pytest.raises(ValueError):
+            prompts_mod.PromptKit.sua_nhan_bang("prompt không có mốc nào")
+
+
+class TestByPhep:
+    """EA/PA tách theo LOẠI phép — by_steps gộp theo số phép nên table_* vô hình."""
+
+    @pytest.mark.parametrize("gold,mong", [
+        ("table_max(doanh thu, none)", "table_*"),
+        ("divide(500, 100)", "divide"),
+        ("subtract(5, 1)", "subtract"),
+        ("subtract(5, 1), divide(#0, 1)", "nhiều (2)"),
+        ("add(1,2), add(#0,3), add(#1,4)", "nhiều (3)"),
+        ("table_max(x, none), add(#0, 1)", "table_*"),
+        ("", "?"),
+    ])
+    def test_nhom(self, gold, mong):
+        assert pipeline.nhom_phep(gold) == mong
+
+    def test_by_phep_trong_summarize(self):
+        rows = [{"ea": True, "pa_strict": True, "pa_loose": True, "ea_tol1e-3": True,
+                 "final_program": "x", "pred_value": 1, "n_ops_gold": 1,
+                 "gold_program": "table_max(a, none)", "outcome": "dung",
+                 "ly_do_khong_chay": None},
+                {"ea": False, "pa_strict": False, "pa_loose": False, "ea_tol1e-3": False,
+                 "final_program": "x", "pred_value": 1, "n_ops_gold": 1,
+                 "gold_program": "divide(1, 2)", "outcome": "sai", "question": "q",
+                 "ly_do_khong_chay": None}]
+        m = pipeline.summarize(rows, "x")
+        assert m["by_phep"]["table_*"] == [1, 1, 1]
+        assert m["by_phep"]["divide"] == [1, 0, 0]
+
+
 class TestPhanLoaiSai:
     """Ô "sai" nay là ô lớn nhất; tách theo KIỂU sai mới biết phải chữa gì."""
 

@@ -31,7 +31,7 @@ from .prompts import strip_assistant
 __all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder",
            "phan_loai_khong_co_program", "phan_loai_khong_chay_duoc",
            "bo_sung_ly_do", "ty_le_lap", "so_sanh_hai_buoc",
-           "phan_loai_sai"]
+           "phan_loai_sai", "nhom_phep"]
 
 
 def run_pipeline(samples, prompt_kit, generate_fn, *,
@@ -235,6 +235,20 @@ def _day_phep(prog: str) -> list[str]:
     return ra
 
 
+def nhom_phep(gold_program: str) -> str:
+    """Xếp một program gold vào một nhóm phép toán, để đo EA/PA theo LOẠI câu hỏi.
+
+    ``table_*`` tách riêng vì nó là loại câu duy nhất phải ĐỌC NHÃN trong bảng chứ không
+    chỉ tính toán — hỏng ở đây có nguyên nhân khác hẳn, và cách chữa cũng khác hẳn.
+    """
+    day = _day_phep(gold_program)
+    if not day:
+        return "?"
+    if any(x.startswith("table_") for x in day):
+        return "table_*"
+    return day[0] if len(day) == 1 else f"nhiều ({len(day)})"
+
+
 def phan_loai_sai(rows) -> dict | None:
     """Tách ô "sai" theo KIỂU sai, so dãy phép toán của model với của gold.
 
@@ -358,11 +372,16 @@ def phan_loai_khong_chay_duoc(rows) -> dict | None:
 def summarize(rows, label="") -> dict:
     n = len(rows) or 1
     by_steps = defaultdict(lambda: [0, 0, 0])            # n_ops → [tổng, ea đúng, pa đúng]
+    by_phep = defaultdict(lambda: [0, 0, 0])             # loại phép → [tổng, ea, pa]
     for r in rows:
         b = by_steps[r["n_ops_gold"]]
         b[0] += 1
         b[1] += r["ea"]
         b[2] += r["pa_strict"]
+        q = by_phep[nhom_phep(r.get("gold_program"))]
+        q[0] += 1
+        q[1] += r["ea"]
+        q[2] += r["pa_strict"]
     return {
         "label": label,
         "n": len(rows),
@@ -374,6 +393,8 @@ def summarize(rows, label="") -> dict:
         "exec_none": round(sum(r["pred_value"] is None for r in rows) / n, 4),
         "outcome": dict(Counter(r["outcome"] for r in rows)),
         "by_steps": {str(k): v for k, v in sorted(by_steps.items())},
+        # tách theo LOẠI phép — by_steps gộp theo số phép nên table_* vô hình
+        "by_phep": {k: v for k, v in sorted(by_phep.items(), key=lambda x: -x[1][0])},
         # vì sao "không sinh được program": bị cắt hay sai định dạng
         "vi_sao_khong_co_program": phan_loai_khong_co_program(rows),
         # vì sao "program không chạy được": nhãn bảng, lồng nhau, #N sai…
@@ -420,6 +441,11 @@ def print_summary(m) -> None:
     print(f"\n  {'số phép':<9}{'mẫu':>6}{'EA':>9}{'PA':>9}")
     for k, (tot, ea, pa) in m["by_steps"].items():
         print(f"  {k:<9}{tot:>6}{ea/tot:>9.1%}{pa/tot:>9.1%}")
+    if m.get("by_phep"):
+        print(f"\n  {'loại phép (gold)':<18}{'mẫu':>6}{'EA':>9}{'PA':>9}")
+        for k, (tot, ea, pa) in m["by_phep"].items():
+            _co = "   ← đọc nhãn bảng" if k == "table_*" else ""
+            print(f"  {k:<18}{tot:>6}{ea/tot:>9.1%}{pa/tot:>9.1%}{_co}")
     print("\n  Phân bố kết cục:")
     for k, v in sorted(m["outcome"].items(), key=lambda x: -x[1]):
         print(f"    {k:<28}{v:>5} ({v/m['n']:.1%})")
