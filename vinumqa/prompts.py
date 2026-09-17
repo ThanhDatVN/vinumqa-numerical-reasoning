@@ -1,14 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Ba mức prompt, tương ứng ba nấc đầu của lộ trình thí nghiệm.
+"""Thang prompt LỒNG NHAU (basic ⊂ no_fewshot ⊂ engineered), cộng prompt self-eval.
+
+Ba mức đầu cắt ra từ CHÍNH prompt hoàn chỉnh (:func:`PromptKit.bo_vi_du`,
+:func:`PromptKit.bo_huong_dan_tu_khoa`), nên phần dùng chung giống nhau từng ký tự và
+mỗi bước là một phép **chèn thuần** — hiệu số giữa hai nấc kề nhau vì thế đo đúng phần
+vừa thêm, không lẫn chuyện viết lại câu chữ. Có test canh điều đó.
 
 ======================  ==========================================================
-``plain``               Prompt tối giản: chỉ nêu tác vụ, danh sách phép toán và
-                        định dạng đầu ra. Đây là mốc "inference thông thường".
-``engineered``          Prompt có cấu trúc đầy đủ của dự án: mô tả tác vụ, giải
-                        thích từng phép toán, ánh xạ **từ khoá tiếng Việt → phép
-                        toán**, quy tắc định dạng, và 2 ví dụ mẫu.
+``basic``               Nấc 1. Mở đầu + danh sách phép toán (có mô tả từng phép) +
+                        toàn bộ yêu cầu định dạng đầu ra. 2 535 ký tự.
+``no_fewshot``          Bậc giữa, KHÔNG phải nấc phải chạy. = ``basic`` + ánh xạ
+                        **từ khoá tiếng Việt → phép toán** (14 mục). 5 408 ký tự.
+``engineered``          Nấc 2 trở đi. = ``no_fewshot`` + 2 ví dụ mẫu có khung.
+                        5 924 ký tự.
 ``self_eval``           Prompt bước 2: đưa lại ngữ cảnh + lời giải bước 1, yêu
                         cầu model tự soát và sửa.
+``plain``               Prompt trần 530 ký tự, ĐÃ RỜI thang bậc: thiếu cả quy tắc
+                        định dạng nên 32 % mẫu sinh ra program không chạy được —
+                        một cái sàn hỏng. Giữ lại cho tương thích, đừng dùng để đo.
 ======================  ==========================================================
 
 Prompt ``engineered`` và ``self_eval`` nằm trong :mod:`vinumqa._prompt_text`, chép
@@ -24,7 +33,7 @@ from ._prompt_text import (SYSTEM_PROMPT_STEP_1, SYSTEM_PROMPT_STEP_2,
 __all__ = ["PromptKit", "PLAIN_SYSTEM_PROMPT", "strip_assistant",
            "MEMORY_ASK", "MEMORY_PREFIX", "MEMORY_SUFFIX"]
 
-# ─────────────────────────── mức 1: prompt tối giản ───────────────────────────
+# ────────────────── prompt trần (đã rời thang bậc, xem README) ──────────────────
 
 PLAIN_SYSTEM_PROMPT = """Bạn là trợ lý phân tích báo cáo tài chính. Hãy đọc văn bản và bảng số liệu rồi trả lời câu hỏi.
 

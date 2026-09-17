@@ -9,7 +9,7 @@ Lõi dùng chung của lộ trình 5 nấc trong [`../notebooks/`](../notebooks/
 |---|---|
 | `dsl` | Executor DSL + chấm PA/EA — **phần quan trọng nhất về độ chính xác** |
 | `data` | Nạp ViNumQA, tách nguồn FinQA-Vi / Vi Data, audit nhiễu nhãn |
-| `prompts` | `PromptKit` với ba mức: `plain`, `engineered`, `self_eval` |
+| `prompts` | `PromptKit`, thang prompt lồng nhau + prompt self-eval |
 | `_prompt_text` | Prompt tham chiếu, chép nguyên văn — **không sửa** |
 | `pipeline` | `run_pipeline` dùng chung cho cả 5 nấc + `summarize` |
 | `sft` | Dựng dữ liệu SFT bằng rejection sampling + cấu hình LoRA/TrainingArguments |
@@ -33,13 +33,22 @@ data.print_audit(data.audit_gold(train, "train"))
 Phần cần GPU (`run_pipeline`, `AceTrainer`) nhận `generate_fn` **tiêm từ ngoài vào**, nên
 toàn bộ package chạy và test được trên CPU mà không cần model.
 
-## Ba mức prompt
+## Thang prompt lồng nhau
 
-| Mức | Nội dung | Dùng ở nấc |
-|---|---|---|
-| `plain` | chỉ tác vụ + tên các phép toán + định dạng đầu ra | 1 |
-| `engineered` | bản đầy đủ của dự án: giải thích từng phép, **ánh xạ từ khoá tiếng Việt → phép toán**, quy tắc bắt buộc, 2 ví dụ | 2, 3, 4, 5 |
-| `self_eval` | prompt bước 2: đưa lại ngữ cảnh + lời giải bước 1, yêu cầu tự soát | 4, 5 |
+Ba mức dưới đây **cắt ra từ chính prompt hoàn chỉnh**, nên phần dùng chung giống nhau
+từng ký tự và mỗi bước là một phép *chèn thuần*. Nhờ vậy hiệu số giữa hai nấc kề nhau đo
+đúng phần vừa thêm, không lẫn chuyện viết lại câu chữ (có test canh điều này).
+
+| Mức | Thêm gì so với mức trên | Ký tự | Nấc |
+|---|---|--:|---|
+| `basic` | mở đầu + danh sách phép toán + yêu cầu định dạng | 2 535 | 1 |
+| `no_fewshot` | + ánh xạ từ khoá tiếng Việt → phép toán (14 mục) | 5 408 | *bậc giữa, không chạy* |
+| `engineered` | + 2 ví dụ mẫu có khung | 5 924 | 2, 3, 4, 5 |
+| `self_eval` | prompt bước 2: ngữ cảnh + lời giải bước 1, yêu cầu tự soát | — | 4, 5 |
+
+`plain` (530 ký tự) vẫn còn trong mã nhưng **đã rời thang bậc**: nó thiếu cả quy tắc định
+dạng nên 32 % mẫu sinh ra program không chạy được — một cái sàn hỏng, khiến hiệu số so với
+nấc 2 chủ yếu là công dạy cú pháp DSL chứ không phải prompt engineering.
 
 `engineered` và `self_eval` nằm trong `vinumqa/_prompt_text.py`, chép **nguyên văn** từ bản
 đã dùng ở lần chạy tham chiếu (bản gốc còn lưu ở

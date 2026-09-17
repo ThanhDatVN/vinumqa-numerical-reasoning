@@ -26,6 +26,7 @@ __all__ = [
     "execute_program", "extract_program_answer",
     "normalize_program_strict", "normalize_program_loose",
     "check_pa", "check_ea", "n_ops", "first_op", "classify_outcome",
+    "ly_do_khong_chay",
     "OP_NAMES", "OP_DETECT_RE", "OP_ARGS_RE", "EA_DECIMAL_PLACES",
 ]
 

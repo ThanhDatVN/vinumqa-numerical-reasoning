@@ -21,7 +21,7 @@ from collections import Counter, defaultdict
 from ..dsl import check_ea, check_pa, execute_program, extract_program_answer
 from ..pipeline import run_pipeline
 from .clusters import cluster_id_for_sample
-from .playbook import all_bullets, render_playbook, update_bullet_counts
+from .playbook import render_playbook, update_bullet_counts
 from .reflector import diagnose
 
 

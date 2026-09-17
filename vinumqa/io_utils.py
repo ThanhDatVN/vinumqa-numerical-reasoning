@@ -14,7 +14,6 @@ from __future__ import annotations
 import csv
 import json
 import os
-from collections import Counter, defaultdict
 
 from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
                   ly_do_khong_chay, n_ops)

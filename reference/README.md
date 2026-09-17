@@ -31,22 +31,18 @@ Notebook và mã của lần chạy trước, **đã xoá output** cho nhẹ. Gi
 
 | File | Vai trò |
 |---|---|
-| `inference_with_difference_models.ipynb` | Nguồn của mọi tham số inference đang dùng: `load_in_4bit=True`, `fast_inference=True`, `temperature=0.1`, `max_tokens=3000`, khối cài đặt unsloth/vLLM |
+| `inference_with_difference_models.ipynb` | Nguồn của mọi tham số inference đang dùng: `load_in_4bit=True`, `fast_inference=True`, `temperature=0.1`, khối cài đặt unsloth/vLLM. `max_tokens` thì **không** giữ: 3000 → 8192 vì ở mức cũ 5–10 % mẫu bị cắt giữa lúc suy nghĩ |
 | `finetune_phi4.ipynb` | Nguồn của cấu hình LoRA đang dùng: r=16, alpha=32, `paged_adamw_8bit`, cosine, early stopping |
 | `prompt_builder.py` | Bản gốc của hai system prompt. `vinumqa/_prompt_text.py` chép nguyên văn từ đây — đã kiểm chứng khớp từng ký tự |
 | `02_ace_finqa_ENGLISH.ipynb` | Bản ACE gốc cho FinQA (tiếng Anh). Tám điểm phải sửa để dùng cho ViNumQA được ghi trong `vinumqa/README.md` |
-| `pa_ea_calculator_BUGGY.py` | Executor cũ. **Đừng dùng** — đọc `table_*` theo tên cột DataFrame nên chấm sai mọi câu dùng `table_*` (0/427 trên train). Giữ lại để notebook `00` so sánh trực tiếp |
+| `pa_ea_calculator_BUGGY.py` | Executor cũ. **Đừng dùng** — đọc `table_*` theo tên cột DataFrame nên chấm sai mọi câu dùng `table_*` (0/427 trên train). Không mã nào nạp file này; giữ làm hồ sơ cho phần đính chính EA ở notebook `00` |
 
 ## Những gì đã bỏ
 
-Phần còn lại của lần chạy trước đã xoá vì không còn được dùng và tái tạo được từ pipeline
-mới: bản port ACE đầu tiên (`ace_vinumqa/`, đã thay bằng `vinumqa/`), bộ test của nó,
-demo Streamlit, notebook phân tích dữ liệu, và dữ liệu SFT do Gemini sửa (thiết lập
-*unconstrained*; nấc 3 nay dùng rejection sampling, không cần API ngoài).
+Phần còn lại của lần chạy trước đã xoá vì pipeline mới không dùng tới, và tái tạo được:
+bản port ACE đầu tiên (`ace_vinumqa/`, đã thay bằng `vinumqa/`), bộ test của nó, demo
+Streamlit, notebook phân tích dữ liệu, tài liệu ACE gốc.
 
-## Đã xoá
-
-Dữ liệu SFT do Gemini sửa (`data_finetune/`) và tài liệu ACE gốc đã bị xoá khỏi dự án này
-vì pipeline mới không dùng tới. Nếu cần lại, chúng nằm trong bản lưu của lần chạy trước.
-Nấc 3 nay dùng rejection sampling nên **không cần** dữ liệu đó, và cũng không muốn cần —
-dùng nó là rơi sang thiết lập *unconstrained*.
+Riêng dữ liệu SFT do Gemini sửa (`data_finetune/`) bỏ hẳn có chủ ý: dùng nó là rơi sang
+thiết lập *unconstrained*. Nấc 3 nay dùng rejection sampling nên không cần API ngoài. Nếu
+cần lại, chúng nằm trong bản lưu của lần chạy trước.

@@ -6,11 +6,12 @@ Lõi dùng chung của lộ trình thí nghiệm 5 nấc trong ``notebooks/``:
 ===  ==========================  ==============================================
 Nấc  Kỹ thuật                    Notebook
 ===  ==========================  ==============================================
-1    Inference thông thường      ``01_baseline_prompting.ipynb``
-2    Prompt engineering          ``01_baseline_prompting.ipynb``
-3    SFT trên Qwen3-8B           ``02_sft_qwen3.ipynb``
-4    Self-evaluation 2 bước      ``03_self_evaluation.ipynb``
-5    ACE (playbook + truy hồi)   ``04_ace.ipynb``
+1    Prompt cơ bản               ``01_baseline_basic.ipynb``
+2    Prompt hoàn chỉnh           ``02_prompt_engineering.ipynb``
+3    SFT trên Qwen3-8B           ``03_sft_qwen3.ipynb``
+4    Self-evaluation 2 bước      ``04_self_evaluation.ipynb``
+5    ACE (playbook + truy hồi)   ``05_ace.ipynb``
+\-    Ma trận tổ hợp 2×2×2        ``06_combination.ipynb``
 ===  ==========================  ==============================================
 
 Bố cục
@@ -18,7 +19,7 @@ Bố cục
 ========================  =====================================================
 ``dsl``                   Executor DSL + chấm PA/EA (đã đối chiếu nhãn vàng)
 ``data``                  Nạp ViNumQA, tách nguồn, audit nhiễu nhãn
-``prompts``               Ba mức prompt: plain / engineered / self-eval
+``prompts``               Thang prompt lồng nhau: basic ⊂ no_fewshot ⊂ engineered
 ``pipeline``              ``run_pipeline`` dùng chung cho mọi nấc
 ``sft``                   Dựng dữ liệu SFT (rejection sampling) + cấu hình LoRA
 ``stats``                 McNemar theo cặp + bootstrap CI

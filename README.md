@@ -144,7 +144,7 @@ Ba hàm dùng chung, có sẵn ngay sau cell đầu: `save_stage()`, `load_stage
 |---|---|
 | `dsl` | Executor DSL + chấm PA/EA. **Phần quan trọng nhất về độ chính xác.** |
 | `data` | Nạp ViNumQA, tách nguồn FinQA-Vi / Vi Data, audit nhiễu nhãn |
-| `prompts` | Ba mức prompt: `plain` / `engineered` / `self_eval` |
+| `prompts` | Thang prompt lồng nhau `basic` ⊂ `no_fewshot` ⊂ `engineered`, + `self_eval` |
 | `pipeline` | `run_pipeline` dùng chung cho cả 5 nấc |
 | `sft` | Dựng dữ liệu SFT bằng rejection sampling + cấu hình LoRA |
 | `stats` | McNemar theo cặp + bootstrap CI |
@@ -193,7 +193,8 @@ nấc 5 đều lọc chúng bằng `data.is_noisy_gold()`.
 Giữ đúng của notebook gốc
 (`reference/original_notebooks/inference_with_difference_models.ipynb`):
 unsloth + vLLM, `transformers==4.56.2`, `trl==0.22.2`, `unsloth/Qwen3-8B` với
-`load_in_4bit=True`, `fast_inference=True`, `temperature=0.1`, `max_tokens=3000`.
+`load_in_4bit=True`, `fast_inference=True`, `temperature=0.1`, `max_tokens=8192`,
+`max_seq_length=25000`.
 
 Khối cài đặt được chép nguyên vào mỗi notebook.
 

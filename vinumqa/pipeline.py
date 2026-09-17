@@ -29,7 +29,8 @@ from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
 from .prompts import strip_assistant
 
 __all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder",
-           "phan_loai_khong_co_program"]
+           "phan_loai_khong_co_program", "phan_loai_khong_chay_duoc",
+           "bo_sung_ly_do", "ty_le_lap"]
 
 
 def run_pipeline(samples, prompt_kit, generate_fn, *,

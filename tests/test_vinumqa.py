@@ -784,7 +784,8 @@ class TestIO:
         rows = [{"id": "a", "ea": True, "raw_step1": "dài", "bullets_text": "x"}]
         p = io_utils.save_full_jsonl(rows, str(tmp_path / "f.jsonl"))
         import json as _json
-        rec = _json.loads(open(p, encoding="utf-8").read().strip())
+        with open(p, encoding="utf-8") as f:
+            rec = _json.loads(f.read().strip())
         assert "raw_step1" not in rec and rec["ea"] is True
 
 

@@ -155,7 +155,8 @@ class TestIO:
         recs, _ = sft.build_sft_records(rows, samples, _FakePromptKit(),
                                         drop_noisy_gold=False)
         p = sft.write_jsonl(recs, str(tmp_path / "sft.jsonl"))
-        lines = open(p, encoding="utf-8").read().strip().split("\n")
+        with open(p, encoding="utf-8") as f:
+            lines = f.read().strip().split("\n")
         assert len(lines) == len(recs)
         obj = json.loads(lines[0])
         assert list(obj.keys()) == ["messages"]      # đúng định dạng SFTTrainer đọc
