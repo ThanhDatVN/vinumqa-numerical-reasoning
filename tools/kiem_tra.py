@@ -619,6 +619,14 @@ def kiem_ma_tran_06():
         m["minutes"] = 20.0
         RESULTS[c] = (rows, m, _r[-1])
 
+    # Hai ô MỤC TIÊU (hậu tố *). Không có chúng thì nhánh xuất CSV/JSON dành riêng cho
+    # ô mục tiêu không bao giờ được chạy — mà đó đúng là hai ô trả lời mục tiêu 70/70.
+    for c in ("E+A", "F+A"):
+        rows = o_ma_tran(0.78)
+        m = pipeline.summarize(rows, NICE[c] + " (tốt nhất)")
+        m["minutes"] = 80.0
+        RESULTS[c + "*"] = (rows, m, f"06_comb_{c.replace('+', '_')}_moi")
+
     ns = {"__name__": "__main__", "MATRIX": MATRIX, "NICE": NICE, "RESULTS": RESULTS,
           "test_all": test, "stats": stats, "pipeline": pipeline, "dsl": dsl,
           "OUTPUT_DIR": ra, "STAMP": "kiemtra", "MUC_PROMPT": "engineered",
