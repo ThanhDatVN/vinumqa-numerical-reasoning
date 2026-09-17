@@ -345,10 +345,11 @@ NEO_RUNBOOK = [
     ("07_final_report", 13, "bao_cao_"),
     ("08_phuong_phap_moi", 7, "SO_MAU"),
     ("08_phuong_phap_moi", 7, "KhoViDu"),
-    ("08_phuong_phap_moi", 8, '08_tu_nhat_quan'),
-    ("08_phuong_phap_moi", 9, "SELF-CONSISTENCY THEO k"),
-    ("08_phuong_phap_moi", 11, '09_vidu_dong'),
-    ("08_phuong_phap_moi", 12, "VÍ DỤ ĐỘNG ĐÓNG GÓP"),
+    ("08_phuong_phap_moi", 8, "CỔNG KIỂM SỚM"),
+    ("08_phuong_phap_moi", 9, '08_tu_nhat_quan'),
+    ("08_phuong_phap_moi", 10, "SELF-CONSISTENCY THEO k"),
+    ("08_phuong_phap_moi", 12, '09_vidu_dong'),
+    ("08_phuong_phap_moi", 13, "VÍ DỤ ĐỘNG ĐÓNG GÓP"),
 ]
 
 

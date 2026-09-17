@@ -1,7 +1,7 @@
 # Bàn giao — ViNumQA: đo tác động của từng kỹ thuật lên suy luận số học tài chính tiếng Việt
 
 > **Tài liệu này để mở một phiên làm việc mới. Đọc hết §1–§4 và §9 trước khi sửa bất cứ thứ gì.**
-> Mốc: 208 test · 9 notebook · 121 ô code · nhánh `main`.
+> Mốc: 209 test · 9 notebook · 122 ô code · nhánh `main`.
 > Kiểm nhanh mọi thứ trong tài liệu này còn đúng không: `python tools/kiem_tra.py`
 
 ---
@@ -418,7 +418,7 @@ và ACE. **PA là chỉ số khó hơn** (+48 so với +26).
 ### Lệnh kiểm bắt buộc trước mỗi commit
 
 ```bash
-python -m pytest tests/ -q -W error     # 208 test, CPU, ~4 giây
+python -m pytest tests/ -q -W error     # 209 test, CPU, ~4 giây
 python tools/kiem_tra.py                # notebook + cấu hình + thang prompt + mã chết
 python tools/kiem_tra.py --day-du       # + chạy trọn notebook 07 với nấc dựng sẵn
 ```
@@ -477,7 +477,7 @@ cổng 70/70), đủ để viết thành báo cáo. `07` xuất `bang_ket_qua_*.
 ```
 vinumqa/            lõi: dsl · data · prompts · pipeline · sft · stats · io_utils · ace/
 notebooks/00–07     mỗi nấc một notebook; 00 và 07 chạy CPU
-tests/              208 test, CPU, ~4 giây, KHÔNG cần GPU
+tests/              209 test, CPU, ~4 giây, KHÔNG cần GPU
 data/               ViNumQA (24 MB, nằm luôn trong repo)
 reference/          hồ sơ xuất xứ + 5 CSV mốc tham chiếu (KHÔNG tái tạo được nếu mất)
 BAN_GIAO.md         tài liệu này

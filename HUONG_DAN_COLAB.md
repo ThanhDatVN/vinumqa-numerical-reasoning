@@ -143,7 +143,7 @@ phép toán (14 mục) cộng 2 ví dụ mẫu. Lần chạy trước cho **+20,
 
 ## Bước 4 · `08_phuong_phap_moi` · A100 · ~180 ph
 
-Ba phương pháp mới, đo trọn trong **một** lượt. **13 ô code. Không sửa gì.**
+Ba phương pháp mới, đo trọn trong **một** lượt. **14 ô code. Không sửa gì.**
 
 | phương pháp | cơ chế |
 |---|---|
@@ -158,10 +158,13 @@ Cả ba chỉ hỏi executor, không đụng đáp án vàng.
 | #7 | `[MỚI] K=5 mẫu \| temp=0.7 top_p=0.95 \| 3 ví dụ truy hồi` |
 | #7 | `[MỚI] kho ví dụ: ~2888/2993 mẫu train (đã bỏ nhãn nhiễu)` |
 | #7 | in thử một khối ví dụ truy hồi — đọc xem nó có **cùng loại phép** với gold không |
-| #8 | `NẤC: 08_tu_nhat_quan \| K=5 mẫu \| ví dụ CỐ ĐỊNH \| sửa-khi-lỗi` |
-| #9 | bảng **SELF-CONSISTENCY THEO k** — k=1…5 và trần best-of-5 |
-| #11 | `NẤC: 09_vidu_dong \| K=5 mẫu \| 3 ví dụ TRUY HỒI` |
-| #12 | bảng **VÍ DỤ ĐỘNG ĐÓNG GÓP BAO NHIÊU, Ở TỪNG MỨC k** |
+| #8 | `[CỔNG] ✅ nhận đúng 5 mẫu cho mỗi prompt` — **cổng kiểm sớm, ~10 giây** |
+| #8 | `[CỔNG] k/5 chương trình khác nhau` — thấy `1/5` là bỏ phiếu vô nghĩa, **dừng lại** |
+| #8 | `[CỔNG] ✅ còn dư … token` — prompt ví dụ động vẫn lọt ngân sách |
+| #9 | `NẤC: 08_tu_nhat_quan \| K=5 mẫu \| ví dụ CỐ ĐỊNH \| sửa-khi-lỗi` |
+| #10 | bảng **SELF-CONSISTENCY THEO k** — k=1…5 và trần best-of-5 |
+| #12 | `NẤC: 09_vidu_dong \| K=5 mẫu \| 3 ví dụ TRUY HỒI` |
+| #13 | bảng **VÍ DỤ ĐỘNG ĐÓNG GÓP BAO NHIÊU, Ở TỪNG MỨC k** |
 
 **Vì sao chỉ hai nấc là đủ.** Mọi mẫu sinh ra đều được lưu (`cac_program`,
 `cac_gia_tri`, `cac_ea`, `cac_pa`) cùng chương trình **trước** lượt sửa, nên từ hai lượt
@@ -182,7 +185,11 @@ gồm **cả** phần nhiệt độ — `07` tách riêng, đừng gộp.
 ⚠ Đặt `SO_MAU` nhỏ rồi muốn tăng thì **phải chạy lại cả nấc**. Đường cong k = 1…K lấy
 miễn phí từ K lớn, nên đừng tiết kiệm nhầm chỗ.
 
-Đọc gì ở bảng #9:
+**Ô #8 là cổng chặn 80 phút.** Nó kiểm ba giả định chưa ai xác minh trên GPU: vLLM có
+thật sự trả K mẫu không, K mẫu có khác nhau không, và prompt ví dụ động còn lọt ngân
+sách token không. Sai bất kỳ cái nào thì nó `assert` ngay, đừng chạy tiếp.
+
+Đọc gì ở bảng #10:
 
 - đường cong đi ngang từ k=2 → self-consistency không có đất trên bộ này. Nói thẳng,
   đó vẫn là kết quả.
@@ -424,8 +431,8 @@ ba lần đoán mù gần nhất đều sai.
 Trước mỗi lần commit, cả ba lệnh phải xanh:
 
 ```bash
-python -m pytest tests/ -q -W error     # 196 test, CPU, ~4 giây
-python tools/kiem_tra.py                # 5 phép kiểm nhanh
+python -m pytest tests/ -q -W error     # 209 test, CPU, ~4 giây
+python tools/kiem_tra.py                # 6 phép kiểm nhanh
 python tools/kiem_tra.py --day-du       # + chạy thật notebook 07 và phần phân tích của 06
 ```
 

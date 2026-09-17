@@ -145,31 +145,11 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
         j = chon1[i]
         return cac_prog[i][j] if j >= 0 else ""
 
-    if use_selfeval:
-        # Bước 2 soát chương trình ĐÃ THẮNG PHIẾU, và được cho biết nó chạy thật ra
-        # số bao nhiêu — độ lớn của con số là chỗ lộ lỗi rõ nhất.
-        _raw_thang = [(raw1[i][chon1[i]] if chon1[i] >= 0 else raw1[i][0])
-                      for i in range(len(samples))]
-        _gt = [(cac_val[i][chon1[i]] if chon1[i] >= 0 else None)
-               for i in range(len(samples))]
-        _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g)
-                     for s, r, b, g in zip(samples, _raw_thang, bullets_texts, _gt)]
-        raw2 = [lo[0] for lo in
-                _chuan_hoa_lo(generate_fn(_prompts2, sp_step2, desc=f"{desc}/step2"))]
-    else:
-        _raw_thang = [(raw1[i][chon1[i]] if chon1[i] >= 0 else raw1[i][0])
-                      for i in range(len(samples))]
-        raw2 = [""] * len(samples)
-
-    gc.collect()
-    try:
-        import torch
-        torch.cuda.empty_cache()
-    except Exception:                                    # noqa: BLE001
-        pass
-
-    # ── Lượt SỬA: mẫu nào chốt xong mà executor vẫn từ chối thì sinh lại MỘT lượt,
-    # kèm đúng thông báo lỗi. Chỉ mẫu hỏng mới phải sinh lại nên rất rẻ. ──
+    # ── Lượt SỬA, chạy TRƯỚC bước 2 ──
+    # Thứ tự quan trọng: nếu sửa sau bước 2 thì bước 2 đi soát một chương trình mà
+    # pipeline sau đó vứt đi, còn `program_step1` lưu lại là bản khác hẳn. Sửa trước
+    # thì bước 2 nhận đúng chương trình đã chạy được, và `gia_tri_buoc1` cũng là giá
+    # trị thật của nó.
     sua_moi: dict[int, str] = {}
     if sua_khi_loi:
         _hong = []
@@ -194,6 +174,39 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
                         n_sua += 1
                         break
             print(f"    {desc}/sửa: {n_sua}/{len(_hong)} program hỏng đã sửa chạy được")
+
+    def _prog_chot(i):
+        """Chương trình bước 1 SAU cả bỏ phiếu lẫn lượt sửa."""
+        return sua_moi.get(i, _prog1(i))
+
+    # Lời giải thô của mẫu thắng phiếu; mẫu đã sửa thì ghép chương trình mới vào để
+    # bước 2 không soát nhầm bản cũ.
+    _raw_thang = []
+    for i in range(len(samples)):
+        r = raw1[i][chon1[i]] if chon1[i] >= 0 else raw1[i][0]
+        if i in sua_moi:
+            r = (f"{r}\n\n[Đã sửa cho chạy được]\n```plaintext\n"
+                 f"program: {sua_moi[i]}\nanswer: \n```")
+        _raw_thang.append(r)
+
+    if use_selfeval:
+        # Bước 2 soát chương trình ĐÃ THẮNG PHIẾU (và đã sửa nếu có), kèm giá trị nó
+        # chạy thật ra — độ lớn con số là chỗ lộ lỗi rõ nhất.
+        _gt = [execute_program(_prog_chot(i), samples[i].get("table") or [])
+               if _prog_chot(i) else None for i in range(len(samples))]
+        _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g)
+                     for s, r, b, g in zip(samples, _raw_thang, bullets_texts, _gt)]
+        raw2 = [lo[0] for lo in
+                _chuan_hoa_lo(generate_fn(_prompts2, sp_step2, desc=f"{desc}/step2"))]
+    else:
+        raw2 = [""] * len(samples)
+
+    gc.collect()
+    try:
+        import torch
+        torch.cuda.empty_cache()
+    except Exception:                                    # noqa: BLE001
+        pass
 
     rows, n_cong_chan = [], 0
     for idx, (s, r1, r2, bt, ids) in enumerate(

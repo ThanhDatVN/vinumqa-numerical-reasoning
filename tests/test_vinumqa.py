@@ -1646,3 +1646,30 @@ class TestViDuDong:
                                      kho_vi_du=kho, n_vi_du=2, vot_mau_bi_cat=False)
         assert "VIDU:" in thay["p"]
         assert all(r["vi_du_dong"] for r in rows)
+
+
+class TestThuTuSuaTruocBuoc2:
+    """Lượt sửa phải chạy TRƯỚC bước 2.
+
+    Nếu sửa sau, bước 2 đi soát một chương trình mà pipeline sau đó vứt đi, còn
+    `program_step1` lưu lại là bản khác hẳn — hai thứ nói hai chuyện.
+    """
+
+    def test_buoc2_nhan_ban_da_sua(self, test_set):
+        thay = {}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            thay[desc] = prompts[0]
+            if desc and desc.endswith("step2"):
+                return ["```plaintext\nprogram: divide(6, 3)\nanswer: 2\n```"] * len(prompts)
+            if desc and desc.endswith("sua"):
+                return [["```plaintext\nprogram: divide(8, 2)\nanswer: 4\n```"]] * len(prompts)
+            return [["```plaintext\nprogram: divide(1, 0)\nanswer: x\n```"]] * len(prompts)
+
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     use_selfeval=True, sua_khi_loi=True,
+                                     vot_mau_bi_cat=False)
+        assert "divide(8, 2)" in thay["infer/step2"], "bước 2 chưa thấy bản đã sửa"
+        assert all(r["program_step1"] == "divide(8, 2)" for r in rows)
+        assert all(r["program_truoc_sua"] == "divide(1, 0)" for r in rows)
+        assert all(r["da_sua"] for r in rows)
