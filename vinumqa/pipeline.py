@@ -30,7 +30,7 @@ from .prompts import strip_assistant
 
 __all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder",
            "phan_loai_khong_co_program", "phan_loai_khong_chay_duoc",
-           "bo_sung_ly_do", "ty_le_lap"]
+           "bo_sung_ly_do", "ty_le_lap", "so_sanh_hai_buoc"]
 
 
 def run_pipeline(samples, prompt_kit, generate_fn, *,
@@ -187,6 +187,46 @@ def bo_sung_ly_do(rows, samples) -> int:
                                                  bang.get(r.get("id"), []))
         n += 1
     return n
+
+
+def so_sanh_hai_buoc(rows, samples) -> dict | None:
+    """Bước 2 (self-eval / ACE) thực sự đổi được bao nhiêu program so với bước 1.
+
+    Nhìn EA trước/sau KHÔNG phân biệt được hai chuyện: bước 2 chép lại y nguyên bước 1
+    (không có gì để sửa), hay nó sửa nhiều mà các thay đổi triệt tiêu nhau. Phải đếm
+    thẳng số program bị đổi, và trong đó bao nhiêu cái đổi cả GIÁ TRỊ thực thi.
+
+    Trả ``None`` nếu nấc này không có bước 2.
+    """
+    if not any((r.get("program_step2") or "").strip() for r in rows):
+        return None
+    bang = {s.get("id"): (s.get("table") or []) for s in samples}
+    chuan = lambda p: re.sub(r"\s+", "", (p or "")).lower()      # noqa: E731
+    d = Counter()
+    for r in rows:
+        p1, p2 = r.get("program_step1") or "", r.get("program_step2") or ""
+        if not p1 and not p2:
+            d["ca_hai_deu_trong"] += 1
+        elif not p1:
+            d["cuu_mau_buoc1_bo_trong"] += 1
+        elif not p2:
+            d["buoc2_bo_trong_giu_buoc1"] += 1
+        elif chuan(p1) == chuan(p2):
+            d["chep_lai_y_nguyen"] += 1
+        else:
+            t = bang.get(r.get("id"), [])
+            v1 = execute_program(p1, t)
+            v2 = execute_program(p2, t)
+            d["doi_va_doi_ca_gia_tri" if repr(v1) != repr(v2)
+              else "doi_nhung_gia_tri_giu_nguyen"] += 1
+    n = len(rows) or 1
+    # "Đổi" chỉ tính khi bước 2 THỰC SỰ đưa ra một program khác. Bước 2 bỏ trống rồi
+    # lùi về dùng lại bước 1 KHÔNG phải là đổi — gộp vào là thổi phồng con số.
+    doi = (d["doi_nhung_gia_tri_giu_nguyen"] + d["doi_va_doi_ca_gia_tri"]
+           + d["cuu_mau_buoc1_bo_trong"])
+    return {"theo_nhom": dict(d.most_common()),
+            "so_program_bi_doi": doi,
+            "ty_le_bi_doi": round(doi / n, 4)}
 
 
 def phan_loai_khong_chay_duoc(rows) -> dict | None:
