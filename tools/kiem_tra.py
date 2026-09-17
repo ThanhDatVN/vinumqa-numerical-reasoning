@@ -2,7 +2,8 @@
 """Bộ kiểm toàn dự án — chạy trước mỗi lần commit và trước mỗi lần chạy lại thang bậc.
 
     python tools/kiem_tra.py           # 6 phép kiểm nhanh, ~5 giây
-    python tools/kiem_tra.py --day-du  # + chạy notebook 07 end-to-end với nấc dựng sẵn
+    python tools/kiem_tra.py --day-du  # + chạy THẬT 07, phần phân tích 06,
+                                       #   và logic 5 notebook GPU (model giả)
 
 Trả mã thoát khác 0 nếu có lỗi, để cắm vào CI hoặc pre-commit được.
 
@@ -656,6 +657,27 @@ def kiem_ma_tran_06():
     print(f"   {n_o} ô phân tích đã chạy, đã dọn file tạm")
 
 
+def kiem_logic_notebook():
+    """Chạy LOGIC của 5 notebook GPU bằng model giả — xem có ô nào nổ không.
+
+    Trước phép kiểm này, `01`/`02`/`04`/`05`/`08` có độ phủ **bằng 0**: toàn bộ phần
+    chấm điểm, so sánh, ghi nấc chưa bao giờ được thực thi, nên mọi lỗi im lặng trong
+    đó chỉ lộ ra sau khi đã tiêu GPU. ~13 giây.
+    """
+    print("═" * 78)
+    print("  9. LOGIC NOTEBOOK GPU — chạy thật với model giả")
+    import subprocess as _sp
+    r = _sp.run([sys.executable, os.path.join(GOC, "tools", "chay_thu_notebook.py")],
+                capture_output=True, text=True, encoding="utf-8")
+    _dong = [l for l in (r.stdout or "").splitlines()
+             if "ô logic chạy được" in l or "dừng ở cổng" in l]
+    for l in _dong:
+        print("  " + l.strip())
+    if r.returncode:
+        loi.append("logic notebook GPU có ô nổ:\n"
+                   + "\n".join((r.stdout or "").splitlines()[-12:]))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -672,6 +694,7 @@ def main():
     if args.day_du:
         kiem_bao_cao_day_du()
         kiem_ma_tran_06()
+        kiem_logic_notebook()
 
     print("═" * 78)
     if loi:

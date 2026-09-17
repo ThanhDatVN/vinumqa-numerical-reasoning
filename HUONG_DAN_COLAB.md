@@ -489,13 +489,32 @@ Trước mỗi lần commit, cả ba lệnh phải xanh:
 
 ```bash
 python -m pytest tests/ -q -W error     # 209 test, CPU, ~4 giây
-python tools/kiem_tra.py                # 6 phép kiểm nhanh
-python tools/kiem_tra.py --day-du       # + chạy thật notebook 07 và phần phân tích của 06
+python tools/kiem_tra.py                # 6 phép kiểm nhanh, ~5 giây
+python tools/kiem_tra.py --day-du       # + 3 phép kiểm CHẠY THẬT, ~60 giây
 ```
 
 `kiem_tra.py` bắt những thứ `pytest` không bắt được: LADDER lệch giữa các notebook, trần
 token lệch giữa các ô cấu hình, thang prompt hết lồng nhau, notebook còn sót output, tên
-được gọi mà không ô nào định nghĩa, và `save_stage`/`load_stage` có thật sự chạy không.
+được gọi mà không ô nào định nghĩa, và runbook này còn khớp notebook không.
+
+`--day-du` thêm ba phép kiểm **chạy mã thật**, không chỉ biên dịch:
+
+| | chạy gì |
+|--:|---|
+| 7 | trọn `07` với nấc dựng sẵn, gồm cả `save_stage`/`load_stage` gọi thật |
+| 8 | phần phân tích của `06`, gồm cổng 70/70 và hai ô mục tiêu |
+| 9 | **logic của cả 5 notebook GPU** (`01`,`02`,`04`,`05`,`08`) bằng model giả |
+
+Phép kiểm 9 là thứ chặn lỗi đắt nhất: trước khi có nó, 38 ô của 5 notebook GPU chưa bao
+giờ được thực thi — mọi lỗi im lặng trong đó chỉ lộ ra **sau** khi đã tiêu GPU.
+
+Hai công cụ chạy riêng khi cần:
+
+```bash
+python tools/chay_thu_notebook.py 08    # chạy logic một notebook, in từng ô
+python tools/do_do_phu.py               # đo % mã phân tích thực sự được chạy
+python tools/kiem_thu_tu_ten.py         # tên dùng ở ô i có định nghĩa ở ô ≤ i không
+```
 
 Xong thì `git push`, rồi trên Colab chạy lại **ô #2** của notebook đang mở — nó tự
 `git pull`.

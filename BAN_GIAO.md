@@ -430,18 +430,41 @@ và ACE. **PA là chỉ số khó hơn** (+48 so với +26).
 
 ```bash
 python -m pytest tests/ -q -W error     # 209 test, CPU, ~4 giây
-python tools/kiem_tra.py                # notebook + cấu hình + thang prompt + mã chết
-python tools/kiem_tra.py --day-du       # + chạy trọn notebook 07 với nấc dựng sẵn
+python tools/kiem_tra.py                # 6 phép kiểm tĩnh, ~5 giây
+python tools/kiem_tra.py --day-du       # + 3 phép kiểm CHẠY THẬT, ~60 giây
 ```
 
-`tools/kiem_tra.py` trả mã thoát khác 0 nếu có lỗi. Nó kiểm những thứ `pytest` **không**
-kiểm được: LADDER có giống hệt nhau ở cả 8 notebook không, trần token có lệch giữa các ô
-cấu hình không, ngân sách ngữ cảnh còn dư bao nhiêu, thang prompt còn lồng nhau không,
-notebook có sót output không, **có tên nào được gọi mà không ô nào định nghĩa không**,
-và **HUONG_DAN_COLAB có còn khớp notebook không** (số ô code + vị trí từng cổng kiểm).
-`--day-du` chạy thật notebook `07` và phần phân tích của `06` với nấc dựng sẵn — chính chỗ
-ba lỗi `NameError`/`TypeError` của `06` từng lọt qua vì biên dịch sạch vẫn không có nghĩa
-là chạy được.
+`tools/kiem_tra.py` trả mã thoát khác 0 nếu có lỗi. Sáu phép kiểm tĩnh bắt những thứ
+`pytest` **không** bắt được: LADDER có giống hệt nhau ở cả 9 notebook không, trần token có
+lệch giữa các ô cấu hình không, ngân sách ngữ cảnh còn dư bao nhiêu, thang prompt còn lồng
+nhau không, notebook có sót output không, **có tên nào được gọi mà không ô nào định nghĩa
+không**, và **HUONG_DAN_COLAB có còn khớp notebook không** (số ô code + vị trí từng cổng).
+
+`--day-du` thêm ba phép kiểm **thực thi mã thật**, vì biên dịch sạch không có nghĩa là
+chạy được:
+
+| | chạy gì | đã từng bắt được |
+|--:|---|---|
+| 7 | trọn `07` với nấc dựng sẵn | `save_stage`/`load_stage` không ai gọi → `KeyError: 'csv'` lọt lên Colab |
+| 8 | phần phân tích của `06` | ba lỗi `NameError`/`TypeError`, rồi `NICE['E+A*']` sẽ nổ **sau** 160 phút GPU |
+| 9 | logic 5 notebook GPU (`01`,`02`,`04`,`05`,`08`) bằng model giả | 38 ô trước đó có độ phủ **bằng 0** |
+
+Phép kiểm 9 dùng `tools/chay_thu_notebook.py`: bỏ đúng ba loại ô — cài gói, kiểm gói, nạp
+model — rồi tiêm `model`/`tokenizer`/`generate`/`SamplingParams` giả, trong đó `generate`
+trả về **gold program** của chính mẫu đang hỏi, nên mọi nhánh chấm điểm chạy trên dữ liệu
+thật. Nó **không** thay cho GPU: nó chỉ chứng minh mã chạy tới cuối, không nói gì về chất
+lượng model.
+
+Hai công cụ chạy riêng khi cần:
+
+```bash
+python tools/chay_thu_notebook.py 08    # chạy logic MỘT notebook, in từng ô
+python tools/do_do_phu.py               # đo % dòng mã phân tích thật sự được chạy (nay 80%)
+python tools/kiem_thu_tu_ten.py         # tên dùng ở ô i có định nghĩa ở ô ≤ i không
+```
+
+**Luật đã rút ra:** thêm một nhánh mới mà không thêm nó vào bộ chạy giả thì nhánh đó
+**chưa được kiểm** — dù `pytest` và `kiem_tra.py` đều xanh.
 
 ### Vòng làm việc với người dùng
 
@@ -463,7 +486,7 @@ cổng 70/70), đủ để viết thành báo cáo. `07` xuất `bang_ket_qua_*.
 
 6. Mọi thay đổi phải qua **cả ba lệnh kiểm ở trên**. Đừng commit khi chưa xanh.
 7. Notebook sửa bằng **script Python thao tác JSON**, không sửa tay — 10 ô bootstrap phải
-   giống hệt nhau, có bộ kiểm canh LADDER đồng nhất ở cả 8 notebook.
+   giống hệt nhau, có bộ kiểm canh LADDER đồng nhất ở cả 9 notebook.
 8. **Không dùng `open(p, "w")` để ghi đè file nguồn.** Nó **cắt cụt file NGAY khi mở**,
    trước cả khi kiểm tham số — đã từng làm mất trắng `prompts.py`. Ghi ra file tạm rồi
    `os.replace`.
@@ -487,13 +510,16 @@ cổng 70/70), đủ để viết thành báo cáo. `07` xuất `bang_ket_qua_*.
 
 ```
 vinumqa/            lõi: dsl · data · prompts · pipeline · sft · stats · io_utils · ace/
-notebooks/00–07     mỗi nấc một notebook; 00 và 07 chạy CPU
+notebooks/00–08     mỗi nấc một notebook; 00, 06 (phần phân tích) và 07 chạy CPU
 tests/              209 test, CPU, ~4 giây, KHÔNG cần GPU
 data/               ViNumQA (24 MB, nằm luôn trong repo)
 reference/          hồ sơ xuất xứ + 5 CSV mốc tham chiếu (KHÔNG tái tạo được nếu mất)
 BAN_GIAO.md         tài liệu này
-tools/kiem_tra.py   bộ kiểm toàn dự án (notebook + cấu hình + thang prompt + mã chết)
-HUONG_DAN_COLAB.md  runbook MỘT LUỒNG: 12 bước, số ô đã đối chiếu thật, kèm cổng kiểm
+tools/kiem_tra.py         bộ kiểm toàn dự án — 6 phép tĩnh + 3 phép chạy thật
+tools/chay_thu_notebook.py  chạy logic notebook GPU bằng model giả (phép kiểm 9)
+tools/do_do_phu.py          đo độ phủ dòng của phần phân tích 06/07
+tools/kiem_thu_tu_ten.py    tên dùng ở ô i phải định nghĩa ở ô ≤ i
+HUONG_DAN_COLAB.md  runbook MỘT LUỒNG: 10 bước, ~19 giờ GPU, KHÔNG công tắc nào
 ```
 
 Phần cần GPU nhận `generate_fn` **tiêm từ ngoài vào**, nên toàn bộ package test được trên
