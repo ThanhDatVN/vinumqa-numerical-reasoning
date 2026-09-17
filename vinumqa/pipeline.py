@@ -24,29 +24,60 @@ import re
 import statistics
 from collections import Counter, defaultdict
 
-from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
-                  ly_do_khong_chay, split_dsl_items,
-                  extract_program_answer, n_ops)
+from .dsl import (EA_DECIMAL_PLACES, check_ea, check_pa, classify_outcome,
+                  execute_program, ly_do_khong_chay, normalize_program_strict,
+                  split_dsl_items, extract_program_answer, n_ops)
 from .prompts import strip_assistant
 
 __all__ = ["run_pipeline", "summarize", "print_summary",
            "phan_loai_khong_co_program", "phan_loai_khong_chay_duoc",
            "bo_sung_ly_do", "ap_cong_buoc2", "ty_le_lap", "so_sanh_hai_buoc",
-           "phan_loai_sai", "nhom_phep"]
+           "phan_loai_sai", "nhom_phep", "bo_phieu", "tu_nhat_quan", "tran_best_of_k"]
+
+
+def _chuan_hoa_lo(outs) -> list[list[str]]:
+    """Mỗi phần tử đầu ra → ``list[str]``.
+
+    ``generate_fn`` trả chuỗi khi sinh 1 mẫu, trả list khi sinh nhiều mẫu
+    (``SamplingParams(n=K)``). Chuẩn hoá ở đây nên phần còn lại của pipeline chỉ phải
+    biết một dạng duy nhất, và nấc 1 mẫu vẫn chạy y như cũ.
+    """
+    ra = []
+    for o in outs:
+        if isinstance(o, (list, tuple)):
+            ra.append([strip_assistant(x) for x in o])
+        else:
+            ra.append([strip_assistant(o)])
+    return ra
 
 
 def run_pipeline(samples, prompt_kit, generate_fn, *,
                  prompt_level="engineered", use_selfeval=False,
                  playbook="", retriever=None,
+                 kho_vi_du=None, n_vi_du=3,
                  sp_step1=None, sp_step2=None,
                  desc="infer", record_usage=False, keep_raw=True,
-                 vot_mau_bi_cat=True, cong_buoc2=False):
+                 vot_mau_bi_cat=True, cong_buoc2=False, sua_khi_loi=False):
     """Chạy một cấu hình trên danh sách mẫu. Trả list dict kết quả từng mẫu.
 
     ``cong_buoc2`` — CỔNG cho self-eval (nấc 4b). Mặc định ``False`` = giữ đúng hành vi
     cũ (bước 2 luôn thắng). Bật lên thì chỉ nhận program của bước 2 khi nó **thực thi
-    được**, hoặc khi bước 1 vốn cũng không chạy được. Cổng chỉ dùng executor, KHÔNG
-    đụng tới đáp án vàng, nên không rò nhãn.
+    được**, hoặc khi bước 1 vốn cũng không chạy được.
+
+    ``kho_vi_du`` — :class:`vinumqa.fewshot.KhoViDu`. Truyền vào thì 2 ví dụ cố định
+    trong prompt bị thay bằng ``n_vi_du`` ví dụ TRUY HỒI từ train.
+
+    ``sua_khi_loi`` — sau khi chốt program, mẫu nào executor từ chối thì sinh lại MỘT
+    lượt kèm đúng thông báo lỗi. Chỉ những mẫu hỏng mới phải sinh lại nên rất rẻ.
+    Chương trình trước khi sửa vẫn lưu ở ``program_truoc_sua``, nên "nếu không sửa thì
+    sao" tính lại được trên CPU.
+
+    Sinh **nhiều mẫu** (self-consistency): truyền ``sp_step1`` có ``n=K``. Mọi mẫu đều
+    được lưu ở ``cac_program``/``cac_gia_tri``, và đáp án chốt bằng :func:`bo_phieu`.
+    Nhờ lưu đủ, đường cong theo k dựng lại được trên CPU bằng :func:`tu_nhat_quan` —
+    một lượt chạy GPU cho cả họ kết quả.
+
+    Cả ba cơ chế chỉ hỏi **executor**, không hề đụng tới đáp án vàng.
     """
     if not samples:
         return []
@@ -59,51 +90,75 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
     bullets_texts = [r[0] for r in retrieved]
     used_ids_list = [r[1] for r in retrieved]
 
-    raw1 = generate_fn(
-        [prompt_kit.step1(s, b, level=prompt_level)
-         for s, b in zip(samples, bullets_texts)],
-        sp_step1, desc=f"{desc}/step1")
-    raw1 = [strip_assistant(r) for r in raw1]
+    # Ví dụ mẫu TRUY HỒI — tất định, chạy CPU, không tốn lượt sinh nào.
+    if kho_vi_du is not None:
+        vi_du_list = [kho_vi_du.van_ban_vi_du(s["qa"]["question"], n_vi_du,
+                                              tru_id=s.get("id")) or None
+                      for s in samples]
+    else:
+        vi_du_list = [None] * len(samples)
+
+    def _p1(i):
+        return prompt_kit.step1(samples[i], bullets_texts[i], level=prompt_level,
+                                vi_du_dong=vi_du_list[i])
+
+    raw1 = _chuan_hoa_lo(generate_fn([_p1(i) for i in range(len(samples))],
+                                     sp_step1, desc=f"{desc}/step1"))
 
     # ── Vớt mẫu bị cắt giữa lúc suy nghĩ ──
     # Nâng trần không cứu được (đo sạch: 4096 và 8192 cùng mất 28 mẫu ở nấc 2), nên vớt
     # bằng một lượt sinh lại với suy nghĩ TẮT — không có đoạn <think> dài để mà bị cắt.
     n_vot = 0
     if vot_mau_bi_cat:
-        _can = [i for i, r in enumerate(raw1)
-                if "<think>" in r and "</think>" not in r
-                and extract_program_answer(r)[0] is None]
+        # Chỉ vớt khi KHÔNG mẫu nào trong lô rút ra được program — còn một mẫu dùng được
+        # thì self-consistency đã có cái để bỏ phiếu, không cần sinh thêm.
+        _can = [i for i, lo in enumerate(raw1)
+                if all(extract_program_answer(r)[0] is None for r in lo)
+                and any("<think>" in r and "</think>" not in r for r in lo)]
         if _can:
             _cu = getattr(prompt_kit, "enable_thinking", None)
             prompt_kit.enable_thinking = False
             try:
-                _lai = generate_fn(
-                    [prompt_kit.step1(samples[i], bullets_texts[i], level=prompt_level)
-                     for i in _can],
-                    sp_step1, desc=f"{desc}/vot-bi-cat")
+                _lai = _chuan_hoa_lo(generate_fn([_p1(i) for i in _can],
+                                                 sp_step1, desc=f"{desc}/vot-bi-cat"))
             finally:
                 prompt_kit.enable_thinking = _cu
-            for i, r in zip(_can, _lai):
-                r = strip_assistant(r)
+            for i, lo in zip(_can, _lai):
                 # Chỉ thay khi lượt vớt THẬT SỰ ra được program, không thì giữ nguyên
                 # bản cũ để con số "bị cắt" vẫn phản ánh đúng chuyện đã xảy ra.
-                if extract_program_answer(r)[0] is not None:
-                    raw1[i] = r
+                if any(extract_program_answer(r)[0] is not None for r in lo):
+                    raw1[i] = lo
                     n_vot += 1
             print(f"    {desc}/vớt: {n_vot}/{len(_can)} mẫu bị cắt đã cứu được")
 
+    # ── Chốt bước 1: thực thi từng mẫu rồi BỎ PHIẾU theo giá trị chạy được ──
+    cac_prog, cac_val, chon1 = [], [], []
+    for s, lo in zip(samples, raw1):
+        bang = s.get("table") or []
+        ps = [extract_program_answer(r)[0] or "" for r in lo]
+        vs = [execute_program(p, bang) if p else None for p in ps]
+        cac_prog.append(ps)
+        cac_val.append(vs)
+        chon1.append(bo_phieu(ps, vs))
+
+    def _prog1(i):
+        j = chon1[i]
+        return cac_prog[i][j] if j >= 0 else ""
+
     if use_selfeval:
-        # Bước 2 luôn được cho biết chương trình bước 1 CHẠY THẬT ra số bao nhiêu —
-        # độ lớn của con số là chỗ lộ lỗi rõ nhất.
-        _gt = []
-        for s, r in zip(samples, raw1):
-            _p, _ = extract_program_answer(r)
-            _gt.append(execute_program(_p, s.get("table") or []) if _p else None)
-        _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g, level=prompt_level)
-                     for s, r, b, g in zip(samples, raw1, bullets_texts, _gt)]
-        raw2 = generate_fn(_prompts2, sp_step2, desc=f"{desc}/step2")
-        raw2 = [strip_assistant(r) for r in raw2]
+        # Bước 2 soát chương trình ĐÃ THẮNG PHIẾU, và được cho biết nó chạy thật ra
+        # số bao nhiêu — độ lớn của con số là chỗ lộ lỗi rõ nhất.
+        _raw_thang = [(raw1[i][chon1[i]] if chon1[i] >= 0 else raw1[i][0])
+                      for i in range(len(samples))]
+        _gt = [(cac_val[i][chon1[i]] if chon1[i] >= 0 else None)
+               for i in range(len(samples))]
+        _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g)
+                     for s, r, b, g in zip(samples, _raw_thang, bullets_texts, _gt)]
+        raw2 = [lo[0] for lo in
+                _chuan_hoa_lo(generate_fn(_prompts2, sp_step2, desc=f"{desc}/step2"))]
     else:
+        _raw_thang = [(raw1[i][chon1[i]] if chon1[i] >= 0 else raw1[i][0])
+                      for i in range(len(samples))]
         raw2 = [""] * len(samples)
 
     gc.collect()
@@ -113,12 +168,43 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
     except Exception:                                    # noqa: BLE001
         pass
 
+    # ── Lượt SỬA: mẫu nào chốt xong mà executor vẫn từ chối thì sinh lại MỘT lượt,
+    # kèm đúng thông báo lỗi. Chỉ mẫu hỏng mới phải sinh lại nên rất rẻ. ──
+    sua_moi: dict[int, str] = {}
+    if sua_khi_loi:
+        _hong = []
+        for i, s in enumerate(samples):
+            p = _prog1(i)
+            if not p:
+                continue
+            bang = s.get("table") or []
+            if execute_program(p, bang) is None:
+                _hong.append((i, p, ly_do_khong_chay(p, bang)))
+        if _hong:
+            _lai = _chuan_hoa_lo(generate_fn(
+                [prompt_kit.step_sua(samples[i], p, ld, bullets_texts[i])
+                 for i, p, ld in _hong], sp_step1, desc=f"{desc}/sua"))
+            n_sua = 0
+            for (i, _p, _ld), lo in zip(_hong, _lai):
+                bang = samples[i].get("table") or []
+                for r in lo:
+                    pm, _ = extract_program_answer(r)
+                    if pm and execute_program(pm, bang) is not None:
+                        sua_moi[i] = pm
+                        n_sua += 1
+                        break
+            print(f"    {desc}/sửa: {n_sua}/{len(_hong)} program hỏng đã sửa chạy được")
+
     rows, n_cong_chan = [], 0
-    for s, r1, r2, bt, ids in zip(samples, raw1, raw2, bullets_texts, used_ids_list):
-        prog1, ans1 = extract_program_answer(r1)
+    for idx, (s, r1, r2, bt, ids) in enumerate(
+            zip(samples, _raw_thang, raw2, bullets_texts, used_ids_list)):
+        bang = s.get("table") or []
+        prog_truoc_sua = _prog1(idx)
+        _j = chon1[idx]
+        ans1 = extract_program_answer(r1)[1]
+        prog1 = sua_moi.get(idx, prog_truoc_sua)
         prog2, ans2 = extract_program_answer(r2) if use_selfeval else (None, None)
 
-        bang = s.get("table") or []
         val1 = execute_program(prog1, bang) if prog1 else None
         val2 = execute_program(prog2, bang) if prog2 else None
 
@@ -169,6 +255,20 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
             "raw_step1": r1 if keep_raw else "",
             "raw_step2": r2 if keep_raw else "",
             "lay_buoc2": bool(lay_buoc2),
+            # ── dữ liệu thô để tính lại trên CPU, không phải chạy GPU lần nữa ──
+            "cac_program": cac_prog[idx],          # K chương trình đã sinh
+            "cac_gia_tri": cac_val[idx],           # giá trị thực thi của từng cái
+            "cac_ea": [check_ea(v, gold_ans) if gold_ans is not None else False
+                       for v in cac_val[idx]],
+            "cac_pa": [check_pa(p, gold_prog)[0] if gold_prog else False
+                       for p in cac_prog[idx]],
+            "k_da_sinh": len(cac_prog[idx]),
+            "so_phieu": sum(1 for v in cac_val[idx]
+                            if v is not None and _j >= 0
+                            and _khoa_gia_tri(v) == _khoa_gia_tri(cac_val[idx][_j])),
+            "program_truoc_sua": prog_truoc_sua,
+            "da_sua": idx in sua_moi,
+            "vi_du_dong": bool(vi_du_list[idx]),
         })
     if cong_buoc2 and n_cong_chan:
         print(f"    {desc}/cổng bước 2: giữ lại bước 1 ở {n_cong_chan} mẫu "
@@ -227,6 +327,114 @@ def phan_loai_khong_co_program(rows) -> dict | None:
         out["lap_trung_vi"] = round(statistics.median(lap), 3)
         out["so_ca_lap_nang"] = sum(1 for x in lap if x >= 0.5)
     return out
+
+
+def _khoa_gia_tri(v):
+    """Khoá gộp phiếu. Làm tròn đúng số chữ số mà EA dùng, để hai lời giải chỉ khác
+    sai số dấu phẩy động không bị đếm thành hai đáp án khác nhau."""
+    if v is None:
+        return None
+    if isinstance(v, str):
+        return v.strip().casefold()
+    try:
+        return round(float(v), EA_DECIMAL_PLACES)
+    except (TypeError, ValueError):
+        return None
+
+
+def bo_phieu(progs, vals) -> int:
+    """Chọn chỉ số mẫu thắng trong self-consistency. Trả -1 nếu không có gì để chọn.
+
+    Luật — **chỉ dùng executor, không hề đụng đáp án vàng**:
+
+    1. Bỏ các mẫu không chạy được. Đáp án nào nhiều phiếu nhất thì thắng.
+    2. Trong các mẫu cùng cho đáp án thắng, lấy **program xuất hiện nhiều nhất** (sau
+       chuẩn hoá) — chọn cách viết phổ biến nhất giúp PA, không chỉ EA.
+    3. Hoà ở bất kỳ bước nào → lấy mẫu có chỉ số NHỎ NHẤT. Tất định tuyệt đối.
+    4. Không mẫu nào chạy được → lấy mẫu đầu tiên có program, để còn chấm được lý do.
+    """
+    n = min(len(progs), len(vals))
+    chay = [i for i in range(n) if vals[i] is not None]
+    if not chay:
+        co = [i for i in range(n) if (progs[i] or "").strip()]
+        return co[0] if co else -1
+
+    phieu = Counter(_khoa_gia_tri(vals[i]) for i in chay)
+    # sorted theo (-số phiếu, chỉ số nhỏ nhất của khoá đó) → tất định
+    dau_tien = {}
+    for i in chay:
+        dau_tien.setdefault(_khoa_gia_tri(vals[i]), i)
+    thang = min(phieu, key=lambda k: (-phieu[k], dau_tien[k]))
+
+    ung = [i for i in chay if _khoa_gia_tri(vals[i]) == thang]
+    dang = Counter(normalize_program_strict(progs[i]) or f"__raw{i}" for i in ung)
+    dau_dang = {}
+    for i in ung:
+        dau_dang.setdefault(normalize_program_strict(progs[i]) or f"__raw{i}", i)
+    dang_thang = min(dang, key=lambda k: (-dang[k], dau_dang[k]))
+    return dau_dang[dang_thang]
+
+
+def tu_nhat_quan(rows, samples, k: int) -> list[dict]:
+    """Chấm lại một nấc ĐÃ CHẠY ở mức ``k`` mẫu — **không tốn GPU**.
+
+    Nấc chạy với ``n_mau=K`` lưu cả ``cac_program`` lẫn ``cac_gia_tri``, nên đường cong
+    self-consistency theo k = 1, 2, … K dựng được hết trên CPU từ MỘT lượt chạy GPU.
+    ``k=1`` chính là "không self-consistency" — mốc để so.
+
+    Trả list row MỚI; ``rows`` gốc không bị đụng.
+    """
+    if k < 1:
+        raise ValueError("k phải ≥ 1")
+    bang = {s.get("id"): (s.get("table") or []) for s in samples}
+    ra = []
+    for r in rows:
+        progs = list(r.get("cac_program") or [])
+        vals = list(r.get("cac_gia_tri") or [])
+        if not progs:                       # nấc chạy 1 mẫu — giữ nguyên
+            ra.append(dict(r))
+            continue
+        progs, vals = progs[:k], vals[:k]
+        i = bo_phieu(progs, vals)
+
+        moi = dict(r)
+        moi["final_program"] = (progs[i] if i >= 0 else "") or ""
+        moi["pred_value"] = vals[i] if i >= 0 else None
+        moi["k_da_dung"] = len(progs)
+        moi["so_phieu"] = sum(1 for v in vals
+                              if v is not None
+                              and _khoa_gia_tri(v) == _khoa_gia_tri(moi["pred_value"]))
+
+        gold_prog = r.get("gold_program") or ""
+        gold_ans = r.get("gold_answer")
+        val = moi["pred_value"]
+        moi["ea"] = check_ea(val, gold_ans) if gold_ans is not None else False
+        moi["ea_tol1e-3"] = (check_ea(val, gold_ans, abs_tol=1e-3)
+                             if gold_ans is not None else False)
+        ps, pl = check_pa(moi["final_program"], gold_prog) if gold_prog else (False, False)
+        moi["pa_strict"], moi["pa_loose"] = ps, pl
+        moi["outcome"] = classify_outcome(moi["ea"], ps, moi["final_program"], val)
+        moi["ly_do_khong_chay"] = (
+            ly_do_khong_chay(moi["final_program"], bang.get(r.get("id"), []))
+            if moi["final_program"] and val is None else None)
+        ra.append(moi)
+    return ra
+
+
+def tran_best_of_k(rows, k: int | None = None) -> dict:
+    """TRẦN của self-consistency: nếu luôn chọn được mẫu đúng nhất trong k mẫu thì EA/PA
+    lên tới đâu. Không phải kết quả đạt được — là **cận trên** để biết còn bao nhiêu đất.
+
+    Chỉ dùng được khi nấc đã lưu ``cac_ea``/``cac_pa`` (chấm sẵn từng mẫu lúc chạy).
+    """
+    n = len(rows) or 1
+    ea = pa = 0
+    for r in rows:
+        e = (r.get("cac_ea") or [])[:k] if k else (r.get("cac_ea") or [])
+        p = (r.get("cac_pa") or [])[:k] if k else (r.get("cac_pa") or [])
+        ea += any(e)
+        pa += any(p)
+    return {"EA_tran": round(ea / n, 4), "PA_tran": round(pa / n, 4), "n": len(rows)}
 
 
 def ap_cong_buoc2(rows, samples) -> list[dict]:

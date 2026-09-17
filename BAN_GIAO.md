@@ -1,7 +1,7 @@
 # Bàn giao — ViNumQA: đo tác động của từng kỹ thuật lên suy luận số học tài chính tiếng Việt
 
 > **Tài liệu này để mở một phiên làm việc mới. Đọc hết §1–§4 và §9 trước khi sửa bất cứ thứ gì.**
-> Mốc: 196 test · 8 notebook · 107 ô code · nhánh `main`.
+> Mốc: 208 test · 9 notebook · 121 ô code · nhánh `main`.
 > Kiểm nhanh mọi thứ trong tài liệu này còn đúng không: `python tools/kiem_tra.py`
 
 ---
@@ -108,9 +108,10 @@ A100-40GB: GPU_MEM_UTIL 0.85 · MAX_NUM_SEQS 48 · BATCH_SIZE 512
 ```
 01_basic · 02_prompt_eng · 03_sft · 04_selfeval_base · 04_selfeval_sft
 05_ace_base · 05_ace_sft · 05c_ace_basic_base · 05_ace_random_base
-06_comb_E_A · 06_comb_F_A
+06_comb_E_A · 06_comb_F_A · 08_tu_nhat_quan · 09_vidu_dong
 ```
-**11 nấc.** Chỉ còn MỘT prompt engineered — nấc 2c đã gộp vào nó, xem §4.1i.
+**13 nấc.** Chỉ còn MỘT prompt engineered — nấc 2c đã gộp vào nó, xem §4.1i.
+Hai nấc `08`/`09` là ba phương pháp mới, xem §6c.
 
 ### Thang prompt (lồng nhau — có test canh)
 
@@ -295,6 +296,29 @@ với bullet mới, giữ nếu sửa được) → nhập playbook.
 | 8 | **Ràng buộc Reflector ≥1 phép** — trước đòi ≥2 trong khi cổng đã hạ `min_ops=1`; 64 % test là câu 1 phép | nhóm 319 mẫu mới có lời khuyên |
 | 9 | **Ma trận dùng chung một prompt** — `06` trước hard-code riêng, nay mọi nấc cùng một nền | nối lại đường tới 70/70 |
 
+### 6c. Ba phương pháp MỚI — notebook `08`, hai nấc
+
+Thiết kế để **một lượt GPU rút ra cả họ kết quả**, vì ngân sách không đủ chạy lại.
+
+| phương pháp | cơ chế | căn cứ |
+|---|---|---|
+| **Self-consistency** | sinh K=5 mẫu, bỏ phiếu theo giá trị **thực thi** | ô `sai` là ô lớn nhất (136/497). GSM8K: 56,5 → 74,4 khi N=40 |
+| **Ví dụ động (kNN)** | thay 2 ví dụ cố định bằng 3 ví dụ truy hồi từ train | đo trên bộ này: láng giềng gần nhất cùng dãy phép với gold ở **46,5 %** câu, top-3 là **66,2 %**; cả train chỉ có **86 dãy phép** |
+| **Lượt sửa** | program bị executor từ chối → sinh lại 1 lượt kèm đúng lý do lỗi | chỉ ~10–40 mẫu phải sinh lại |
+
+Cả ba **chỉ hỏi executor**, không đụng đáp án vàng.
+
+Mọi mẫu sinh ra đều được lưu (`cac_program`, `cac_gia_tri`, `cac_ea`, `cac_pa`) cùng
+`program_truoc_sua`, nên từ **hai** lượt GPU, `07` §5d bóc ra được: đường cong
+self-consistency k=1…5, đóng góp của ví dụ động ở từng k, tương tác giữa hai thứ, đóng
+góp của lượt sửa, ảnh hưởng của nhiệt độ, và **trần best-of-K**.
+
+⚠ Hai nấc này chạy `temperature=0.7` (self-consistency cần đa dạng; ở 0,1 thì K mẫu
+giống hệt nhau và bỏ phiếu vô nghĩa). Nấc 2 ở 0,1 — chênh lệch so với nấc 2 vì thế gồm
+cả phần nhiệt độ, `07` tách riêng.
+
+⚠ Đặt `SO_MAU` nhỏ rồi muốn tăng thì **phải chạy lại cả nấc**.
+
 ### 6b. Đợt dọn mã — một luồng
 
 Mã nguồn nay chỉ còn **một đường chạy** cho mỗi nấc. Đã xoá hẳn:
@@ -394,7 +418,7 @@ và ACE. **PA là chỉ số khó hơn** (+48 so với +26).
 ### Lệnh kiểm bắt buộc trước mỗi commit
 
 ```bash
-python -m pytest tests/ -q -W error     # 196 test, CPU, ~4 giây
+python -m pytest tests/ -q -W error     # 208 test, CPU, ~4 giây
 python tools/kiem_tra.py                # notebook + cấu hình + thang prompt + mã chết
 python tools/kiem_tra.py --day-du       # + chạy trọn notebook 07 với nấc dựng sẵn
 ```
@@ -453,7 +477,7 @@ cổng 70/70), đủ để viết thành báo cáo. `07` xuất `bang_ket_qua_*.
 ```
 vinumqa/            lõi: dsl · data · prompts · pipeline · sft · stats · io_utils · ace/
 notebooks/00–07     mỗi nấc một notebook; 00 và 07 chạy CPU
-tests/              196 test, CPU, ~4 giây, KHÔNG cần GPU
+tests/              208 test, CPU, ~4 giây, KHÔNG cần GPU
 data/               ViNumQA (24 MB, nằm luôn trong repo)
 reference/          hồ sơ xuất xứ + 5 CSV mốc tham chiếu (KHÔNG tái tạo được nếu mất)
 BAN_GIAO.md         tài liệu này

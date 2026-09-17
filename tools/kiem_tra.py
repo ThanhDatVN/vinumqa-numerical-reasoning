@@ -338,10 +338,17 @@ NEO_RUNBOOK = [
     ("07_final_report", 4, "KIỂM TRA CÔNG BẰNG"),
     ("07_final_report", 6, "ĐỘ PHỨC TẠP"),
     ("07_final_report", 7, "EA THEO LOẠI PHÉP TOÁN"),
-    ("07_final_report", 8, "ap_cong_buoc2"),
-    ("07_final_report", 9, "PHÂN BỐ KẾT CỤC"),
-    ("07_final_report", 11, "bang_ket_qua_"),
-    ("07_final_report", 12, "bao_cao_"),
+    ("07_final_report", 8, "SELF-CONSISTENCY THEO k"),
+    ("07_final_report", 9, "ap_cong_buoc2"),
+    ("07_final_report", 10, "PHÂN BỐ KẾT CỤC"),
+    ("07_final_report", 12, "bang_ket_qua_"),
+    ("07_final_report", 13, "bao_cao_"),
+    ("08_phuong_phap_moi", 7, "SO_MAU"),
+    ("08_phuong_phap_moi", 7, "KhoViDu"),
+    ("08_phuong_phap_moi", 8, '08_tu_nhat_quan'),
+    ("08_phuong_phap_moi", 9, "SELF-CONSISTENCY THEO k"),
+    ("08_phuong_phap_moi", 11, '09_vidu_dong'),
+    ("08_phuong_phap_moi", 12, "VÍ DỤ ĐỘNG ĐÓNG GÓP"),
 ]
 
 
@@ -433,12 +440,57 @@ def kiem_bao_cao_day_du():
                 "raw_step1": "<think>xong</think>\n```plaintext\nok\n```", "raw_step2": ""})
         return rows
 
+    def nac_k_mau(ty_le, K=5, co_sua=True, co_vidu=False):
+        """Nấc kiểu MỚI: K mẫu + lượt sửa, đủ trường để §5d của 07 chạy THẬT.
+
+        Không có nấc dạng này thì khối "phương pháp mới" chỉ in "⊘ chưa có", và mọi lỗi
+        trong đó nằm im tới khi chạy Colab xong 3 tiếng GPU mới lộ ra.
+        """
+        from vinumqa import pipeline as _pl
+        rows = []
+        for i, s in enumerate(test):
+            gold = s["qa"].get("program") or ""
+            bang = s.get("table") or []
+            progs = [gold if rng.random() < ty_le else HONG[(i + j) % len(HONG)]
+                     for j in range(K)]
+            vals = [dsl.execute_program(p, bang) if p else None for p in progs]
+            j = _pl.bo_phieu(progs, vals)
+            prog = progs[j] if j >= 0 else ""
+            val = vals[j] if j >= 0 else None
+            ea = dsl.check_ea(val, s["qa"].get("exe_ans")) if prog else False
+            pa_s, pa_l = dsl.check_pa(prog, gold) if prog and gold else (False, False)
+            rows.append({
+                "id": s["id"], "question": s["qa"]["question"], "gold_program": gold,
+                "gold_answer": s["qa"].get("exe_ans"), "program_step1": prog,
+                "program_step2": "", "final_program": prog, "pred_value": val,
+                "pred_answer_text": None,
+                "ea": ea, "ea_tol1e-3": ea, "pa_strict": pa_s, "pa_loose": pa_l,
+                "n_ops_gold": dsl.n_ops(gold),
+                "outcome": dsl.classify_outcome(ea, pa_s, prog, val),
+                "used_bullets": [], "bullets_text": "",
+                "cac_program": progs, "cac_gia_tri": vals,
+                "cac_ea": [dsl.check_ea(v, s["qa"].get("exe_ans")) for v in vals],
+                "cac_pa": [dsl.check_pa(p, gold)[0] if gold else False for p in progs],
+                "k_da_sinh": K,
+                "so_phieu": sum(1 for v in vals
+                                if v is not None and j >= 0 and v == vals[j]),
+                "program_truoc_sua": prog,
+                "da_sua": bool(co_sua and val is None and prog and i % 4 == 0),
+                "vi_du_dong": co_vidu,
+                "raw_step1": "", "raw_step2": ""})
+        return rows
+
+    NAC_MOI = {"08_tu_nhat_quan": (0.55, False), "09_vidu_dong": (0.60, True)}
     NAC = [("01_basic", "Nấc 1 — prompt cơ bản (danh sách phép toán + yêu cầu)", 0.30, False),
            ("02_prompt_eng", "Nấc 2 — prompt hoàn chỉnh (+ hướng dẫn từ khoá + few-shot)",
             0.62, False),
-           ("04_selfeval_base", "Nấc 4 — + self-eval (model gốc)", 0.64, True)]
+           ("04_selfeval_base", "Nấc 4 — + self-eval (model gốc)", 0.64, True),
+           ("08_tu_nhat_quan", "Mới — self-consistency K mẫu (ví dụ cố định)", 0.55, False),
+           ("09_vidu_dong", "Mới — self-consistency + ví dụ truy hồi", 0.60, True)]
     for stage, nhan, tl, b2 in NAC:
-        rows = nac(tl, b2)
+        # Truyền theo TÊN: `nac_k_mau(*NAC_MOI[stage])` đẩy nhầm cờ vào tham số K.
+        rows = (nac_k_mau(NAC_MOI[stage][0], co_vidu=NAC_MOI[stage][1])
+                if stage in NAC_MOI else nac(tl, b2))
         with io.open(os.path.join(ra, "stages", stage + ".jsonl"), "w",
                      encoding="utf-8", newline="\n") as f:
             for r in rows:

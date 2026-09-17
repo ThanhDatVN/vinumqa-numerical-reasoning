@@ -31,9 +31,14 @@ VI_CLUSTERS = [
 
     {"id": "C2_tang_truong", "n_steps": 2, "first_op": "subtract",
      "kw": r"tăng trưởng|tỷ lệ tăng|tỉ lệ tăng|tăng bao nhiêu|giảm bao nhiêu|tỷ lệ giảm|yoy|so với (năm|quý|cùng kỳ)",
-     "lesson": "Tốc độ tăng/giảm giữa hai kỳ: luôn subtract(mới, cũ) rồi chia cho giá trị cũ, giữ dấu âm nếu giảm.",
+     "lesson": "Tốc độ tăng/giảm giữa hai kỳ: subtract(mới, cũ) rồi chia cho giá trị cũ, "
+               "GIỮ dấu âm nếu giảm. Chỉ áp cho câu hỏi TỶ LỆ (có phép chia) — đo trên "
+               "gold: 49/58 mẫu dạng này giữ dấu âm.",
      "pattern": "subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu)",
-     "wrong": ["đảo thứ tự subtract để tránh số âm", "chia cho giá trị mới", "nhân 100"]},
+     # KHÔNG liệt "đảo thứ tự subtract" là sai: với câu hỏi MỨC giảm tuyệt đối (không
+     # chia), gold chia gần đôi — 16 mẫu đảo thứ tự cho ra số dương, 14 mẫu giữ dấu âm.
+     # Ở đó không có quy tắc đáng tin, nên đừng dạy Reflector một quy tắc không có thật.
+     "wrong": ["chia cho giá trị mới thay vì giá trị cũ", "nhân 100 để ra phần trăm"]},
 
     {"id": "C3_chenh_lech", "n_steps": 1, "first_op": "subtract",
      "kw": r"chênh lệch|tăng thêm|nhiều hơn|ít hơn|cao hơn|thấp hơn|thay đổi .{0,20}(là|bao nhiêu)",

@@ -181,17 +181,27 @@ Phân tích bằng tiếng việt, dừng trả lời sau khi đưa ra câu tr�
 Output:"""
 
     # ── API chính ──
-    def step1(self, sample, bullets_text: str = "", level: str = "engineered") -> str:
-        """Prompt sinh program. ``level`` ∈ :attr:`LEVELS` (thang lồng nhau)."""
+    def step1(self, sample, bullets_text: str = "", level: str = "engineered",
+              vi_du_dong: str | None = None) -> str:
+        """Prompt sinh program. ``level`` ∈ :attr:`LEVELS` (thang lồng nhau).
+
+        ``vi_du_dong`` — khối ví dụ TRUY HỒI (xem :mod:`vinumqa.fewshot`). Truyền vào
+        thì 2 ví dụ cố định bị **thay** bằng nó; mọi phần khác của prompt giữ nguyên
+        từng ký tự, nên hiệu số so với nấc 2 quy đúng về chuyện đổi ví dụ.
+        Chỉ có nghĩa với ``engineered`` — ``basic``/``no_fewshot`` vốn không có khối ví dụ.
+        """
         if level == "engineered":
-            return self._render(self.ENGINEERED_SYSTEM_PROMPT,
-                                self._user_engineered(sample), bullets_text)
-        if level == "basic":
-            return self._render(self.BASIC_SYSTEM_PROMPT,
-                                self._user_engineered(sample), bullets_text)
-        if level == "no_fewshot":
-            return self._render(self.NO_FEWSHOT_SYSTEM_PROMPT,
-                                self._user_engineered(sample), bullets_text)
+            sp = self.ENGINEERED_SYSTEM_PROMPT
+            if vi_du_dong:
+                sp = self.thay_vi_du(sp, vi_du_dong)
+            return self._render(sp, self._user_engineered(sample), bullets_text)
+        if level in ("basic", "no_fewshot"):
+            if vi_du_dong:
+                raise ValueError(f"level {level!r} không có khối ví dụ để thay — "
+                                 f"ví dụ động chỉ dùng được với 'engineered'")
+            sp = (self.BASIC_SYSTEM_PROMPT if level == "basic"
+                  else self.NO_FEWSHOT_SYSTEM_PROMPT)
+            return self._render(sp, self._user_engineered(sample), bullets_text)
         raise ValueError(f"level lạ: {level!r}, chọn trong {self.LEVELS}")
 
     # ── biến thể bỏ ví dụ mẫu ──
@@ -344,6 +354,20 @@ Output:"""
             raise ValueError("không thấy khối ví dụ — prompt đã đổi, kiểm tra lại mốc")
         return prompt[:i] + prompt[j:]
 
+    @classmethod
+    def thay_vi_du(cls, prompt: str, van_ban: str) -> str:
+        """Thay RUỘT khối ``=== VÍ DỤ ===`` bằng ví dụ truy hồi, giữ nguyên phần khác.
+
+        Dùng chung hai mốc với :func:`bo_vi_du`, nên chỗ thay luôn nằm đúng khối ví dụ
+        và không bao giờ liếm sang danh sách phép toán hay quy tắc định dạng.
+        """
+        i, j = prompt.find(cls._MOC_VI_DU), prompt.find(cls._MOC_SAU_VI_DU)
+        if i == -1 or j == -1 or j <= i:
+            raise ValueError("không thấy khối ví dụ — prompt đã đổi, kiểm tra lại mốc")
+        if not (van_ban or "").strip():
+            raise ValueError("ví dụ động rỗng — truyền None nếu muốn giữ ví dụ cố định")
+        return (prompt[:i] + cls._MOC_VI_DU + "\n" + van_ban.strip() + "\n" + prompt[j:])
+
     def step2(self, sample, initial_response: str, bullets_text: str = "",
               gia_tri_buoc1=...) -> str:
         """Prompt self-evaluation.
@@ -398,6 +422,61 @@ answer:...
 9. Dừng trả lời khi đưa ra xong kết quả trong ```plaintext... ```
 """
         return self._render(self.SELF_EVAL_SYSTEM_PROMPT, user_message, bullets_text)
+
+    #: Lý do executor từ chối → câu nhắc CỤ THỂ phải sửa gì. Nói chung chung
+    #: ("program sai, sửa đi") thì model thường sinh lại đúng cái cũ.
+    _NHAC_SUA = {
+        "nhan_bang_khong_khop": "Nhãn truyền cho table_* KHÔNG khớp hàng nào. Nhãn phải "
+                                "là chuỗi ở Ô ĐẦU TIÊN của một dòng trong bảng, chép "
+                                "NGUYÊN VĂN. Đừng truyền tên cột hay năm.",
+        "nhan_bang_mo_ho": "Nhãn khớp nhiều hàng có số liệu khác nhau. Chép nhãn đầy đủ "
+                           "hơn để chỉ còn đúng một hàng.",
+        "dung_table_khi_khong_co_bang": "Mẫu này KHÔNG có bảng — đừng dùng table_*, lấy "
+                                        "số thẳng từ văn bản.",
+        "table_sai_cu_phap": "table_* phải có đúng dạng table_max(nhãn hàng, none).",
+        "phep_long_nhau": "Có phép toán LỒNG trong tham số. Tách ra viết lần lượt và nối "
+                          "bằng #0, #1.",
+        "tham_chieu_sai": "#N trỏ tới phép chưa tồn tại. Ở phép thứ i chỉ được dùng #N "
+                          "với N < i.",
+        "tham_so_khong_phai_so": "Có tham số không đọc được thành số. Chỉ dùng số lấy "
+                                 "thẳng từ văn bản/bảng, hoặc #N.",
+        "sai_so_tham_so": "Mỗi phép cần ĐÚNG 2 tham số.",
+        "cu_phap_di_dang": "Cú pháp hỏng. Mỗi phép viết dạng ten_phep(a, b), ngăn nhau "
+                           "bằng dấu phẩy, không xuống dòng giữa chừng.",
+        "chia_cho_0": "Có phép chia cho 0 — kiểm lại mẫu số.",
+        "phep_toan_la": "Dùng phép không có trong danh sách cho phép.",
+        "so_tran": "Kết quả tràn số — kiểm lại độ lớn các toán hạng.",
+    }
+
+    def step_sua(self, sample, program_hong: str, ly_do: str | None = None,
+                 bullets_text: str = "") -> str:
+        """Prompt SỬA: chương trình đã sinh không chạy được, nói rõ hỏng ở đâu.
+
+        Khác self-eval ở chỗ đây **không** phải soát lại toàn bộ lời giải — máy đã biết
+        chắc chương trình sai cú pháp/tham chiếu, nên chỉ yêu cầu viết lại cho chạy được.
+        Chỉ những mẫu executor từ chối mới đi qua đây.
+        """
+        pre, post, table = self.context_block(sample)
+        nhac = self._NHAC_SUA.get(ly_do or "", "Chương trình không chạy được.")
+        user_message = f"""Câu hỏi: {sample["qa"]["question"]}
+Đây là nội dung liên quan đến câu hỏi:
+Pre-text: {pre}
+Post-text: {post}
+Bảng:
+{table}
+
+Chương trình đã sinh:
+program: {program_hong}
+
+⚙ Máy đã chạy thử chương trình trên và TỪ CHỐI. Lý do: {nhac}
+
+Hãy viết lại chương trình cho CHẠY ĐƯỢC, giữ nguyên cách hiểu bài nếu nó vốn đúng.
+Chỉ trả lời bằng đúng khối sau, không giải thích dài:
+```plaintext
+program: <các phép toán, ngăn bởi dấu phẩy>
+answer: <kết quả cuối cùng>
+```"""
+        return self._render(self.ENGINEERED_SYSTEM_PROMPT, user_message, bullets_text)
 
     # ── dùng cho SFT: trả về messages thay vì chuỗi đã render ──
     def sft_messages(self, sample, target_text: str, level: str = "engineered") -> list[dict]:

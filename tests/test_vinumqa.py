@@ -37,6 +37,11 @@ def test_set(splits):
     return splits["test"]
 
 
+@pytest.fixture(scope="session")
+def train_set(splits):
+    return splits["train"]
+
+
 TABLE_FIXTURE = [
     ["", "2018", "2019", "2020"],
     ["Lãi ròng", "104", "(79)", chr(8212)],
@@ -542,9 +547,13 @@ class TestReflector:
 class _FakePromptKit:
     """PromptKit tối giản, không cần tokenizer/model."""
 
-    def step1(self, sample, bullets_text="", level="engineered"):
-        return (f"[STEP1:{level}]\nBULLETS:{bullets_text}\n"
+    def step1(self, sample, bullets_text="", level="engineered", vi_du_dong=None):
+        _vd = f"\nVIDU:{vi_du_dong}" if vi_du_dong else ""
+        return (f"[STEP1:{level}]\nBULLETS:{bullets_text}{_vd}\n"
                 f"Q:{sample['qa']['question']}\nID:{sample['id']}")
+
+    def step_sua(self, sample, program_hong, ly_do=None, bullets_text=""):
+        return f"[SUA]\nPROG:{program_hong}\nLYDO:{ly_do}\nID:{sample['id']}"
 
     def step2(self, sample, initial_response, bullets_text="", gia_tri_buoc1=...,
               level="engineered"):
@@ -1498,3 +1507,142 @@ class TestKhopBanThamChieu:
             assert "table_max(column, none)" not in p
             assert "tên cột, none" not in p
             assert "chỉ nhận đúng 1 cột" not in p
+
+
+# ═══════════ 22. self-consistency · ví dụ động · lượt sửa ═══════════
+
+class TestTuNhatQuan:
+    """Sinh K mẫu, bỏ phiếu theo giá trị THỰC THI, và tính lại được mọi k trên CPU."""
+
+    def _gen_k(self, progs_theo_mau):
+        """generate_fn trả về list[list[str]] — mỗi prompt K mẫu."""
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            if desc and desc.endswith("step2"):
+                return ["```plaintext\nprogram: divide(9, 3)\nanswer: 3\n```"] * len(prompts)
+            khoi = []
+            for _ in prompts:
+                khoi.append([f"```plaintext\nprogram: {p}\nanswer: x\n```"
+                             for p in progs_theo_mau])
+            return khoi
+        return gen
+
+    def test_bo_phieu_theo_gia_tri_chay_duoc(self, test_set):
+        # 3 mẫu: hai cái cho 0.5, một cái cho 9.0 → 0.5 thắng
+        gen = self._gen_k(["divide(9, 3)", "divide(1, 2)", "divide(2, 4)"])
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     vot_mau_bi_cat=False)
+        for r in rows:
+            assert r["pred_value"] == 0.5, r["cac_gia_tri"]
+            assert r["k_da_sinh"] == 3
+            assert r["so_phieu"] == 2
+
+    def test_luu_du_de_tinh_lai_moi_k(self, test_set):
+        gen = self._gen_k(["divide(9, 3)", "divide(1, 2)", "divide(2, 4)"])
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     vot_mau_bi_cat=False)
+        # k=1 → chỉ mẫu đầu, ra 3.0 ; k=3 → bỏ phiếu, ra 0.5
+        k1 = pipeline.tu_nhat_quan(rows, test_set[:2], 1)
+        k3 = pipeline.tu_nhat_quan(rows, test_set[:2], 3)
+        assert all(r["pred_value"] == 3.0 for r in k1)
+        assert all(r["pred_value"] == 0.5 for r in k3)
+        assert all(r["k_da_dung"] == 1 for r in k1)
+
+    def test_khong_sua_row_goc(self, test_set):
+        gen = self._gen_k(["divide(9, 3)", "divide(1, 2)", "divide(2, 4)"])
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     vot_mau_bi_cat=False)
+        truoc = [r["pred_value"] for r in rows]
+        pipeline.tu_nhat_quan(rows, test_set[:2], 1)
+        assert [r["pred_value"] for r in rows] == truoc
+
+    def test_mot_mau_thi_hanh_vi_y_nhu_cu(self, test_set):
+        """generate_fn trả chuỗi (không phải list) → pipeline vẫn chạy như nấc 1 mẫu."""
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            return ["```plaintext\nprogram: divide(1, 2)\nanswer: 0.5\n```"] * len(prompts)
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     vot_mau_bi_cat=False)
+        assert all(r["k_da_sinh"] == 1 and r["pred_value"] == 0.5 for r in rows)
+
+    def test_tran_best_of_k_la_can_tren(self, test_set):
+        gen = self._gen_k(["divide(9, 3)", "divide(1, 2)", "divide(2, 4)"])
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     vot_mau_bi_cat=False)
+        m = pipeline.summarize(rows, "x")
+        tran = pipeline.tran_best_of_k(rows)
+        assert tran["EA_tran"] >= m["EA"], "trần phải ≥ kết quả đạt được"
+
+
+class TestLuotSua:
+    def test_sua_program_khong_chay_duoc(self, test_set):
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            if desc and desc.endswith("sua"):          # lượt sửa trả program chạy được
+                return ["```plaintext\nprogram: divide(8, 2)\nanswer: 4\n```"] * len(prompts)
+            return ["```plaintext\nprogram: divide(1, 0)\nanswer: x\n```"] * len(prompts)
+
+        co = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                   vot_mau_bi_cat=False, sua_khi_loi=True)
+        khong = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                      vot_mau_bi_cat=False, sua_khi_loi=False)
+        assert all(r["pred_value"] == 4.0 and r["da_sua"] for r in co)
+        assert all(r["program_truoc_sua"] == "divide(1, 0)" for r in co)
+        assert all(r["pred_value"] is None and not r["da_sua"] for r in khong)
+
+    def test_khong_sua_thi_khong_goi_luot_nao(self, test_set):
+        goi = []
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            goi.append(desc)
+            return ["```plaintext\nprogram: divide(1, 2)\nanswer: 0.5\n```"] * len(prompts)
+
+        pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                              vot_mau_bi_cat=False, sua_khi_loi=True)
+        assert not any(d and d.endswith("sua") for d in goi), \
+            "program chạy được thì không được tốn lượt sửa nào"
+
+
+class TestViDuDong:
+    def test_kho_loc_nhan_nhieu(self, train_set):
+        from vinumqa.fewshot import KhoViDu
+        kho = KhoViDu(train_set[:300])
+        assert len(kho) <= 300
+        assert all(not data.is_noisy_gold(s) for s in kho.mau)
+
+    def test_truy_hoi_tat_dinh(self, train_set, test_set):
+        from vinumqa.fewshot import KhoViDu
+        kho = KhoViDu(train_set[:300])
+        q = test_set[0]["qa"]["question"]
+        assert kho.xep_hang(q, 3) == kho.xep_hang(q, 3)
+
+    def test_khong_tu_truy_hoi_chinh_minh(self, train_set):
+        from vinumqa.fewshot import KhoViDu
+        kho = KhoViDu(train_set[:300])
+        s = kho.mau[0]
+        idxs = kho.xep_hang(s["qa"]["question"], 5, tru_id=s["id"])
+        assert all(kho.mau[i]["id"] != s["id"] for i in idxs)
+
+    def test_vi_du_dong_vao_duoc_prompt(self, train_set, test_set):
+        from vinumqa.fewshot import KhoViDu
+        kho = KhoViDu(train_set[:300])
+        kit = prompts_mod.PromptKit()
+        s = test_set[0]
+        vd = kho.van_ban_vi_du(s["qa"]["question"], 2)
+        p = kit.step1(s, level="engineered", vi_du_dong=vd)
+        assert vd.splitlines()[0] in p
+        # phần NGOÀI khối ví dụ phải giống hệt prompt gốc
+        M1, M2 = "=== VÍ DỤ ===", "==== CÂU HỎI ===="
+        g = kit.step1(s, level="engineered")
+        assert g[:g.find(M1)] + g[g.find(M2):] == p[:p.find(M1)] + p[p.find(M2):]
+
+    def test_pipeline_dung_kho_vi_du(self, train_set, test_set):
+        from vinumqa.fewshot import KhoViDu
+        kho = KhoViDu(train_set[:300])
+        thay = {}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            thay.setdefault("p", prompts[0])
+            return ["```plaintext\nprogram: divide(1, 2)\nanswer: 0.5\n```"] * len(prompts)
+
+        rows = pipeline.run_pipeline(test_set[:2], _FakePromptKit(), gen,
+                                     kho_vi_du=kho, n_vi_du=2, vot_mau_bi_cat=False)
+        assert "VIDU:" in thay["p"]
+        assert all(r["vi_du_dong"] for r in rows)

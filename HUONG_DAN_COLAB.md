@@ -14,14 +14,15 @@ thấy đúng dòng đó rồi mới đi tiếp.
 | 1 | `00_data_audit` | CPU | 2 ph | — |
 | 2 | `01_baseline_basic` | A100 | 35 ph | `01_basic` |
 | 3 | `02_prompt_engineering` | A100 | 35 ph | `02_prompt_eng` |
-| 4 | `07_final_report` | CPU | 2 ph | — |
-| 5 | `04_self_evaluation` | A100 | 60 ph | `04_selfeval_base` |
-| 6 | `05_ace` | A100 | 150 ph | `05_ace_base` + `05_ace_random_base` |
-| 7 | `03_sft_qwen3` | A100 | 145 ph | `03_sft` |
-| 8 | `04` + `05` lần 2 | A100 | 170 ph | `04_selfeval_sft`, `05_ace_sft` |
-| 9 | `05_ace` nhánh 5c | A100 | 110 ph | `05c_ace_basic_base` |
-| 10 | `06_combination` | A100 | 100 ph | `06_comb_E_A`, `06_comb_F_A` |
-| 11 | `07_final_report` | CPU | 2 ph | — |
+| 4 | **`08_phuong_phap_moi`** | A100 | 180 ph | `08_tu_nhat_quan`, `09_vidu_dong` |
+| 5 | `07_final_report` | CPU | 2 ph | — |
+| 6 | `04_self_evaluation` | A100 | 60 ph | `04_selfeval_base` |
+| 7 | `05_ace` | A100 | 150 ph | `05_ace_base` + `05_ace_random_base` |
+| 8 | `03_sft_qwen3` | A100 | 145 ph | `03_sft` |
+| 9 | `04` + `05` lần 2 | A100 | 170 ph | `04_selfeval_sft`, `05_ace_sft` |
+| 10 | `05_ace` nhánh 5c | A100 | 110 ph | `05c_ace_basic_base` |
+| 11 | `06_combination` | A100 | 100 ph | `06_comb_E_A`, `06_comb_F_A` |
+| 12 | `07_final_report` | CPU | 2 ph | — |
 
 ---
 
@@ -31,7 +32,7 @@ thấy đúng dòng đó rồi mới đi tiếp.
 Colab → Secrets (biểu tượng chìa khoá) → thêm OPENAI_API_KEY → bật "Notebook access"
 ```
 
-Chỉ bước 6 và 9 (`05_ace`) cần nó. **Không bao giờ viết key vào notebook.**
+Chỉ bước 7 và 10 (`05_ace`) cần nó. **Không bao giờ viết key vào notebook.**
 
 Cấu hình cố định của cả thang bậc, giống nhau ở mọi notebook — **không sửa**:
 
@@ -140,9 +141,59 @@ phép toán (14 mục) cộng 2 ví dụ mẫu. Lần chạy trước cho **+20,
 
 ---
 
-## Bước 4 · `07_final_report` lần 1 · CPU · 2 ph
+## Bước 4 · `08_phuong_phap_moi` · A100 · ~180 ph
 
-Mở → **CPU** → Chạy tất cả. **12 ô code.** Không tốn GPU, chạy được bất cứ lúc nào.
+Ba phương pháp mới, đo trọn trong **một** lượt. **13 ô code. Không sửa gì.**
+
+| phương pháp | cơ chế |
+|---|---|
+| **Self-consistency** | sinh K = 5 mẫu, bỏ phiếu theo giá trị THỰC THI |
+| **Ví dụ động (kNN)** | thay 2 ví dụ cố định bằng 3 ví dụ truy hồi từ train |
+| **Lượt sửa** | program bị executor từ chối → sinh lại một lượt kèm lý do lỗi |
+
+Cả ba chỉ hỏi executor, không đụng đáp án vàng.
+
+| ô | ⛔ Cổng — phải thấy |
+|--:|---|
+| #7 | `[MỚI] K=5 mẫu \| temp=0.7 top_p=0.95 \| 3 ví dụ truy hồi` |
+| #7 | `[MỚI] kho ví dụ: ~2888/2993 mẫu train (đã bỏ nhãn nhiễu)` |
+| #7 | in thử một khối ví dụ truy hồi — đọc xem nó có **cùng loại phép** với gold không |
+| #8 | `NẤC: 08_tu_nhat_quan \| K=5 mẫu \| ví dụ CỐ ĐỊNH \| sửa-khi-lỗi` |
+| #9 | bảng **SELF-CONSISTENCY THEO k** — k=1…5 và trần best-of-5 |
+| #11 | `NẤC: 09_vidu_dong \| K=5 mẫu \| 3 ví dụ TRUY HỒI` |
+| #12 | bảng **VÍ DỤ ĐỘNG ĐÓNG GÓP BAO NHIÊU, Ở TỪNG MỨC k** |
+
+**Vì sao chỉ hai nấc là đủ.** Mọi mẫu sinh ra đều được lưu (`cac_program`,
+`cac_gia_tri`, `cac_ea`, `cac_pa`) cùng chương trình **trước** lượt sửa, nên từ hai lượt
+GPU này `07` bóc ra được:
+
+| phép so | đo cái gì |
+|---|---|
+| `08` k=1 → k=5 | self-consistency |
+| `09` k=1 vs `08` k=1 | ví dụ động |
+| `09` k=5 vs `08` k=5 | ví dụ động **dưới** self-consistency (tương tác) |
+| có/không `program_truoc_sua` | lượt sửa |
+| `08` k=1 vs nấc 2 | nhiệt độ (0,7 so với 0,1) |
+| best-of-5 | **trần** của self-consistency |
+
+⚠ Hai nấc này chạy ở `temperature = 0.7`, nấc 2 ở `0.1`. Chênh lệch so với nấc 2 vì thế
+gồm **cả** phần nhiệt độ — `07` tách riêng, đừng gộp.
+
+⚠ Đặt `SO_MAU` nhỏ rồi muốn tăng thì **phải chạy lại cả nấc**. Đường cong k = 1…K lấy
+miễn phí từ K lớn, nên đừng tiết kiệm nhầm chỗ.
+
+Đọc gì ở bảng #9:
+
+- đường cong đi ngang từ k=2 → self-consistency không có đất trên bộ này. Nói thẳng,
+  đó vẫn là kết quả.
+- **trần best-of-5 cao hơn hẳn k=5** → bỏ phiếu đang bỏ sót; chỗ đáng đầu tư tiếp là bộ
+  chọn, không phải sinh thêm mẫu.
+
+---
+
+## Bước 5 · `07_final_report` lần 1 · CPU · 2 ph
+
+Mở → **CPU** → Chạy tất cả. **13 ô code.** Không tốn GPU, chạy được bất cứ lúc nào.
 
 | ô | Đọc gì |
 |--:|---|
@@ -151,9 +202,10 @@ Mở → **CPU** → Chạy tất cả. **12 ô code.** Không tốn GPU, chạy
 | #6 | EA theo **số phép** và theo **nguồn dữ liệu** |
 | #7 | **EA/PA theo LOẠI PHÉP TOÁN** — dòng `table_*` là con số quan trọng nhất |
 | #7 | **VÌ SAO KHÔNG SINH ĐƯỢC PROGRAM** — bị cắt vs sai định dạng, kèm mức lặp |
-| #8 | **CỔNG BƯỚC 2** — chỉ hiện khi đã có nấc self-eval |
-| #9 | phân bố kết cục + vì sao executor từ chối |
-| #11 | xuất `bang_ket_qua_*.csv`, `kiem_dinh_*.csv` |
+| #8 | **PHƯƠNG PHÁP MỚI** — đường cong self-consistency, ví dụ động, lượt sửa, trần best-of-K |
+| #9 | **CỔNG BƯỚC 2** — chỉ hiện khi đã có nấc self-eval |
+| #10 | phân bố kết cục + vì sao executor từ chối |
+| #12 | xuất `bang_ket_qua_*.csv`, `kiem_dinh_*.csv` |
 
 | ô | ⛔ Cổng |
 |--:|---|
@@ -165,7 +217,7 @@ Dán CSV `bang_ket_qua_*.csv` vào hội thoại.
 
 ---
 
-## Bước 5 · `04_self_evaluation` · A100 · ~60 ph
+## Bước 6 · `04_self_evaluation` · A100 · ~60 ph
 
 Mở → A100 → Chạy tất cả. **13 ô code. Không sửa gì** — ô #6 đã ghim `USE_SFT_ADAPTER = False`.
 
@@ -192,7 +244,7 @@ Nấc "self-eval **có cổng**" **không phải chạy lại** — `07` ô #8 t
 
 ---
 
-## Bước 6 · `05_ace` · A100 · ~150 ph
+## Bước 7 · `05_ace` · A100 · ~150 ph
 
 Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì** — ô #6 `USE_SFT_ADAPTER = False`,
 ô #8 `ACE_TREN_PROMPT = "engineered"`.
@@ -220,7 +272,7 @@ nhiên** (`RUN_RANDOM_CONTROL = True`, ~20 phút) — giữ nguyên, đó là th
 
 ---
 
-## Bước 7 · `03_sft_qwen3` · A100 · ~145 ph · **3 phần, restart giữa chừng**
+## Bước 8 · `03_sft_qwen3` · A100 · ~145 ph · **3 phần, restart giữa chừng**
 
 **24 ô code**, chia ba phần bởi hai ô chữ `⚠ RESTART RUNTIME TẠI ĐÂY`.
 
@@ -249,9 +301,9 @@ Chạy hết phần B → **Restart session** lần hai → chạy từ ô #16.
 
 ---
 
-## Bước 8 · `04` và `05` lần 2, trên model SFT · A100 · ~170 ph
+## Bước 9 · `04` và `05` lần 2, trên model SFT · A100 · ~170 ph
 
-Chạy lại hai notebook đã chạy ở bước 5 và 6, lần này bật adapter.
+Chạy lại hai notebook đã chạy ở bước 6 và 7, lần này bật adapter.
 
 | notebook | sửa đúng một dòng | ra nấc |
 |---|---|---|
@@ -263,11 +315,11 @@ Chạy lại hai notebook đã chạy ở bước 5 và 6, lần này bật adap
 | ô #6 | `[MODEL] dùng adapter đã SFT: /content/drive/…/sft_adapter_qwen3` |
 | ô #9 / #12 | tên nấc kết thúc bằng `_sft` |
 
-Chưa chạy bước 7 thì ô #6 tự dừng với thông báo thiếu adapter.
+Chưa chạy bước 8 thì ô #6 tự dừng với thông báo thiếu adapter.
 
 ---
 
-## Bước 9 · `05_ace` nhánh 5c · A100 · ~110 ph
+## Bước 10 · `05_ace` nhánh 5c · A100 · ~110 ph
 
 Vẫn `05_ace`, sửa đúng **một dòng** ở ô #8:
 
@@ -290,7 +342,7 @@ không còn bị cấm đề xuất chính những quy tắc mà `basic` chưa c
 
 ---
 
-## Bước 10 · `06_combination` · A100 · ~100 ph
+## Bước 11 · `06_combination` · A100 · ~100 ph
 
 Mở → A100 → Chạy tất cả. **15 ô code. Không sửa gì.**
 
@@ -313,16 +365,16 @@ kiểm định tổ hợp tốt nhất. Ô #13 tính chi phí mỗi điểm EA.
 
 ---
 
-## Bước 11 · `07_final_report` lần cuối · CPU · 2 ph
+## Bước 12 · `07_final_report` lần cuối · CPU · 2 ph
 
-Chạy lại như bước 4, lần này đã đủ 11 nấc.
+Chạy lại như bước 5, lần này đã đủ 13 nấc.
 
 | ô | ⛔ Cổng |
 |--:|---|
 | #4 | `✅ Mọi nấc cùng GPU, cùng trần token, cùng chế độ suy nghĩ, không cắt ngữ cảnh.` |
 | #4 | **không** có `⚠ KHÔNG KIỂM ĐƯỢC … thiếu meta` |
-| #11 | ghi `bang_ket_qua_*.csv`, `kiem_dinh_*.csv` |
-| #12 | ghi `bao_cao_*.png` |
+| #12 | ghi `bang_ket_qua_*.csv`, `kiem_dinh_*.csv` |
+| #13 | ghi `bao_cao_*.png` |
 
 ---
 
