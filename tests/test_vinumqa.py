@@ -546,8 +546,10 @@ class _FakePromptKit:
         return (f"[STEP1:{level}]\nBULLETS:{bullets_text}\n"
                 f"Q:{sample['qa']['question']}\nID:{sample['id']}")
 
-    def step2(self, sample, initial_response, bullets_text=""):
-        return f"[STEP2]\nBULLETS:{bullets_text}\nPREV:{initial_response}\nID:{sample['id']}"
+    def step2(self, sample, initial_response, bullets_text="", gia_tri_buoc1=...):
+        _gt = "" if gia_tri_buoc1 is ... else f"\nVAL:{gia_tri_buoc1}"
+        return (f"[STEP2]\nBULLETS:{bullets_text}\nPREV:{initial_response}"
+                f"{_gt}\nID:{sample['id']}")
 
     def sft_messages(self, sample, target_text, level="engineered"):
         return [{"role": "system", "content": f"SYS:{level}"},
@@ -978,6 +980,154 @@ class TestThangPromptLongNhau:
     def test_moc_doi_thi_bao_loi_chu_khong_cat_bua(self):
         with pytest.raises(ValueError):
             prompts_mod.PromptKit.bo_huong_dan_tu_khoa("prompt không có mốc nào cả")
+
+
+class TestPhanLoaiSai:
+    """Ô "sai" nay là ô lớn nhất; tách theo KIỂU sai mới biết phải chữa gì."""
+
+    def _mot(self, model, gold):
+        return pipeline.phan_loai_sai([{"outcome": "sai", "final_program": model,
+                                        "gold_program": gold, "question": "q"}])
+
+    @pytest.mark.parametrize("model,gold,mong", [
+        ("divide(500, 100)", "subtract(500, 100), divide(#0, 100)", "thieu_buoc"),
+        ("subtract(5,1), divide(#0,1), add(#1,0)", "subtract(5, 1)", "thua_buoc"),
+        ("subtract(500, 100)", "divide(500, 100)", "dung_so_buoc_sai_phep"),
+        ("divide(500, 100)", "divide(600, 100)", "dung_phep_sai_so_lieu"),
+        ("add(1, 2)", "table_max(doanh thu, none)", "bo_qua_table"),
+        ("table_max(doanh thu, none)", "add(1, 2)", "lam_dung_table"),
+    ])
+    def test_tung_kieu(self, model, gold, mong):
+        assert list(self._mot(model, gold)["theo_kieu"]) == [mong]
+
+    def test_chi_dem_mau_sai(self):
+        rows = [{"outcome": "dung", "final_program": "add(1,2)", "gold_program": "add(3,4)"}]
+        assert pipeline.phan_loai_sai(rows) is None
+
+    def test_giu_vi_du_that(self):
+        d = self._mot("subtract(500, 100)", "divide(500, 100)")
+        assert d["vi_du"]["dung_so_buoc_sai_phep"][0]["gold"] == "divide(500, 100)"
+
+
+class TestSoSanhHaiBuoc:
+    """Δ EA = 0 vẫn còn hai cách giải thích; phải đếm số program bước 2 đã đổi."""
+
+    def _mot(self, p1, p2, test_set):
+        rows = [{"id": test_set[0]["id"], "program_step1": p1, "program_step2": p2}]
+        return pipeline.so_sanh_hai_buoc(rows, test_set)
+
+    def test_chep_lai_y_nguyen(self, test_set):
+        d = self._mot("divide(500, 100)", "divide(500, 100)", test_set)
+        assert d["theo_nhom"] == {"chep_lai_y_nguyen": 1} and d["so_program_bi_doi"] == 0
+
+    def test_khac_chu_nhung_cung_gia_tri(self, test_set):
+        """`add(3,7)` vs `add(7,3)`: khác văn bản, cùng giá trị — phải tách riêng."""
+        d = self._mot("add(3, 7)", "add(7, 3)", test_set)
+        assert list(d["theo_nhom"]) == ["doi_nhung_gia_tri_giu_nguyen"]
+
+    def test_doi_ca_gia_tri(self, test_set):
+        d = self._mot("divide(500, 100)", "divide(500, 50)", test_set)
+        assert list(d["theo_nhom"]) == ["doi_va_doi_ca_gia_tri"]
+
+    def test_buoc2_bo_trong_khong_tinh_la_doi(self, test_set):
+        rows = [{"id": test_set[0]["id"], "program_step1": "add(1,2)", "program_step2": ""},
+                {"id": test_set[0]["id"], "program_step1": "add(1,2)",
+                 "program_step2": "add(1,3)"}]
+        d = pipeline.so_sanh_hai_buoc(rows, test_set)
+        assert d["so_program_bi_doi"] == 1, "bỏ trống rồi lùi về bước 1 không phải là đổi"
+
+    def test_nac_khong_co_buoc2(self, test_set):
+        assert pipeline.so_sanh_hai_buoc(
+            [{"id": "x", "program_step1": "add(1,2)", "program_step2": ""}], test_set) is None
+
+
+class TestVotMauBiCat:
+    """Mẫu chạm trần token được sinh lại với suy nghĩ TẮT."""
+
+    CAT = "<think>đang nghĩ thì hết chỗ"
+    XONG = "<think>xong</think>\n```plaintext\nprogram: add(1, 2)\nanswer: 3\n```"
+
+    def _chay(self, test_set, vot, dap_lai_duoc=True):
+        kit = _FakePromptKit()
+        kit.enable_thinking = None
+        luot = {"n": 0, "thinking": []}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            luot["n"] += 1
+            luot["thinking"].append(kit.enable_thinking)
+            if luot["n"] == 1:
+                return [self.CAT] * len(prompts)
+            return [(self.XONG if dap_lai_duoc else self.CAT)] * len(prompts)
+
+        rows = pipeline.run_pipeline(test_set[:4], kit, gen, prompt_level="basic",
+                                     use_selfeval=False, vot_mau_bi_cat=vot)
+        return rows, luot
+
+    def test_co_vot_thi_cuu_duoc(self, test_set):
+        rows, luot = self._chay(test_set, vot=True)
+        assert luot["n"] == 2, "phải có lượt sinh thứ hai để vớt"
+        assert luot["thinking"][1] is False, "lượt vớt phải TẮT suy nghĩ"
+        assert all(r["final_program"] for r in rows)
+
+    def test_tat_vot_thi_giu_nguyen(self, test_set):
+        rows, luot = self._chay(test_set, vot=False)
+        assert luot["n"] == 1 and not any(r["final_program"] for r in rows)
+
+    def test_vot_that_bai_thi_khong_de_len(self, test_set):
+        """Lượt vớt cũng hỏng thì giữ raw cũ, để con số 'bị cắt' vẫn đúng sự thật."""
+        rows, _ = self._chay(test_set, vot=True, dap_lai_duoc=False)
+        assert not any(r["final_program"] for r in rows)
+        m = pipeline.summarize(rows, "x")
+        assert m["vi_sao_khong_co_program"]["bi_cat_giua_suy_nghi"] == len(rows)
+
+    def test_khoi_phuc_co_thinking_sau_khi_vot(self, test_set):
+        kit = _FakePromptKit()
+        kit.enable_thinking = None
+        pipeline.run_pipeline(
+            test_set[:2], kit,
+            lambda ps, sp=None, desc=None, batch_size=None: [self.CAT] * len(ps),
+            prompt_level="basic", use_selfeval=False)
+        assert kit.enable_thinking is None, "phải trả lại cờ suy nghĩ như cũ"
+
+
+class TestSelfEvalBietGiaTri:
+    """Bước 2 phải được cho biết chương trình bước 1 chạy ra số bao nhiêu."""
+
+    def test_gia_tri_duoc_dua_vao_prompt(self, test_set):
+        kit = _FakePromptKit()
+        thay = {}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            if desc and desc.endswith("step2"):
+                thay["p2"] = prompts[0]
+                return ["```plaintext\nprogram: add(1, 2)\nanswer: 3\n```"] * len(prompts)
+            return ["```plaintext\nprogram: divide(500, 100)\nanswer: 5\n```"] * len(prompts)
+
+        pipeline.run_pipeline(test_set[:2], kit, gen, use_selfeval=True,
+                              vot_mau_bi_cat=False)
+        assert "VAL:5.0" in thay["p2"], "bước 2 phải thấy giá trị thực thi 500/100"
+
+    def test_tat_co_thi_khong_dua(self, test_set):
+        kit = _FakePromptKit()
+        thay = {}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            if desc and desc.endswith("step2"):
+                thay["p2"] = prompts[0]
+            return ["```plaintext\nprogram: divide(500, 100)\nanswer: 5\n```"] * len(prompts)
+
+        pipeline.run_pipeline(test_set[:2], kit, gen, use_selfeval=True,
+                              vot_mau_bi_cat=False, bao_gia_tri_cho_buoc2=False)
+        assert "VAL:" not in thay["p2"]
+
+    def test_prompt_that_co_khoi_gia_tri(self, test_set):
+        kit = prompts_mod.PromptKit()
+        co = kit.step2(test_set[0], "phân tích", gia_tri_buoc1=15000.0)
+        khong = kit.step2(test_set[0], "phân tích")
+        hong = kit.step2(test_set[0], "phân tích", gia_tri_buoc1=None)
+        assert "15000.0" in co and "HỢP LÝ" in co
+        assert "Chạy thật chương trình" not in khong, "không truyền thì giữ bản tham chiếu"
+        assert "KHÔNG CHẠY ĐƯỢC" in hong
 
 
 class TestReflectorCaiTien:

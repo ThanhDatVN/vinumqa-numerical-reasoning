@@ -246,14 +246,33 @@ Output:"""
             raise ValueError("không thấy khối ví dụ — prompt đã đổi, kiểm tra lại mốc")
         return prompt[:i] + prompt[j:]
 
-    def step2(self, sample, initial_response: str, bullets_text: str = "") -> str:
-        """Prompt self-evaluation — giữ nguyên bản tham chiếu."""
+    def step2(self, sample, initial_response: str, bullets_text: str = "",
+              gia_tri_buoc1=...) -> str:
+        """Prompt self-evaluation.
+
+        ``gia_tri_buoc1`` là KẾT QUẢ THỰC THI chương trình bước 1 (``...`` = không truyền,
+        giữ đúng bản tham chiếu). Đây là thông tin bước 2 vốn KHÔNG có: nó chỉ thấy văn
+        bản chương trình, không biết chương trình đó chạy ra số bao nhiêu. Mà độ lớn của
+        con số là chỗ lộ lỗi rõ nhất — "tỷ lệ tăng trưởng = 15000" thì sai ngay từ cái
+        nhìn đầu, dù chương trình viết đúng cú pháp.
+        """
         question = sample["qa"]["question"]
         pre, post, table = self.context_block(sample)
         if self.max_prev_chars and len(initial_response) > self.max_prev_chars:
             # Giữ PHẦN CUỐI: khối ```plaintext nằm ở đó.
             initial_response = ("[…phần đầu đã cắt bớt]\n"
                                 + initial_response[-self.max_prev_chars:])
+
+        if gia_tri_buoc1 is ...:
+            _khoi_gia_tri = ""
+        elif gia_tri_buoc1 is None:
+            _khoi_gia_tri = ("\n⚙ Chạy thật chương trình trên bằng máy: KHÔNG CHẠY ĐƯỢC "
+                             "(sai cú pháp, sai tham chiếu #N, hoặc nhãn bảng không khớp).\n")
+        else:
+            _khoi_gia_tri = (f"\n⚙ Chạy thật chương trình trên bằng máy thì ra: "
+                             f"{gia_tri_buoc1}\n"
+                             f"Hãy xem con số này có HỢP LÝ với câu hỏi không — sai độ lớn, "
+                             f"sai dấu, hay tỷ lệ vượt quá mức có thể — rồi mới soát tiếp.\n")
 
         user_message = f"""Câu hỏi: {question}
 Đây là nội dung liên quan đến câu hỏi:
@@ -263,7 +282,7 @@ Bảng:
 {table}
 Đây là phân tích và kết quả:
 {initial_response}
-
+{_khoi_gia_tri}
 ====NHIỆM VỤ CỦA BẠN====
 Hãy phân tích và kiểm tra xem phân tích và kết quả trước đã chính xác thỏa mãn các điều kiện chưa, nếu sai thì hãy sửa lại, thêm bớt cho đúng:
 Các điều cần chú ý khi phân tích:

@@ -24,20 +24,22 @@ import statistics
 from collections import Counter, defaultdict
 
 from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
-                  ly_do_khong_chay,
+                  ly_do_khong_chay, split_dsl_items,
                   extract_program_answer, n_ops)
 from .prompts import strip_assistant
 
 __all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder",
            "phan_loai_khong_co_program", "phan_loai_khong_chay_duoc",
-           "bo_sung_ly_do", "ty_le_lap", "so_sanh_hai_buoc"]
+           "bo_sung_ly_do", "ty_le_lap", "so_sanh_hai_buoc",
+           "phan_loai_sai"]
 
 
 def run_pipeline(samples, prompt_kit, generate_fn, *,
                  prompt_level="engineered", use_selfeval=False,
                  playbook="", retriever=None,
                  sp_step1=None, sp_step2=None,
-                 desc="infer", record_usage=False, keep_raw=True):
+                 desc="infer", record_usage=False, keep_raw=True,
+                 vot_mau_bi_cat=True, bao_gia_tri_cho_buoc2=True):
     """Chạy một cấu hình trên danh sách mẫu. Trả list dict kết quả từng mẫu."""
     if not samples:
         return []
@@ -56,11 +58,45 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
         sp_step1, desc=f"{desc}/step1")
     raw1 = [strip_assistant(r) for r in raw1]
 
+    # ── Vớt mẫu bị cắt giữa lúc suy nghĩ ──
+    # Nâng trần không cứu được (đo sạch: 4096 và 8192 cùng mất 28 mẫu ở nấc 2), nên vớt
+    # bằng một lượt sinh lại với suy nghĩ TẮT — không có đoạn <think> dài để mà bị cắt.
+    n_vot = 0
+    if vot_mau_bi_cat:
+        _can = [i for i, r in enumerate(raw1)
+                if "<think>" in r and "</think>" not in r
+                and extract_program_answer(r)[0] is None]
+        if _can:
+            _cu = getattr(prompt_kit, "enable_thinking", None)
+            prompt_kit.enable_thinking = False
+            try:
+                _lai = generate_fn(
+                    [prompt_kit.step1(samples[i], bullets_texts[i], level=prompt_level)
+                     for i in _can],
+                    sp_step1, desc=f"{desc}/vot-bi-cat")
+            finally:
+                prompt_kit.enable_thinking = _cu
+            for i, r in zip(_can, _lai):
+                r = strip_assistant(r)
+                # Chỉ thay khi lượt vớt THẬT SỰ ra được program, không thì giữ nguyên
+                # bản cũ để con số "bị cắt" vẫn phản ánh đúng chuyện đã xảy ra.
+                if extract_program_answer(r)[0] is not None:
+                    raw1[i] = r
+                    n_vot += 1
+            print(f"    {desc}/vớt: {n_vot}/{len(_can)} mẫu bị cắt đã cứu được")
+
     if use_selfeval:
-        raw2 = generate_fn(
-            [prompt_kit.step2(s, r, b)
-             for s, r, b in zip(samples, raw1, bullets_texts)],
-            sp_step2, desc=f"{desc}/step2")
+        if bao_gia_tri_cho_buoc2:
+            _gt = []
+            for s, r in zip(samples, raw1):
+                _p, _ = extract_program_answer(r)
+                _gt.append(execute_program(_p, s.get("table") or []) if _p else None)
+            _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g)
+                         for s, r, b, g in zip(samples, raw1, bullets_texts, _gt)]
+        else:
+            _prompts2 = [prompt_kit.step2(s, r, b)
+                         for s, r, b in zip(samples, raw1, bullets_texts)]
+        raw2 = generate_fn(_prompts2, sp_step2, desc=f"{desc}/step2")
         raw2 = [strip_assistant(r) for r in raw2]
     else:
         raw2 = [""] * len(samples)
@@ -189,6 +225,62 @@ def bo_sung_ly_do(rows, samples) -> int:
     return n
 
 
+def _day_phep(prog: str) -> list[str]:
+    """Dãy TÊN phép toán của một program, bỏ qua toán hạng."""
+    ra = []
+    for lenh in split_dsl_items((prog or "").strip()):
+        m = re.match(r"\s*([a-z_]+)\s*\(", lenh, re.I)
+        if m:
+            ra.append(m.group(1).casefold())
+    return ra
+
+
+def phan_loai_sai(rows) -> dict | None:
+    """Tách ô "sai" theo KIỂU sai, so dãy phép toán của model với của gold.
+
+    * ``thieu_buoc`` / ``thua_buoc`` — số phép ít hơn / nhiều hơn gold. Lỗi lập kế hoạch.
+    * ``dung_so_buoc_sai_phep`` — đúng số phép nhưng chọn nhầm loại (``subtract`` chỗ
+      đáng ``divide``). Đây là thứ ánh xạ từ khoá → phép toán phải chữa.
+    * ``dung_phep_sai_so_lieu`` — dãy phép TRÙNG KHÍT gold, chỉ khác toán hạng: model
+      hiểu đúng bài, nhưng lấy nhầm số khỏi bảng. Chữa bằng cách dạy đọc bảng, không
+      phải bằng cách dạy chọn phép.
+    * ``bo_qua_table`` / ``lam_dung_table`` — lệch nhau ở việc có dùng ``table_*``.
+
+    Trả ``None`` nếu không có mẫu nào thuộc diện này.
+    """
+    dem, vi_du = Counter(), defaultdict(list)
+    for r in rows:
+        if r.get("outcome") != "sai":
+            continue
+        pm, pg = _day_phep(r.get("final_program")), _day_phep(r.get("gold_program"))
+        tm = any(x.startswith("table_") for x in pm)
+        tg = any(x.startswith("table_") for x in pg)
+        if tg and not tm:
+            k = "bo_qua_table"
+        elif tm and not tg:
+            k = "lam_dung_table"
+        elif len(pm) < len(pg):
+            k = "thieu_buoc"
+        elif len(pm) > len(pg):
+            k = "thua_buoc"
+        elif pm != pg:
+            k = "dung_so_buoc_sai_phep"
+        else:
+            k = "dung_phep_sai_so_lieu"
+        dem[k] += 1
+        if len(vi_du[k]) < 3:
+            vi_du[k].append({"hoi": (r.get("question") or "")[:90],
+                             "model": (r.get("final_program") or "")[:90],
+                             "gold": (r.get("gold_program") or "")[:90]})
+    if not dem:
+        return None
+    n = len(rows) or 1
+    return {"tong": sum(dem.values()),
+            "theo_kieu": dict(dem.most_common()),
+            "ty_le": {k: round(v / n, 4) for k, v in dem.most_common()},
+            "vi_du": {k: vi_du[k] for k, _ in dem.most_common()}}
+
+
 def so_sanh_hai_buoc(rows, samples) -> dict | None:
     """Bước 2 (self-eval / ACE) thực sự đổi được bao nhiêu program so với bước 1.
 
@@ -286,6 +378,8 @@ def summarize(rows, label="") -> dict:
         "vi_sao_khong_co_program": phan_loai_khong_co_program(rows),
         # vì sao "program không chạy được": nhãn bảng, lồng nhau, #N sai…
         "vi_sao_khong_chay_duoc": phan_loai_khong_chay_duoc(rows),
+        # "sai" sai KIỂU gì: nhầm phép, nhầm số, thiếu bước…
+        "vi_sao_sai": phan_loai_sai(rows),
     }
 
 
@@ -314,6 +408,15 @@ def print_summary(m) -> None:
         for _k, _ in list(_kc["theo_ly_do"].items())[:3]:
             for _p in (_kc.get("vi_du", {}).get(_k) or [])[:1]:
                 print(f"         {_k} ← {_p}")
+    _vs2 = m.get("vi_sao_sai")
+    if _vs2:
+        print(f"  Sai (suy luận)          : {_vs2['tong']/m['n']:.4f}")
+        for _k, _v in _vs2["theo_kieu"].items():
+            print(f"      {_k:<32}{_v:>5} ({_v/m['n']:.1%})")
+        for _k, _ in list(_vs2["theo_kieu"].items())[:2]:
+            for _e in (_vs2.get("vi_du", {}).get(_k) or [])[:1]:
+                print(f"         {_k}: model={_e['model']}")
+                print(f"         {'':<{len(_k)}}  gold ={_e['gold']}")
     print(f"\n  {'số phép':<9}{'mẫu':>6}{'EA':>9}{'PA':>9}")
     for k, (tot, ea, pa) in m["by_steps"].items():
         print(f"  {k:<9}{tot:>6}{ea/tot:>9.1%}{pa/tot:>9.1%}")
