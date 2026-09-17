@@ -79,6 +79,24 @@ RANDOM_SEED 42    GPU_MEM_UTIL 0.85  MAX_NUM_SEQS 48       BATCH_SIZE 512
 > gian. Mẫu bị cắt được chữa bằng **lượt vớt** (sinh lại với suy nghĩ tắt), không phải
 > bằng trần. Đổi trần thì `save_stage` tự ghi sang tên nấc khác, không đè lên bản chuẩn.
 
+### Hai phím tắt dùng suốt tài liệu này
+
+| phím | Colab gọi là | làm gì |
+|---|---|---|
+| `Ctrl+F9` | Run all | chạy **toàn bộ** notebook từ ô đầu |
+| `Ctrl+F10` | Run cell and below | chạy ô **đang chọn** và **mọi ô bên dưới**, bỏ qua các ô phía trên |
+
+`Ctrl+F10` là phím then chốt của lộ trình này. Ở bước 7 và 8, sau khi xong một cấu hình
+bạn bấm vào **ô #6** rồi `Ctrl+F10`: notebook chạy lại từ ô chọn cấu hình xuống hết,
+**bỏ qua ô #1–#5** — tức bỏ qua ô cài đặt và ô nạp model.
+
+Model, tokenizer, embedder, retriever đều đang nằm sẵn trong RAM/GPU của phiên, nên
+không phải nạp lại. Tiết kiệm ~15 phút mỗi lượt, và quan trọng hơn: không phải mở lại
+notebook, không phải sửa gì.
+
+> Nếu lỡ bấm `Ctrl+F9` (Run all) thì cũng không sai kết quả — chỉ mất thêm ~15 phút nạp
+> lại model. Nấc nào đã có kết quả thì notebook tự bỏ qua, không chạy lại.
+
 ### Chỉ còn MỘT prompt
 
 Không còn nền prompt nào để chọn, không còn công tắc nào để đặt nhầm. Prompt hoàn chỉnh
