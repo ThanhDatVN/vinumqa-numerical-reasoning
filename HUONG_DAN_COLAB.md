@@ -9,37 +9,53 @@ thấy đúng dòng đó rồi mới đi tiếp.
 * Thời gian đã gồm ~15 phút cài đặt + nạp model mỗi phiên GPU.
 * Sau mỗi bước: dán **khối meta** (notebook tự in giữa hai đường kẻ ngang) vào hội thoại.
 
-| bước | notebook | công tắc phải đặt | runtime | ~ | ra nấc |
-|--:|---|---|---|--:|---|
-| 1 | `00_data_audit` | — | CPU | 2 ph | — |
-| 2 | `01_baseline_basic` | — | A100 | 35 ph | `01_basic` |
-| 3 | `02_prompt_engineering` | — | A100 | 35 ph | `02_prompt_eng` |
-| 4 | **`08_phuong_phap_moi`** | — | A100 | 180 ph | `08_tu_nhat_quan`, `09_vidu_dong` |
-| 5 | `07_final_report` | — | CPU | 2 ph | — · **NÚT 1** |
-| 6 | `04_self_evaluation` | `USE_SFT_ADAPTER=False` | A100 | 60 ph | `04_selfeval_base` |
-| 7 | `05_ace` | mặc định | A100 | 150 ph | `05_ace_base`, `05_ace_random_base` · **NÚT 2** |
-| 8 | `03_sft_qwen3` | — | A100 | 145 ph | `03_sft` · **NÚT 3** |
-| 9 | `04` + `05` lần 2 | `USE_SFT_ADAPTER=True` (cả hai) | A100 | 170 ph | `04_selfeval_sft`, `05_ace_sft` |
-| 10 | `05_ace` nhánh 5c | `ACE_TREN_PROMPT="basic"`, `USE_SFT_ADAPTER=False` | A100 | 110 ph | `05c_ace_basic_base` |
-| 11 | `06_combination` | `CHAY_O_TOT_NHAT` theo **NÚT 1** | A100 | 100–260 ph | `06_comb_*` |
-| 12 | `07_final_report` | — | CPU | 2 ph | — · **CHỐT CUỐI** |
+| bước | notebook | runtime | ~ | ghi ra |
+|--:|---|---|--:|---|
+| 1 | `00_data_audit` | CPU | 2 ph | — |
+| 2 | `01_baseline_basic` | A100 | 35 ph | `01_basic` |
+| 3 | `02_prompt_engineering` | A100 | 35 ph | `02_prompt_eng` |
+| 4 | `08_phuong_phap_moi` | A100 | 180 ph | `08_tu_nhat_quan`, `09_vidu_dong` |
+| 5 | `07_final_report` | CPU | 2 ph | — · 📤 **gửi kết quả** |
+| 6 | `03_sft_qwen3` | A100 | 145 ph | `03_sft` · 📤 |
+| 7 | `04_self_evaluation` | A100 | 120 ph | `04_selfeval_base`, `04_selfeval_sft` |
+| 8 | `05_ace` | A100 | 370 ph | `05_ace_base`, `05_ace_sft`, `05c_ace_basic_base`, `05_ace_random_base` · 📤 |
+| 9 | `06_combination` | A100 | 260 ph | `06_comb_E_A`, `06_comb_F_A` + hai ô mục tiêu `*_moi` |
+| 10 | `07_final_report` | CPU | 2 ph | — · 📤 **chốt** |
 
-**Tổng GPU ≈ 16–19 giờ.** Chỉ có **4 công tắc** trong cả lộ trình, tất cả đều nằm trong
-bảng này — không phải sửa dòng code nào khác.
+**Tổng GPU ≈ 19 giờ.** Chạy thẳng một mạch, **không phải mở lại notebook nào đã chạy
+xong, không phải sửa dòng code nào.**
 
-### Bốn nút quyết định
+### Vì sao không còn công tắc
 
-Chạy xong bước có nút thì **dán kết quả rồi hỏi trước khi đi tiếp**. Đây là chỗ quyết
-định có đáng tiêu GPU cho bước sau không, **không phải** chỗ sửa code.
+Trước đây `04` phải mở 2 lần và `05` phải mở 3 lần, mỗi lần sửa tay một công tắc. Nay
+hai notebook đó **tự chọn cấu hình chưa có kết quả**:
 
-| nút | sau bước | nhìn gì | quyết gì |
-|---|--:|---|---|
-| **1** | 5 | `07` §5d: đường cong k, ví dụ động, trần best-of-K | `CHAY_O_TOT_NHAT` ở bước 11. Δ dưới sàn nhiễu 1,6 điểm → để `False` |
-| **2** | 7 | ACE so với nấc 4; đối chứng bullet ngẫu nhiên | ACE nằm trong nhiễu → cân nhắc bỏ bước 10 (nhánh 5c) |
-| **3** | 8 | val loss + PA nấc 3 so với nấc 2 | SFT làm PA tụt mạnh → bỏ bước 9, ma trận thu còn 4 ô |
-| **cuối** | 12 | cổng 70/70 + ma trận + bảng thang bậc | chốt báo cáo |
+```
+[CẤU HÌNH] chạy 1/3: '05_ace_base' (ACE trên 'engineered', SFT=False)
+           | còn lại sau lượt này: ['05_ace_sft', '05c_ace_basic_base']
+```
 
-Bỏ một bước chỉ làm ma trận thiếu ô tương ứng; `06` tự phát hiện và tự thu lại, không vỡ.
+Chạy xong, ô cuối in ra còn cấu hình nào. Bấm vào **ô #6** rồi `Ctrl+F10` là chạy tiếp
+cái sau — model, embedder, retriever vẫn nằm trên GPU, không phải nạp lại 15 phút.
+Không sửa gì cả.
+
+`03_sft_qwen3` được **chuyển lên bước 6**, trước `04`/`05`, nên khi hai notebook đó chạy
+thì adapter đã có sẵn và chúng làm trọn mọi cấu hình trong một phiên.
+
+### Ba điểm gửi kết quả (📤)
+
+Đây là chỗ **gửi số cho tôi đọc**, không phải chỗ dừng để sửa code. Lộ trình vẫn chạy
+tiếp được ngay mà không cần chờ trả lời.
+
+| 📤 | sau bước | có gì mới để đọc |
+|--:|--:|---|
+| 1 | 5 | nấc 1, nấc 2, và cả họ kết quả phương pháp mới (đường cong k, ví dụ động, lượt sửa, trần best-of-K) |
+| 2 | 6 | val loss SFT, PA nấc 3 so nấc 2 — chỗ duy nhất có nguy cơ hỏng thật |
+| 3 | 8 | ACE, đối chứng bullet ngẫu nhiên, nhánh 5c |
+| chốt | 10 | cổng 70/70, ma trận 2×2×2, bảng thang bậc đầy đủ |
+
+Muốn tiết kiệm thì bỏ bớt bước cũng được — `06` tự phát hiện thiếu ô và tự thu ma trận
+lại, không vỡ. Nhưng mặc định là **chạy hết**.
 
 ---
 
@@ -49,7 +65,7 @@ Bỏ một bước chỉ làm ma trận thiếu ô tương ứng; `06` tự phá
 Colab → Secrets (biểu tượng chìa khoá) → thêm OPENAI_API_KEY → bật "Notebook access"
 ```
 
-Chỉ bước 7 và 10 (`05_ace`) cần nó. **Không bao giờ viết key vào notebook.**
+Chỉ bước 8 (`05_ace`) cần nó. **Không bao giờ viết key vào notebook.**
 
 Cấu hình cố định của cả thang bậc, giống nhau ở mọi notebook — **không sửa**:
 
@@ -95,7 +111,6 @@ Không đạt ô #3 → **dừng hẳn**. Executor sai thì mọi con số sau �
 không có cổng nào.
 
 ---
-
 ## Bước 2 · `01_baseline_basic` · A100 · ~35 ph
 
 Mở → A100 → bật **Thực thi nền** → Chạy tất cả. **10 ô code.**
@@ -138,7 +153,6 @@ Cuối ô #8, ngoài bảng kết quả còn hai thứ đáng ghi:
 Ô #9 in vài ca sai để xem prompt cơ bản hụt ở đâu. Ô #10 ghi nấc và in khối meta.
 
 ---
-
 ## Bước 3 · `02_prompt_engineering` · A100 · ~35 ph
 
 Mở → A100 → Chạy tất cả. **11 ô code. Không sửa gì.**
@@ -157,7 +171,6 @@ phép toán (14 mục) cộng 2 ví dụ mẫu. Lần chạy trước cho **+20,
 Ô #9 so trực tiếp với nấc 1 bằng McNemar. Ô #10 xem ca nấc 2 sửa được mà nấc 1 thì không.
 
 ---
-
 ## Bước 4 · `08_phuong_phap_moi` · A100 · ~180 ph
 
 Ba phương pháp mới, đo trọn trong **một** lượt. **14 ô code. Không sửa gì.**
@@ -214,7 +227,6 @@ sách token không. Sai bất kỳ cái nào thì nó `assert` ngay, đừng ch�
   chọn, không phải sinh thêm mẫu.
 
 ---
-
 ## Bước 5 · `07_final_report` lần 1 · CPU · 2 ph
 
 Mở → **CPU** → Chạy tất cả. **13 ô code.** Không tốn GPU, chạy được bất cứ lúc nào.
@@ -240,63 +252,7 @@ Mở → **CPU** → Chạy tất cả. **13 ô code.** Không tốn GPU, chạy
 Dán CSV `bang_ket_qua_*.csv` vào hội thoại.
 
 ---
-
-## Bước 6 · `04_self_evaluation` · A100 · ~60 ph
-
-Mở → A100 → Chạy tất cả. **13 ô code. Không sửa gì** — ô #6 đã ghim `USE_SFT_ADAPTER = False`.
-
-Hai lượt sinh mỗi mẫu nên lâu gấp đôi.
-
-| ô | ⛔ Cổng — phải thấy |
-|--:|---|
-| #6 | `[MODEL] dùng model gốc` (chưa SFT) |
-| #7 | `[PROMPT] ✅ mọi prompt đều lọt ngân sách` — bước 2 dài hơn nhiều, đây mới là chỗ dễ tràn |
-| #8 | prompt bước 2 in ra có khối `⚙ Chạy thật chương trình trên bằng máy thì ra: …` |
-| #9 | `NẤC: 04_selfeval_base \| 2 bước` |
-
-Cuối ô #9, bảng bị cắt nay có **hai** dòng:
-
-```
-      step1        x.x%  (n/497 lượt)
-      step2        y.y%  (n/497 lượt)
-```
-
-Thấy `⚠ bước 2 bị cắt nhiều hơn bước 1` → hiệu quả self-eval đang bị **pha loãng**, hiệu
-số đo được chỉ là cận dưới. Ghi lại, đừng bỏ qua.
-
-Nấc "self-eval **có cổng**" **không phải chạy lại** — `07` ô #8 tính thẳng nó từ jsonl.
-
----
-
-## Bước 7 · `05_ace` · A100 · ~150 ph
-
-Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì** — ô #6 `USE_SFT_ADAPTER = False`,
-ô #8 `ACE_TREN_PROMPT = "engineered"`.
-
-| ô | ⛔ Cổng — phải thấy |
-|--:|---|
-| #8 | `[ACE] ✅ gọi thử gpt-4o-mini OK → …` — **chưa qua thì đừng vào pha A** |
-| #8 | `[ACE] chồng lên prompt 'engineered' \| self-eval=True` |
-| #8 | `[ACE] cổng: dedup≥0.98 \| tối thiểu 1 phép DSL \| ≤3 bullet/cụm` |
-| #8 | `[ACE] embedding=… \| top_k=3+4 \| trần=30 bullet \| reflector=openai` |
-| #10 | pha A chạy; thấy `[RESUME] ⚠ CẤU HÌNH ĐÃ ĐỔI` → xoá `progress_*.json` rồi chạy lại |
-| #12 | `NẤC: 05_ace_base` |
-
-Ô #8 cũng in `[ACE] ⚠ Reflector gọi API ngoài` — đúng như thiết kế. Reflector dùng
-`gpt-4o-mini` (~0,2 USD một lượt) nên nấc này thuộc nhóm **unconstrained**; báo cáo phải
-ghi rõ, đừng để người đọc tưởng cùng thiết lập với nấc 1–4.
-
-Ô #11 in playbook học được. Ô #13 so với nấc trước. Ô #14 chạy **đối chứng bullet ngẫu
-nhiên** (`RUN_RANDOM_CONTROL = True`, ~20 phút) — giữ nguyên, đó là thước đo nhiễu.
-Ô #15 chấm công từng bullet.
-
-> Nếu playbook nhỏ hơn `k = 7` thì đối chứng **thoái hoá**: cả hai bên lấy toàn bộ bullet,
-> prompt giống hệt nhau. Notebook tự gọi đúng tên — đó là **phép đo nhiễu**, không phải
-> tác dụng của truy hồi.
-
----
-
-## Bước 8 · `03_sft_qwen3` · A100 · ~145 ph · **3 phần, restart giữa chừng**
+## Bước 6 · `03_sft_qwen3` · A100 · ~145 ph · **3 phần, restart giữa chừng**
 
 **24 ô code**, chia ba phần bởi hai ô chữ `⚠ RESTART RUNTIME TẠI ĐÂY`.
 
@@ -324,55 +280,87 @@ Chạy hết phần B → **Restart session** lần hai → chạy từ ô #16.
 Ô #23 so nấc 3 với nấc 2. Ô #24 ghi nấc.
 
 ---
+## Bước 7 · `04_self_evaluation` · A100 · ~120 ph · **2 cấu hình**
 
-## Bước 9 · `04` và `05` lần 2, trên model SFT · A100 · ~170 ph
+Mở → A100 → Chạy tất cả. **13 ô code. Không sửa gì.**
 
-Chạy lại hai notebook đã chạy ở bước 6 và 7, lần này bật adapter.
+Notebook chạy **hai cấu hình**, tự chọn cái chưa có kết quả:
 
-| notebook | sửa đúng một dòng | ra nấc |
-|---|---|---|
-| `04_self_evaluation` ô #6 | `USE_SFT_ADAPTER = True` | `04_selfeval_sft` |
-| `05_ace` ô #6 | `USE_SFT_ADAPTER = True` | `05_ace_sft` |
+| lượt | nấc | model nền |
+|--:|---|---|
+| 1 | `04_selfeval_base` | Qwen3-8B gốc |
+| 2 | `04_selfeval_sft` | + adapter SFT của bước 6 |
 
-| ⛔ Cổng | Phải thấy |
-|---|---|
-| ô #6 | `[MODEL] dùng adapter đã SFT: /content/drive/…/sft_adapter_qwen3` |
-| ô #9 / #12 | tên nấc kết thúc bằng `_sft` |
+Xong lượt 1, ô cuối in `CÒN 1 CẤU HÌNH` → bấm ô #6 rồi `Ctrl+F10`. Không sửa gì.
 
-Chưa chạy bước 8 thì ô #6 tự dừng với thông báo thiếu adapter.
-
----
-
-## Bước 10 · `05_ace` nhánh 5c · A100 · ~110 ph
-
-Vẫn `05_ace`, sửa đúng **một dòng** ở ô #8:
-
-```python
-ACE_TREN_PROMPT = "basic"
-```
-
-Nhớ đặt lại ô #6 về `USE_SFT_ADAPTER = False`.
+Hai lượt sinh mỗi mẫu nên lâu gấp đôi.
 
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
-| #6 | `[MODEL] dùng model gốc` |
-| #8 | `[ACE] chồng lên prompt 'basic' \| self-eval=False` |
-| #12 | `NẤC: 05c_ace_basic_base` |
+| #6 | `[CẤU HÌNH] chạy 1/2: '04_selfeval_base'` (lượt sau: `2/2`) |
+| #7 | `[PROMPT] ✅ mọi prompt đều lọt ngân sách` — bước 2 dài hơn nhiều, đây mới là chỗ dễ tràn |
+| #8 | prompt bước 2 in ra có khối `⚙ Chạy thật chương trình trên bằng máy thì ra: …` |
+| #9 | `NẤC: 04_selfeval_base \| 2 bước` |
 
-Đây là phép đo có ý nghĩa nhất về ACE: **ACE có tự khám phá lại được thứ người viết prompt
-đã viết tay không?** Trên nền `basic` khoảng trống là ~156 mẫu, chứ không phải ~10 như khi
-chồng lên prompt hoàn chỉnh. Reflector nay được cho biết đúng prompt của nấc này, nên nó
-không còn bị cấm đề xuất chính những quy tắc mà `basic` chưa có.
+Cuối ô #9, bảng bị cắt nay có **hai** dòng:
+
+```
+      step1        x.x%  (n/497 lượt)
+      step2        y.y%  (n/497 lượt)
+```
+
+Thấy `⚠ bước 2 bị cắt nhiều hơn bước 1` → hiệu quả self-eval đang bị **pha loãng**, hiệu
+số đo được chỉ là cận dưới. Ghi lại, đừng bỏ qua.
+
+Nấc "self-eval **có cổng**" **không phải chạy lại** — `07` ô #9 tính thẳng nó từ jsonl.
 
 ---
+## Bước 8 · `05_ace` · A100 · ~370 ph · **3 cấu hình**
 
-## Bước 11 · `06_combination` · A100 · ~100 ph (hoặc ~260 ph)
+Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì.**
 
-**16 ô code.** Một công tắc duy nhất, ở **ô #10**:
+Notebook chạy **ba cấu hình**, tự chọn cái chưa có kết quả. Mỗi cấu hình học một
+playbook RIÊNG nên không gộp được vào một lượt.
 
-```python
-CHAY_O_TOT_NHAT = False     # đặt True nếu NÚT 1 nói phương pháp mới ăn tiền
-```
+| lượt | nấc | ACE chồng lên | model nền | ~ |
+|--:|---|---|---|--:|
+| 1 | `05_ace_base` (+ đối chứng ngẫu nhiên) | `engineered` | gốc | 150 ph |
+| 2 | `05_ace_sft` | `engineered` | + adapter SFT | 110 ph |
+| 3 | `05c_ace_basic_base` | `basic` | gốc | 110 ph |
+
+Xong mỗi lượt, ô cuối in `CÒN n CẤU HÌNH ACE` → bấm ô #6 rồi `Ctrl+F10`. Model, embedder
+và retriever vẫn nằm trên GPU.
+
+| ô | ⛔ Cổng — phải thấy |
+|--:|---|
+| #8 | `[ACE] ✅ gọi thử gpt-4o-mini OK → …` — **chưa qua thì đừng vào pha A** |
+| #6 | `[CẤU HÌNH] chạy 1/3: '05_ace_base' … còn lại: [...]` |
+| #8 | `[ACE] chồng lên prompt '<mức>' \| self-eval=…` — khớp lượt đang chạy |
+| #8 | `[ACE] cổng: dedup≥0.98 \| tối thiểu 1 phép DSL \| ≤3 bullet/cụm` |
+| #8 | `[ACE] embedding=… \| top_k=3+4 \| trần=30 bullet \| reflector=openai` |
+| #10 | pha A chạy; thấy `[RESUME] ⚠ CẤU HÌNH ĐÃ ĐỔI` → xoá `progress_*.json` rồi chạy lại |
+| #12 | `NẤC: 05_ace_base` |
+
+Ô #8 cũng in `[ACE] ⚠ Reflector gọi API ngoài` — đúng như thiết kế. Reflector dùng
+`gpt-4o-mini` (~0,2 USD một lượt) nên nấc này thuộc nhóm **unconstrained**; báo cáo phải
+ghi rõ, đừng để người đọc tưởng cùng thiết lập với nấc 1–4.
+
+Ô #11 in playbook học được. Ô #13 so với nấc trước. Ô #14 chạy **đối chứng bullet ngẫu
+nhiên** (`RUN_RANDOM_CONTROL = True`, ~20 phút) — giữ nguyên, đó là thước đo nhiễu.
+Ô #15 chấm công từng bullet.
+
+> Nếu playbook nhỏ hơn `k = 7` thì đối chứng **thoái hoá**: cả hai bên lấy toàn bộ bullet,
+> prompt giống hệt nhau. Notebook tự gọi đúng tên — đó là **phép đo nhiễu**, không phải
+> tác dụng của truy hồi.
+
+---
+## Bước 9 · `06_combination` · A100 · ~260 ph
+
+Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì** — ô #10 đã ghim
+`CHAY_O_TOT_NHAT = True`, tức chạy luôn cả hai ô mục tiêu.
+
+Muốn tiết kiệm ~160 phút thì đặt `False`, nhưng chỉ nên làm vậy khi 📤 1 đã cho thấy
+phương pháp mới nằm trong sàn nhiễu.
 
 | | ma trận 2×2×2 | hai ô MỤC TIÊU (`*`) |
 |---|---|---|
@@ -390,7 +378,7 @@ chính và tương tác mới sạch.
 | #7 | bảng 8 ô, ô nào `đã có — đọc lại`, ô nào `CẦN CHẠY` |
 | #8 | `[PLAYBOOK] model gốc → playbook_ace_base.txt (… bullet)` |
 | #9 | chạy các ô còn thiếu — mỗi ô in `Ô E+A — prompt+ACE \| SFT=False self-eval=False ACE=True` |
-| #10 | `[Ô TỐT NHẤT] tắt` — hoặc, nếu bật: `[Ô TỐT NHẤT] ✅ cổng kiểm: nhận đúng 5 mẫu/prompt` |
+| #10 | `[Ô TỐT NHẤT] ✅ cổng kiểm: nhận đúng 5 mẫu/prompt` |
 | #11 | `MA TRẬN TỔ HỢP` rồi `CỔNG MỤC TIÊU — EA > 70 % VÀ PA_strict > 70 %` |
 | #15 | ghi được `ma_tran_to_hop_*.csv` và `tuong_tac_*.json` |
 | #16 | vẽ được `ma_tran_*.png` (cột **xám** = KTC chứa 0) |
@@ -404,10 +392,9 @@ Bốn ô cần SFT bị bỏ nếu chưa có adapter — notebook tự báo và 
 kiểm định tổ hợp tốt nhất. Ô #14 tính chi phí mỗi điểm EA.
 
 ---
+## Bước 10 · `07_final_report` lần cuối · CPU · 2 ph
 
-## Bước 12 · `07_final_report` lần cuối · CPU · 2 ph
-
-Chạy lại như bước 5, lần này đã đủ 13 nấc.
+Chạy lại như bước 5, lần này đã đủ 15 nấc.
 
 | ô | ⛔ Cổng |
 |--:|---|
@@ -417,7 +404,6 @@ Chạy lại như bước 5, lần này đã đủ 13 nấc.
 | #13 | ghi `bao_cao_*.png` |
 
 ---
-
 ## Gửi lại gì
 
 Sau mỗi bước, dán vào hội thoại **một** trong hai:

@@ -115,9 +115,14 @@ A100-40GB: GPU_MEM_UTIL 0.85 · MAX_NUM_SEQS 48 · BATCH_SIZE 512
 Hai nấc `08`/`09` là ba phương pháp mới, xem §6c. Hai nấc `*_moi` là hai ô MỤC TIÊU
 chạy cấu hình tốt nhất — chỉ chạy nếu §6c cho thấy phương pháp mới vượt sàn nhiễu.
 
-**Lộ trình chốt: 12 bước, ~16–19 giờ GPU, 4 công tắc, 4 nút quyết định.** Xem
-`HUONG_DAN_COLAB.md`. Ma trận 2×2×2 luôn giữ cấu hình thang bậc (1 mẫu, temp 0.1) để
-tác động chính và tương tác sạch; hai ô mục tiêu ghi ra tên nấc riêng nên không đè lên.
+**Lộ trình chốt: 10 bước, ~19 giờ GPU, KHÔNG công tắc nào.** Xem `HUONG_DAN_COLAB.md`.
+
+`04` và `05` **tự chọn cấu hình chưa có kết quả** (2 và 3 cấu hình), in ra còn lại
+những gì; bấm ô #6 rồi `Ctrl+F10` là chạy tiếp trong cùng phiên, model vẫn trên GPU.
+`03` (SFT) chuyển lên **trước** hai notebook đó nên chúng làm trọn mọi cấu hình một lần.
+
+Ma trận 2×2×2 luôn giữ cấu hình thang bậc (1 mẫu, temp 0.1) để tác động chính và tương
+tác sạch; hai ô mục tiêu `*_moi` chạy cấu hình tốt nhất và ghi ra tên nấc riêng.
 
 ### Thang prompt (lồng nhau — có test canh)
 

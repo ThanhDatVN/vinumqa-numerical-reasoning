@@ -626,8 +626,16 @@ def kiem_ma_tran_06():
     # Chỉ các ô PHÂN TÍCH: từ ô dựng bảng ma trận trở đi, bỏ ô cần model/playbook.
     _nb, o = _o_code(os.path.join(NBDIR, "06_combination.ipynb"))
     n_o = 0
-    for k, _c, src in o:
-        if k < 16:                       # ô 0–15 cần vLLM, Drive, playbook
+    # Bỏ qua theo NỘI DUNG, không theo số thứ tự: thêm/bớt một ô là số thứ tự trôi, còn
+    # "ô này có gọi GPU không" thì luôn đúng. Mọi ô còn lại là ô PHÂN TÍCH — chính chỗ
+    # ba lỗi cũ của 06 từng nằm, và chúng chỉ lộ ra khi thực thi.
+    _CAN_GPU = ("generate(", "model.load_lora", "find_playbook", "drive.mount",
+                "FastLanguageModel", "subprocess.run")
+    # Phần PHÂN TÍCH bắt đầu ngay sau ô chạy ma trận (`RESULTS = {}`). Neo vào nội dung
+    # chứ không vào số thứ tự, để thêm/bớt ô không làm phép kiểm trượt.
+    _bat_dau = next((i for i, (_k, _c, s) in enumerate(o) if "RESULTS = {}" in s), 0) + 1
+    for i_o, (k, _c, src) in enumerate(o):
+        if i_o < _bat_dau or any(t in src for t in _CAN_GPU):
             continue
         n_o += 1
         try:
