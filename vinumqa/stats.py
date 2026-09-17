@@ -15,7 +15,8 @@ from math import comb
 
 import numpy as np
 
-__all__ = ["mcnemar_exact", "bootstrap_delta_ci", "compare_pair", "interpret"]
+__all__ = ["mcnemar_exact", "bootstrap_delta_ci", "compare_pair", "interpret",
+           "ktc_hieu_ung", "ktc_tuong_tac"]
 
 
 def mcnemar_exact(flags_a, flags_b) -> dict:
@@ -83,3 +84,56 @@ def compare_pair(rows_base, rows_variant, key="ea", label="",
               f"({mc['c']} mẫu chỉ {name_variant} đúng, {mc['b']} mẫu chỉ {name_base} đúng)")
         print(f"    McNemar p = {mc['p_value']:.4f}  → {verdict}")
     return out
+
+
+def _lay_mau_lai(cap, n_boot, rng):
+    """Δ trung bình qua các cặp ô, cho mỗi lần lấy mẫu lại.
+
+    ``cap`` là list các ``(cờ_khi_TẮT, cờ_khi_BẬT)``. Mọi ô chấm trên CÙNG một tập mẫu
+    nên phải lấy mẫu lại theo CHỈ SỐ MẪU và áp cùng một bộ chỉ số cho mọi ô — lấy mẫu
+    độc lập từng ô sẽ thổi phồng sai số.
+    """
+    a = np.asarray([x for x, _ in cap], dtype=float)      # (n_cặp, n_mẫu)
+    b = np.asarray([y for _, y in cap], dtype=float)
+    idx = rng.integers(0, a.shape[1], size=(n_boot, a.shape[1]))
+    return (b[:, idx].mean(axis=2) - a[:, idx].mean(axis=2)).mean(axis=0)
+
+
+def ktc_hieu_ung(cap, n_boot=2000, seed=42, alpha=0.05):
+    """Tác động chính của một kỹ thuật + KTC bootstrap.
+
+    Trả ``(delta, lo, hi)``. ``delta`` là trung bình ``mean(BẬT) − mean(TẮT)`` qua mọi
+    cặp ô chỉ khác đúng kỹ thuật đó.
+    """
+    if not cap:
+        return None
+    rng = np.random.default_rng(seed)
+    a = np.asarray([x for x, _ in cap], dtype=float)
+    b = np.asarray([y for _, y in cap], dtype=float)
+    delta = float((b.mean(axis=1) - a.mean(axis=1)).mean())
+    d = _lay_mau_lai(cap, n_boot, rng)
+    return delta, float(np.percentile(d, 100 * alpha / 2)), \
+        float(np.percentile(d, 100 * (1 - alpha / 2)))
+
+
+def ktc_tuong_tac(cap_bat, cap_tat, n_boot=2000, seed=42, alpha=0.05):
+    """Tương tác = (tác động khi yếu tố kia BẬT) − (khi TẮT), kèm KTC bootstrap.
+
+    Dùng CÙNG bộ chỉ số lấy mẫu lại cho cả hai nhóm, vì chúng chấm trên cùng tập mẫu —
+    nhờ vậy phần nhiễu chung triệt tiêu và KTC không bị thổi phồng.
+    """
+    if not cap_bat or not cap_tat:
+        return None
+    rng = np.random.default_rng(seed)
+
+    def _tb(c):
+        a = np.asarray([x for x, _ in c], dtype=float)
+        b = np.asarray([y for _, y in c], dtype=float)
+        return float((b.mean(axis=1) - a.mean(axis=1)).mean())
+
+    delta = _tb(cap_bat) - _tb(cap_tat)
+    r1 = np.random.default_rng(seed)
+    r2 = np.random.default_rng(seed)          # CÙNG seed → cùng bộ chỉ số
+    d = _lay_mau_lai(cap_bat, n_boot, r1) - _lay_mau_lai(cap_tat, n_boot, r2)
+    return delta, float(np.percentile(d, 100 * alpha / 2)), \
+        float(np.percentile(d, 100 * (1 - alpha / 2)))

@@ -1074,6 +1074,40 @@ class TestByPhep:
         assert m["by_phep"]["divide"] == [1, 0, 0]
 
 
+class TestKTCHieuUng:
+    """KTC cho tác động chính và tương tác của ma trận tổ hợp."""
+
+    def _co(self, p, n=497, seed=0):
+        import numpy as np
+        return (np.random.default_rng(seed).random(n) < p).astype(int).tolist()
+
+    def test_hieu_ung_that_thi_ktc_khong_chua_0(self):
+        cap = [(self._co(0.50, seed=1), self._co(0.80, seed=2)),
+               (self._co(0.52, seed=3), self._co(0.82, seed=4))]
+        d, lo, hi = stats.ktc_hieu_ung(cap)
+        assert d > 0.2 and lo > 0, f"Δ={d} KTC=[{lo},{hi}]"
+
+    def test_khong_co_hieu_ung_thi_ktc_chua_0(self):
+        cap = [(self._co(0.65, seed=5), self._co(0.65, seed=6))]
+        d, lo, hi = stats.ktc_hieu_ung(cap)
+        assert lo <= 0 <= hi
+
+    def test_thieu_o_thi_tra_none(self):
+        assert stats.ktc_hieu_ung([]) is None
+        assert stats.ktc_tuong_tac([], [(self._co(.5), self._co(.6))]) is None
+
+    def test_tuong_tac_dau_dung(self):
+        """Tác động khi BẬT nhỏ hơn khi TẮT → tương tác phải ÂM (trùng nhau)."""
+        bat = [(self._co(0.70, seed=7), self._co(0.71, seed=8))]
+        tat = [(self._co(0.50, seed=9), self._co(0.80, seed=10))]
+        d, lo, hi = stats.ktc_tuong_tac(bat, tat)
+        assert d < 0
+
+    def test_ktc_on_dinh_giua_hai_lan_goi(self):
+        cap = [(self._co(0.50, seed=11), self._co(0.70, seed=12))]
+        assert stats.ktc_hieu_ung(cap) == stats.ktc_hieu_ung(cap), "phải có seed cố định"
+
+
 class TestPhanLoaiSai:
     """Ô "sai" nay là ô lớn nhất; tách theo KIỂU sai mới biết phải chữa gì."""
 
