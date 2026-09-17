@@ -112,10 +112,8 @@ Chạy lần lượt 00 → 07. Cell đầu của notebook nào cũng in **bản
 chiếm ưu thế) — có A100 thì dùng. L4 cho kết quả **so sánh trực tiếp được** với A100 vì cả
 hai đều không phải cắt ngữ cảnh. Riêng T4 thì có, nên đừng trộn kết quả từ T4 vào bảng.
 
-📖 **[HUONG_DAN_COLAB.md](HUONG_DAN_COLAB.md)** — đẩy lên GitHub, mở trên Colab, sửa gì,
-notebook nào cần nhập gì.
-✅ **[CAC_BUOC_THUC_HIEN.md](CAC_BUOC_THUC_HIEN.md)** — bảng thao tác 13 bước: sửa cell nào,
-chạy cell nào, phải thấy gì, sai thì làm gì. **Mở cái này lúc ngồi chạy.**
+📖 **[HUONG_DAN_COLAB.md](HUONG_DAN_COLAB.md)** — runbook MỘT LUỒNG: 12 bước, sửa ô nào,
+chạy ô nào, phải thấy gì, sai thì làm gì. **Mở cái này lúc ngồi chạy.**
 📋 **[KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md)** — chia buổi, ngân sách compute unit,
 cổng kiểm tra sau mỗi nấc, thứ tự cắt nếu thiếu ngân sách.
 

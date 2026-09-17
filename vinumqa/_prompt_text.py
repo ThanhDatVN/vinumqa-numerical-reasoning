@@ -11,7 +11,22 @@ Giữ nguyên bản ở đây để kết quả mới luôn so sánh được v�
 
 ⚠ **Đừng sửa nội dung hai chuỗi này.** Muốn thử prompt khác thì thêm hằng số mới
 trong ``vinumqa/prompts.py``, đừng chỉnh bản gốc — nếu không, mọi so sánh với mốc tham chiếu
-sẽ mất hiệu lực.
+sẽ mất hiệu lực. Có :func:`tests.test_vinumqa.TestKhopBanThamChieu` canh điều này: hai
+chuỗi phải khớp ``reference/original_notebooks/inference_with_difference_models.ipynb``
+**từng ký tự**.
+
+Bản gốc có ba chỗ nói sai so với chính dữ liệu gold, và cả ba giữ NGUYÊN ở đây:
+
+* mục 6 viết ``add(a,b), add(#0,c), add(#0,d)`` — sai toán, ``add(#0,d)`` bỏ mất ``c``.
+  Gold: 2 053 tham chiếu trỏ bước ngay trước, chỉ 109 lùi xa hơn.
+* ``table_*`` được mô tả là đọc theo CỘT, trong khi executor VÀ gold đều đọc theo
+  NHÃN HÀNG: 618/618 tham số khớp nhãn hàng, 0 khớp tên cột.
+* mục 2 nói câu "giảm" thì kết quả LUÔN âm. Gold chia hai: hỏi tỷ lệ giảm (có chia)
+  61/74 giữ âm; hỏi mức giảm tuyệt đối (không chia) 45/74 lấy dương.
+
+Cả hai (và một chỗ thứ ba về DẤU của câu "giảm") được sửa ở
+:func:`vinumqa.prompts.PromptKit.theo_du_lieu` trước khi prompt đi vào model. Bản gốc
+giữ nguyên ở đây để truy xuất xứ và để test đối chiếu.
 """
 
 __all__ = ["SYSTEM_PROMPT_STEP_1", "SYSTEM_PROMPT_STEP_2", "table_to_str"]
@@ -51,7 +66,7 @@ SYSTEM_PROMPT_STEP_1 = r"""Bạn là chuyên gia phân tích báo cáo tài chí
    → add(1, tỷ_lệ_tăng) → multiply(năm_trước, #0)
    Hoặc viết tắt: multiply(năm_trước, 1.xx) (xx = % tăng)
 6. Tổng / Tổng cộng / Cộng … năm / Trong vòng X năm
-   → Dùng add liên tiếp: add(a,b), add(#0,c), add(#1,d)...
+   → Dùng add liên tiếp: add(a,b), add(#0,c), add(#0,d)...
    → Nếu chỉ 2 số thì add(a,b) là đủ
    → Nếu ≥3 số thì cứ add liên tục, dùng #0, #1 để tham chiếu
 7. Cao nhất/ Lớn nhất / Nhỏ nhất trong giai đoạn / trong bảng

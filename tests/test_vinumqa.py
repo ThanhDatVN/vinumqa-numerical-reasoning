@@ -395,10 +395,10 @@ class TestQualityGate:
                                     "sinh_program", "sp-00001", GOOD_BULLET)
         assert gate(GOOD_BULLET, pb)[0] == "reject"
 
-    def test_tat_gate_cho_ablation(self, pb):
-        off = playbook.QualityGate(enabled=False)
-        assert off("bất kỳ thứ gì", pb)[0] == "add"
-        assert off("", pb)[0] == "reject"
+    def test_bullet_rong_thi_loai(self, pb):
+        gate = playbook.QualityGate()
+        assert gate("", pb)[0] == "reject"
+        assert gate("   ", pb)[0] == "reject"
 
 
 # ═══════════════════════════ 10. truy hồi + curator ═══════════════════════════
@@ -546,9 +546,10 @@ class _FakePromptKit:
         return (f"[STEP1:{level}]\nBULLETS:{bullets_text}\n"
                 f"Q:{sample['qa']['question']}\nID:{sample['id']}")
 
-    def step2(self, sample, initial_response, bullets_text="", gia_tri_buoc1=...):
+    def step2(self, sample, initial_response, bullets_text="", gia_tri_buoc1=...,
+              level="engineered"):
         _gt = "" if gia_tri_buoc1 is ... else f"\nVAL:{gia_tri_buoc1}"
-        return (f"[STEP2]\nBULLETS:{bullets_text}\nPREV:{initial_response}"
+        return (f"[STEP2:{level}]\nBULLETS:{bullets_text}\nPREV:{initial_response}"
                 f"{_gt}\nID:{sample['id']}")
 
     def sft_messages(self, sample, target_text, level="engineered"):
@@ -772,15 +773,23 @@ class TestIO:
         rows = io_utils.score_saved_predictions(csv_path, test_set[:20], "x")
         assert [r["id"] for r in rows] == [s["id"] for s in test_set[:20]]
 
-    def test_ghi_doc_csv(self, tmp_path, test_set):
-        rows = [{"id": s["id"], "question": s["qa"]["question"],
-                 "gold_program": s["qa"]["program"], "gold_answer": s["qa"]["exe_ans"],
-                 "program_step1": "add(1,2)", "program_step2": "add(1,3)",
-                 "thua": "bỏ qua"} for s in test_set[:5]]
-        p = io_utils.save_details_csv(rows, str(tmp_path / "x_program.csv"))
-        back = io_utils.load_predictions(p)
+    def test_doc_csv_du_doan(self, tmp_path, test_set):
+        """``load_predictions`` đọc đúng schema của file mốc tham chiếu."""
+        import csv as _csv
+        p = tmp_path / "x_program.csv"
+        cols = ["id", "question", "gold_program", "gold_answer",
+                "program_step1", "program_step2"]
+        with open(p, "w", encoding="utf-8", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=cols)
+            w.writeheader()
+            for s in test_set[:5]:
+                w.writerow({"id": s["id"], "question": s["qa"]["question"],
+                            "gold_program": s["qa"]["program"],
+                            "gold_answer": s["qa"]["exe_ans"],
+                            "program_step1": "add(1,2)", "program_step2": "add(1,3)"})
+        back = io_utils.load_predictions(str(p))
         assert len(back) == 5
-        assert list(back[0].keys()) == io_utils.LEGACY_COLS
+        assert list(back[0].keys()) == cols
 
     def test_ghi_jsonl(self, tmp_path, test_set):
         rows = [{"id": "a", "ea": True, "raw_step1": "dài", "bullets_text": "x"}]
@@ -796,14 +805,14 @@ class TestIO:
 class TestPrompts:
     def test_import_prompt_tu_repo(self):
         from vinumqa.prompts import PromptKit
-        kit = PromptKit(REPO, tokenizer=None, model_name="test")
+        kit = PromptKit(tokenizer=None, model_name="test")
         assert len(kit.ENGINEERED_SYSTEM_PROMPT) > 1000
         assert len(kit.SELF_EVAL_SYSTEM_PROMPT) > 1000
         assert "DANH SÁCH PHÉP TOÁN" in kit.ENGINEERED_SYSTEM_PROMPT
 
     def test_prompt_chua_cau_hoi_va_bullet(self, test_set):
         from vinumqa.prompts import PromptKit
-        kit = PromptKit(REPO, tokenizer=None, model_name="test")
+        kit = PromptKit(tokenizer=None, model_name="test")
         p = kit.step1(test_set[0], "- Bullet thử nghiệm")
         assert test_set[0]["qa"]["question"] in p
         assert "Bullet thử nghiệm" in p
@@ -811,12 +820,12 @@ class TestPrompts:
 
     def test_khong_bullet_thi_khong_co_khoi_hoi_tuong(self, test_set):
         from vinumqa.prompts import PromptKit, MEMORY_ASK
-        kit = PromptKit(REPO, tokenizer=None, model_name="test")
+        kit = PromptKit(tokenizer=None, model_name="test")
         assert MEMORY_ASK not in kit.step1(test_set[0], "")
 
     def test_step2_chua_ket_qua_buoc_1(self, test_set):
         from vinumqa.prompts import PromptKit
-        kit = PromptKit(REPO, tokenizer=None, model_name="test")
+        kit = PromptKit(tokenizer=None, model_name="test")
         p = kit.step2(test_set[0], "KẾT QUẢ BƯỚC MỘT", "")
         assert "KẾT QUẢ BƯỚC MỘT" in p
 
@@ -970,9 +979,9 @@ class TestThangPromptLongNhau:
     def test_basic_nam_trong_LEVELS(self):
         assert "basic" in prompts_mod.PromptKit.LEVELS
 
-    def test_sft_messages_nhan_du_bon_muc(self, test_set):
+    def test_sft_messages_nhan_du_moi_muc(self, test_set):
         kit = prompts_mod.PromptKit()
-        for muc in ("plain",) + self.MUC:
+        for muc in self.MUC:
             msgs = kit.sft_messages(test_set[0], "program: add(1, 2)", level=muc)
             assert [m["role"] for m in msgs] == ["system", "user", "assistant"]
             assert msgs[0]["content"], f"mức {muc} không có system prompt"
@@ -983,10 +992,10 @@ class TestThangPromptLongNhau:
 
 
 class TestNhanBangLaHangKhongPhaiCot:
-    """Khoá lại bằng chứng mà cả nấc 2c dựa vào.
+    """Khoá lại bằng chứng mà bản sửa prompt dựa vào.
 
     Executor đọc ``table_*`` theo NHÃN HÀNG (ô đầu mỗi dòng). Nếu dữ liệu đổi và nhãn
-    gold hoá ra khớp tên cột, thì mức ``engineered_v2`` thành sai — test này bắt ngay.
+    gold hoá ra khớp tên cột, thì chỗ sửa trong prompt thành sai — test này bắt ngay.
     """
 
     def test_gold_table_dung_nhan_hang(self, test_set):
@@ -1006,43 +1015,54 @@ class TestNhanBangLaHangKhongPhaiCot:
             elif any(nhan == dsl._norm_label(str(c)) for c in t[0]):
                 cot += 1
         assert hang > 50 and cot == 0, (
-            f"nhãn gold khớp hàng={hang} cột={cot} — nếu đổi thì engineered_v2 sai")
+            f"nhãn gold khớp hàng={hang} cột={cot} — nếu đổi thì prompt sửa sai")
 
 
-class TestPromptV2:
-    """``engineered_v2`` = ``engineered`` nhưng sửa chỗ dạy ngược về table_*."""
+class TestPromptTheoDuLieu:
+    """Prompt DÙNG THẬT phải đã sửa ba chỗ bản gốc nói sai so với gold."""
 
     def test_khong_con_noi_cot_ve_table(self):
-        v = prompts_mod.PromptKit().ENGINEERED_V2_SYSTEM_PROMPT
-        con = [l for l in v.splitlines() if "table_" in l and "cột" in l]
-        assert not con, f"vẫn còn dạy 'cột' cho table_*: {con}"
+        k = prompts_mod.PromptKit()
+        for ten, p in (("engineered", k.ENGINEERED_SYSTEM_PROMPT),
+                       ("self_eval", k.SELF_EVAL_SYSTEM_PROMPT),
+                       ("basic", k.BASIC_SYSTEM_PROMPT)):
+            con = [l for l in p.splitlines() if "table_" in l and "cột" in l]
+            assert not con, f"{ten} vẫn dạy 'cột' cho table_*: {con}"
 
     def test_noi_ro_la_nhan_hang(self):
-        v = prompts_mod.PromptKit().ENGINEERED_V2_SYSTEM_PROMPT
-        assert "THAM SỐ LÀ NHÃN HÀNG, KHÔNG PHẢI TÊN CỘT" in v
-
-    def test_chi_dong_vao_phan_table(self):
-        """Mọi khối khác phải giữ nguyên — không thì hiệu số 2 → 2c lẫn thứ khác."""
         k = prompts_mod.PromptKit()
-        e, v = k.ENGINEERED_SYSTEM_PROMPT, k.ENGINEERED_V2_SYSTEM_PROMPT
-        for moc in ("=== DANH SÁCH PHÉP TOÁN===", "=== VÍ DỤ ===", "==== CÂU HỎI ====",
-                    "- Trả lời đúng 2 dòng:"):
-            assert moc in v
-        # phần ví dụ mẫu giữ nguyên từng ký tự
-        assert (e[e.find("=== VÍ DỤ ==="):e.find("==== CÂU HỎI ====")]
-                == v[v.find("=== VÍ DỤ ==="):v.find("==== CÂU HỎI ====")])
+        for p in (k.ENGINEERED_SYSTEM_PROMPT, k.SELF_EVAL_SYSTEM_PROMPT):
+            assert "THAM SỐ LÀ NHÃN HÀNG, KHÔNG PHẢI TÊN CỘT" in p
 
-    def test_step1_chay_duoc(self, test_set):
+    def test_chuoi_N_tham_chieu_buoc_ngay_truoc(self):
         k = prompts_mod.PromptKit()
-        p = k.step1(test_set[0], level="engineered_v2")
-        assert "NHÃN HÀNG" in p and test_set[0]["qa"]["question"] in p
+        for p in (k.ENGINEERED_SYSTEM_PROMPT, k.SELF_EVAL_SYSTEM_PROMPT):
+            assert "add(#0,c), add(#1,d)" in p
+            assert "add(#0,c), add(#0,d)" not in p
 
-    def test_nam_trong_LEVELS(self):
-        assert "engineered_v2" in prompts_mod.PromptKit.LEVELS
+    def test_dau_cua_cau_giam_la_co_dieu_kien(self):
+        k = prompts_mod.PromptKit()
+        for p in (k.ENGINEERED_SYSTEM_PROMPT, k.SELF_EVAL_SYSTEM_PROMPT):
+            assert "kết quả sẽ âm → đúng bản chất giảm" not in p
+            assert "DẤU phụ thuộc dạng câu" in p
+
+    def test_chi_dong_vao_ba_cho_do(self):
+        """Khối ví dụ mẫu phải giữ NGUYÊN — không thì thang bậc lẫn thứ khác."""
+        from vinumqa import _prompt_text
+        goc = _prompt_text.SYSTEM_PROMPT_STEP_1
+        moi = prompts_mod.PromptKit().ENGINEERED_SYSTEM_PROMPT
+        for m in ("=== DANH SÁCH PHÉP TOÁN===", "=== VÍ DỤ ===", "==== CÂU HỎI ====",
+                  "- Trả lời đúng 2 dòng:"):
+            assert m in moi
+        assert (goc[goc.find("=== VÍ DỤ ==="):goc.find("==== CÂU HỎI ====")]
+                == moi[moi.find("=== VÍ DỤ ==="):moi.find("==== CÂU HỎI ====")])
+
+    def test_chi_con_mot_muc_engineered(self):
+        assert prompts_mod.PromptKit.LEVELS == ("basic", "no_fewshot", "engineered")
 
     def test_moc_doi_thi_bao_loi(self):
         with pytest.raises(ValueError):
-            prompts_mod.PromptKit.sua_nhan_bang("prompt không có mốc nào")
+            prompts_mod.PromptKit.theo_du_lieu("prompt không có mốc nào")
 
 
 class TestByPhep:
@@ -1233,18 +1253,35 @@ class TestSelfEvalBietGiaTri:
                               vot_mau_bi_cat=False)
         assert "VAL:5.0" in thay["p2"], "bước 2 phải thấy giá trị thực thi 500/100"
 
-    def test_tat_co_thi_khong_dua(self, test_set):
+    def test_cong_giu_buoc1_khi_buoc2_khong_chay_duoc(self, test_set):
+        """Cổng bật: bước 2 sinh program hỏng thì PHẢI giữ lại bước 1."""
         kit = _FakePromptKit()
-        thay = {}
+
+        def gen(prompts, sp=None, desc=None, batch_size=None):
+            if desc and desc.endswith("step2"):          # bước 2 trả program chia cho 0
+                return ["```plaintext\nprogram: divide(1, 0)\nanswer: x\n```"] * len(prompts)
+            return ["```plaintext\nprogram: divide(500, 100)\nanswer: 5\n```"] * len(prompts)
+
+        co = pipeline.run_pipeline(test_set[:2], kit, gen, use_selfeval=True,
+                                   vot_mau_bi_cat=False, cong_buoc2=True)
+        khong = pipeline.run_pipeline(test_set[:2], kit, gen, use_selfeval=True,
+                                      vot_mau_bi_cat=False, cong_buoc2=False)
+        assert all(r["final_program"] == "divide(500, 100)" for r in co)
+        assert all(r["pred_value"] == 5.0 for r in co)
+        assert all(r["final_program"] == "divide(1, 0)" for r in khong)
+        assert all(r["pred_value"] is None for r in khong), "không cổng thì bước 2 thắng"
+
+    def test_cong_van_nhan_buoc2_khi_no_chay_duoc(self, test_set):
+        kit = _FakePromptKit()
 
         def gen(prompts, sp=None, desc=None, batch_size=None):
             if desc and desc.endswith("step2"):
-                thay["p2"] = prompts[0]
+                return ["```plaintext\nprogram: divide(900, 100)\nanswer: 9\n```"] * len(prompts)
             return ["```plaintext\nprogram: divide(500, 100)\nanswer: 5\n```"] * len(prompts)
 
-        pipeline.run_pipeline(test_set[:2], kit, gen, use_selfeval=True,
-                              vot_mau_bi_cat=False, bao_gia_tri_cho_buoc2=False)
-        assert "VAL:" not in thay["p2"]
+        rows = pipeline.run_pipeline(test_set[:2], kit, gen, use_selfeval=True,
+                                     vot_mau_bi_cat=False, cong_buoc2=True)
+        assert all(r["final_program"] == "divide(900, 100)" for r in rows)
 
     def test_prompt_that_co_khoi_gia_tri(self, test_set):
         kit = prompts_mod.PromptKit()
@@ -1363,3 +1400,101 @@ class TestViSaoKhongCoProgram:
         m = pipeline.summarize(rows, "thử")
         assert m["vi_sao_khong_co_program"]["bi_cat_giua_suy_nghi"] == 4
         assert m["no_program"] == 1.0
+
+
+# ═══════════════ 20. cổng bước 2 tính lại được từ jsonl, không cần GPU ═══════════════
+
+class TestApCongBuoc2:
+    """Nấc "self-eval có cổng" phải tính được từ nấc đã chạy, không chạy lại model."""
+
+    def _rows(self, test_set):
+        s = test_set[0]
+        return [{"id": s["id"], "question": s["qa"]["question"],
+                 "gold_program": s["qa"]["program"], "gold_answer": s["qa"]["exe_ans"],
+                 "program_step1": "divide(500, 100)",
+                 "program_step2": "divide(1, 0)",          # bước 2 hỏng
+                 "final_program": "divide(1, 0)", "pred_value": None,
+                 "ea": False, "pa_strict": False, "pa_loose": False,
+                 "outcome": "program_khong_chay_duoc", "n_ops_gold": 1}]
+
+    def test_giu_buoc1_khi_buoc2_khong_chay(self, test_set):
+        ra = pipeline.ap_cong_buoc2(self._rows(test_set), test_set[:1])
+        assert ra[0]["final_program"] == "divide(500, 100)"
+        assert ra[0]["pred_value"] == 5.0
+        assert ra[0]["lay_buoc2"] is False
+
+    def test_khong_sua_row_goc(self, test_set):
+        goc = self._rows(test_set)
+        pipeline.ap_cong_buoc2(goc, test_set[:1])
+        assert goc[0]["final_program"] == "divide(1, 0)", "phải trả bản sao, không sửa tại chỗ"
+
+    def test_van_lay_buoc2_khi_no_chay_duoc(self, test_set):
+        rows = self._rows(test_set)
+        rows[0]["program_step2"] = "divide(900, 100)"
+        ra = pipeline.ap_cong_buoc2(rows, test_set[:1])
+        assert ra[0]["final_program"] == "divide(900, 100)" and ra[0]["pred_value"] == 9.0
+
+
+# ═══════════ 21. prompt phải khớp bản tham chiếu TỪNG KÝ TỰ ═══════════
+
+class TestKhopBanThamChieu:
+    """`_prompt_text` tự nhận là chép nguyên văn — phải chứng minh được điều đó.
+
+    Đã có tiền lệ: một phiên trước sửa lặng lẽ `add(#0,d)` thành `add(#1,d)` trong
+    STEP_1 mà không đụng STEP_2, nên hai prompt dạy ngược nhau còn docstring vẫn ghi
+    "chép NGUYÊN VĂN". Test này bắt mọi lần trôi như vậy.
+    """
+
+    NB = os.path.join(REPO, "reference", "original_notebooks",
+                      "inference_with_difference_models.ipynb")
+
+    @staticmethod
+    def _dien_giai(s):
+        """Bản gốc khai báo chuỗi KHÔNG raw, nên Python diễn giải các chuỗi thoát.
+
+        Trong `SYSTEM_EVALUATOR` có ``\\text{`` và ``\\frac{`` của LaTeX: Python biến
+        ``\\t`` thành TAB và ``\\f`` thành form-feed, để lại ``ext{`` / ``rac{``. Model
+        thật nhận bản ĐÃ diễn giải, nên phải so với bản đó. ``\\[`` và ``\\]`` không
+        phải chuỗi thoát hợp lệ nên Python giữ nguyên.
+        """
+        return s.replace(chr(92) + "t", chr(9)).replace(chr(92) + "f", chr(12))
+
+    @pytest.fixture(scope="class")
+    def goc(self):
+        if not os.path.exists(self.NB):
+            pytest.skip("chưa có notebook tham chiếu")
+        import json as _json
+        with open(self.NB, encoding="utf-8") as f:
+            nb = _json.load(f)
+        src = "".join("".join(c["source"]) for c in nb["cells"]
+                      if c["cell_type"] == "code")
+        ra = {}
+        for ten in ("SYSTEM_INSTRUCTION", "SYSTEM_EVALUATOR"):
+            m = re.search(ten + r' = """(.*?)"""', src, re.S)
+            assert m, f"không trích được {ten} khỏi notebook tham chiếu"
+            ra[ten] = self._dien_giai(m.group(1))
+        return ra
+
+    def test_step1_khop_tung_ky_tu(self, goc):
+        from vinumqa import _prompt_text
+        assert goc["SYSTEM_INSTRUCTION"] == _prompt_text.SYSTEM_PROMPT_STEP_1
+
+    def test_step2_khop_tung_ky_tu(self, goc):
+        from vinumqa import _prompt_text
+        assert goc["SYSTEM_EVALUATOR"] == _prompt_text.SYSTEM_PROMPT_STEP_2
+
+    def test_hai_cho_noi_sai_van_con_o_ban_goc(self):
+        """Nếu ai đó "tiện tay" sửa bản gốc, nấc 2 hết là mốc tham chiếu."""
+        from vinumqa import _prompt_text
+        for p in (_prompt_text.SYSTEM_PROMPT_STEP_1, _prompt_text.SYSTEM_PROMPT_STEP_2):
+            assert "add(#0,c), add(#0,d)" in p
+            assert "table_max(column, none)" in p
+
+    def test_prompt_dung_that_da_sua_o_ca_hai_buoc(self):
+        kit = prompts_mod.PromptKit()
+        for p in (kit.ENGINEERED_SYSTEM_PROMPT, kit.SELF_EVAL_SYSTEM_PROMPT):
+            assert "add(#1,d)" in p, "chưa sửa chỗ cộng dồn"
+            assert "add(#0,c), add(#0,d)" not in p
+            assert "table_max(column, none)" not in p
+            assert "tên cột, none" not in p
+            assert "chỉ nhận đúng 1 cột" not in p

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Đọc/ghi artifact và chấm lại các dự đoán đã lưu sẵn.
+"""Đọc/ghi artifact của một nấc, và chấm lại các dự đoán đã lưu sẵn.
 
-Hai việc chính:
+Hai việc:
 
-* **Ghi** kết quả ra ``results/details/`` đúng schema 6 cột của repo, để
-  ``results/output_analyst.ipynb`` và ``app.py`` đọc được ngay.
-* **Đọc lại** các dự đoán tham chiếu trong ``results/details/*_program.csv`` rồi chấm
-  bằng executor đã kiểm chứng — nhờ vậy các thí nghiệm mới tái dùng được kết quả cũ
-  thay vì chạy lại GPU.
+* **Ghi** kết quả từng mẫu ra ``*.jsonl`` — đây là thứ ``07`` đọc lại để phân tích
+  mà không cần GPU, nên nó là artifact quan trọng nhất của mỗi nấc.
+* **Đọc lại** các dự đoán mốc tham chiếu trong ``reference/baseline_results/*_program.csv``
+  rồi chấm bằng executor đã kiểm chứng — nhờ vậy so được với số cũ mà không chạy lại GPU.
 """
 from __future__ import annotations
 
@@ -18,12 +17,8 @@ import os
 from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
                   ly_do_khong_chay, n_ops)
 
-__all__ = ["LEGACY_COLS", "save_details_csv", "save_full_jsonl", "save_raw_jsonl",
-           "load_predictions", "score_saved_predictions", "save_metrics_csv",
-           "ensure_details_dir", "BASELINE_RESULTS"]
-
-LEGACY_COLS = ["id", "question", "gold_program", "gold_answer",
-               "program_step1", "program_step2"]
+__all__ = ["save_full_jsonl", "save_raw_jsonl", "load_predictions",
+           "score_saved_predictions", "BASELINE_RESULTS"]
 
 #: Bảng kết quả tham chiếu của 5 model (post Step-2), dùng để đối chiếu.
 BASELINE_RESULTS = {
@@ -33,30 +28,6 @@ BASELINE_RESULTS = {
     "Qwen3-8B":                 {"PA": 59.56, "EA": 64.19},
     "Phi4_finetuned":           {"PA": 52.52, "EA": 56.54},
 }
-
-
-def ensure_details_dir(repo_dir: str, fallback_dir: str) -> str:
-    """Trả về thư mục ghi details; lùi về ``fallback_dir`` nếu repo chỉ đọc."""
-    details = os.path.join(repo_dir, "results", "details")
-    try:
-        os.makedirs(details, exist_ok=True)
-        probe = os.path.join(details, ".write_test")
-        open(probe, "w").close()
-        os.remove(probe)
-        return details
-    except OSError:
-        os.makedirs(fallback_dir, exist_ok=True)
-        print(f"[SAVE] Không ghi được vào repo — lưu tại {fallback_dir}")
-        return fallback_dir
-
-
-def save_details_csv(rows, path: str) -> str:
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=LEGACY_COLS)
-        w.writeheader()
-        for r in rows:
-            w.writerow({k: r.get(k, "") for k in LEGACY_COLS})
-    return path
 
 
 def save_full_jsonl(rows, path: str, drop=("_sample", "raw_step1", "raw_step2",
@@ -75,18 +46,6 @@ def save_raw_jsonl(rows, path: str) -> str:
                                 "raw_step1": r.get("raw_step1", ""),
                                 "raw_step2": r.get("raw_step2", "")},
                                ensure_ascii=False) + "\n")
-    return path
-
-
-def save_metrics_csv(metrics_by_config: dict, path: str, model_tag: str) -> str:
-    cols = ["config", "model", "n", "EA", "PA_strict", "PA_loose", "EA_tol1e-3",
-            "no_program", "exec_none", "bullets", "minutes"]
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
-        w.writeheader()
-        for name, m in metrics_by_config.items():
-            w.writerow({"config": name, "model": model_tag,
-                        **{k: m.get(k, "") for k in cols[2:]}})
     return path
 
 

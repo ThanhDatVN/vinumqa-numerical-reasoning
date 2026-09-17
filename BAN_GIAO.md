@@ -1,7 +1,7 @@
 # Bàn giao — ViNumQA: đo tác động của từng kỹ thuật lên suy luận số học tài chính tiếng Việt
 
 > **Tài liệu này để mở một phiên làm việc mới. Đọc hết §1–§4 và §9 trước khi sửa bất cứ thứ gì.**
-> Mốc: 187 test · 8 notebook · 111 ô code · nhánh `main`.
+> Mốc: 196 test · 8 notebook · 107 ô code · nhánh `main`.
 > Kiểm nhanh mọi thứ trong tài liệu này còn đúng không: `python tools/kiem_tra.py`
 
 ---
@@ -93,7 +93,7 @@ Phân rã lỗi ở nấc 2 (497 mẫu): `dung` 300 · **`sai` 136** · `khong_c
 
 ### Chưa chạy
 
-`02c` · `03` (SFT) · `05` (ACE) · `05c` · `04b` · `05b` · **hai ô ma trận `06`**.
+`03` (SFT) · `05` (ACE) · `05c` · `05b` · **hai ô ma trận `06`**. Nấc 1–2 phải chạy lại vì prompt đã sửa theo dữ liệu.
 
 ### ⚠ Cấu hình đã đổi sau các lần chạy trên → **phải chạy lại từ nấc 1**
 
@@ -106,20 +106,19 @@ A100-40GB: GPU_MEM_UTIL 0.85 · MAX_NUM_SEQS 48 · BATCH_SIZE 512
 ### Thang bậc hiện tại (12 nấc)
 
 ```
-01_basic · 02_prompt_eng · 02c_prompt_v2 · 03_sft · 04_selfeval_base · 04_selfeval_sft
+01_basic · 02_prompt_eng · 03_sft · 04_selfeval_base · 04_selfeval_sft
 05_ace_base · 05_ace_sft · 05c_ace_basic_base · 05_ace_random_base
 06_comb_E_A · 06_comb_F_A
 ```
+**11 nấc.** Chỉ còn MỘT prompt engineered — nấc 2c đã gộp vào nó, xem §4.1i.
 
 ### Thang prompt (lồng nhau — có test canh)
 
 | mức | thêm gì so với mức trên | ký tự |
 |---|---|--:|
-| `plain` | *đã rời thang bậc* — prompt trần, thiếu cả quy tắc định dạng | 530 |
-| `basic` | mở đầu + danh sách phép toán + yêu cầu định dạng | 2 535 |
-| `no_fewshot` | + ánh xạ từ khoá → phép toán (14 mục) — *bậc giữa, không chạy* | 5 408 |
-| `engineered` | + 2 ví dụ mẫu có khung | 5 924 |
-| `engineered_v2` | nhánh rẽ: sửa 13 chỗ dạy ngược về `table_*` | 6 186 |
+| `basic` | mở đầu + danh sách phép toán + yêu cầu định dạng | 2 745 |
+| `no_fewshot` | + ánh xạ từ khoá → phép toán (14 mục) — *bậc giữa, không chạy* | 5 898 |
+| `engineered` | + 2 ví dụ mẫu có khung | 6 414 |
 
 `basic ⊂ no_fewshot ⊂ engineered` là **chèn thuần** — mỗi bước chỉ THÊM, phần dùng chung
 giống nhau **từng ký tự**. Sửa chữ ở phần chung là hỏng phép đo mà không ai thấy.
@@ -175,6 +174,47 @@ quy tắc **định dạng**, mà sau nấc 2 lỗi định dạng chỉ còn 10
 **g) Tương tác trong ma trận 2×2×2 gần như KHÔNG tách được khỏi nhiễu.** Thử với tương
 tác thật −0,05 (5 điểm): KTC vẫn chứa 0. Đừng viết "cộng hưởng"/"trùng nhau" vào báo cáo
 khi KTC chứa 0.
+
+**h) Bản sao prompt trong repo ĐÃ TỪNG trôi khỏi bản tham chiếu.**
+
+`_prompt_text.py` tự nhận là "chép NGUYÊN VĂN", nhưng đối chiếu từng ký tự với
+`reference/original_notebooks/inference_with_difference_models.ipynb` thì lệch **một ký
+tự** ở mục 6 của STEP_1: repo ghi `add(#1,d)`, bản gốc ghi `add(#0,d)`. Ai đó đã sửa
+lặng lẽ cho đúng toán — nhưng chỉ sửa STEP_1, không sửa STEP_2, nên hai prompt dạy ngược
+nhau mà không ai biết.
+
+Nay đã trả STEP_1 về **đúng bản gốc**, và bản sửa nằm ở `engineered_v2`. Có
+`TestKhopBanThamChieu` canh cả hai chuỗi khớp từng ký tự — trôi lần nữa là test đỏ.
+
+> Bản gốc có **hai** chỗ nói sai, đều giữ nguyên ở nấc 2 và đều sửa ở nấc 2c:
+> `table_*` mô tả là đọc theo CỘT (61 mẫu), và `add(#0,c), add(#0,d)` cộng dồn bỏ mất số
+> hạng giữa (17 mẫu). Bốn escape `	ext{`/`rac{` trong STEP_2 bị Python biến thành
+> TAB/form-feed — repo lưu đúng bản đã diễn giải, tức đúng thứ model thật sự nhận,
+> **không phải lỗi**.
+
+**i) Prompt gốc nói SAI ba chỗ — đã đối chiếu với chính gold, không phải ý kiến.**
+
+Đếm trên toàn bộ 4 074 mẫu train+valid+test:
+
+| bản gốc nói | gold nói | số đo |
+|---|---|---|
+| `table_*` nhận **tên cột** | nhận **nhãn hàng** (ô đầu mỗi dòng) | **618/618** khớp nhãn hàng, **0** khớp tên cột |
+| `add(#0,c), add(#0,d)` | mỗi bước tham chiếu bước **ngay trước** | **2 053** lần ngay trước / **109** lùi xa hơn |
+| "giảm ⇒ kết quả **luôn** âm" | phụ thuộc dạng câu | tỷ lệ giảm (có chia): 61/74 giữ âm (82 %) · mức giảm tuyệt đối: 45/74 lấy dương (61 %) |
+
+Ba chỗ này nay sửa thẳng trong `PromptKit.theo_du_lieu`, áp cho **cả** bước 1 lẫn bước 2,
+nên **không còn nấc 2c**. Bản gốc chưa sửa giữ nguyên ở `_prompt_text.py` để truy xuất xứ,
+có `TestKhopBanThamChieu` canh khớp notebook tham chiếu từng ký tự.
+
+Thêm mấy con số đã đếm, dùng khi cần cãi về prompt:
+
+* phép toán trong gold: `divide` 38,3 % · `subtract` 31,2 % · `add` 15,4 % · `multiply` 5,1 % · `table_*` 9,9 % · `greater` 1 mẫu · `exp` **0 mẫu**
+* mẫu tăng trưởng: 1 016/1 061 lần mẫu số của `divide` đúng là **giá trị CŨ** (95,8 %)
+* `multiply(#n,100)` trong gold: 101/4 069 — nhiễu nhãn, prompt cấm là đúng
+* `table_sum` chỉ 61/374 câu hỏi có chữ "tổng"; còn lại dùng `add` liên tiếp
+* gold **không có** phép lồng nhau: 0/4 069
+* tham số thứ hai của `table_*` luôn là `none`: 618/618
+* phân bố số phép: 1 phép 58,6 % · 2 phép 34,1 % · ≥3 phép 7,3 %
 
 ### 4.2 Ba lần đoán mù đều SAI — đừng lặp lại
 
@@ -245,10 +285,36 @@ với bullet mới, giữ nếu sửa được) → nhập playbook.
 
 | # | Cải tiến | Kỳ vọng |
 |---|---|---|
-| 1 | **Nấc 2c** `engineered_v2` — sửa chỗ prompt dạy ngược về `table_*` | 61 mẫu (12,3 %) |
+| 1 | **Prompt sửa theo dữ liệu** — ba chỗ bản gốc nói sai, xem §4.1i | 61 + 17 mẫu |
 | 2 | **Vớt mẫu bị cắt** — sinh lại với suy nghĩ TẮT, chỉ thay khi ra được program | tối đa +5,8 điểm EA/nấc |
 | 3 | **Self-eval biết kết quả thực thi** — bước 2 nay thấy `⚙ Chạy thật … thì ra: 15000.0` | biến nấc 4 từ Δ=0 thành đo được |
 | 4 | **Tốc độ** — một lô 512, `enable_prefix_caching`, `max_num_seqs` 48 | log cũ: lô 400 chạy 1,88 s/mẫu, lô 97 còn lại 2,83 s/mẫu |
+| 5 | **Bước 2 sửa y hệt bước 1** — trước đây bước 2 vẫn dạy "cột" nên **dạy lại điều sai ngay sau khi bước 1 vừa làm đúng** | mọi ô có self-eval |
+| 6 | **Cổng bước 2** (`cong_buoc2`) — chỉ nhận program bước 2 khi nó CHẠY ĐƯỢC. Trước đó `prog2 or prog1` cho bước 2 thắng vô điều kiện | tính lại được từ jsonl, **0 GPU** |
+| 7 | **Reflector hết mâu thuẫn** — `luat_dang_ap_dung` nay theo đúng nấc đang chạy và đã lọc các dòng dạy ngược về `table_*` ra khỏi danh sách "đừng đề xuất lại" | mở khoá nấc 5c và luật nhãn-hàng |
+| 8 | **Ràng buộc Reflector ≥1 phép** — trước đòi ≥2 trong khi cổng đã hạ `min_ops=1`; 64 % test là câu 1 phép | nhóm 319 mẫu mới có lời khuyên |
+| 9 | **Ma trận dùng chung một prompt** — `06` trước hard-code riêng, nay mọi nấc cùng một nền | nối lại đường tới 70/70 |
+
+### 6b. Đợt dọn mã — một luồng
+
+Mã nguồn nay chỉ còn **một đường chạy** cho mỗi nấc. Đã xoá hẳn:
+
+| bỏ | vì |
+|---|---|
+| mức prompt `plain` | 0 notebook chạy; BAN_GIAO cũ đã ghi "sàn hỏng, đừng dùng để đo" |
+| dò/hỗ trợ Kaggle (77 chỗ) | dự án chạy Colab |
+| `save_details_csv`, `LEGACY_COLS`, `save_metrics_csv`, `ensure_details_dir` | nơi tiêu thụ (`results/`, `app.py`) **không tồn tại trong repo** |
+| backend Reflector `gemini` | không bao giờ được chọn |
+| `compare_ladder`, `has_two_ops`, `QualityGate(enabled=False)`, `section_aware`, `bao_gia_tri_cho_buoc2` | 0 lần gọi / 0 lần bật |
+| tham số `PromptKit(repo_dir=…)` | vết tích chữ ký cũ |
+| `PROMPT_LEVEL = "selfeval"` rồi ngay dòng sau đổi lại | lặp ở 5 notebook |
+
+**Một công tắc duy nhất**: `MUC_PROMPT` ở **ô #2** của mọi notebook. `04`, `05`, `06` đều
+đọc nó; `02` ghi đè có chủ ý vì việc của nó là so hai nền. `07` có bảng kiểm báo động nếu
+các nấc lẫn hai nền.
+
+> `no_fewshot` được GIỮ dù không nấc nào chạy: nó là bậc giữa để bộ kiểm chứng minh thang
+> prompt là phép **chèn thuần** từng bước. Bỏ nó là bỏ một cái chốt canh phép đo.
 
 ---
 
@@ -328,15 +394,19 @@ và ACE. **PA là chỉ số khó hơn** (+48 so với +26).
 ### Lệnh kiểm bắt buộc trước mỗi commit
 
 ```bash
-python -m pytest tests/ -q -W error     # 187 test, CPU, ~2 giây
+python -m pytest tests/ -q -W error     # 196 test, CPU, ~4 giây
 python tools/kiem_tra.py                # notebook + cấu hình + thang prompt + mã chết
 python tools/kiem_tra.py --day-du       # + chạy trọn notebook 07 với nấc dựng sẵn
 ```
 
 `tools/kiem_tra.py` trả mã thoát khác 0 nếu có lỗi. Nó kiểm những thứ `pytest` **không**
 kiểm được: LADDER có giống hệt nhau ở cả 8 notebook không, trần token có lệch giữa các ô
-cấu hình không, ngân sách ngữ cảnh còn dư bao nhiêu, thang prompt còn lồng nhau không, và
-notebook có sót output không.
+cấu hình không, ngân sách ngữ cảnh còn dư bao nhiêu, thang prompt còn lồng nhau không,
+notebook có sót output không, **có tên nào được gọi mà không ô nào định nghĩa không**,
+và **HUONG_DAN_COLAB có còn khớp notebook không** (số ô code + vị trí từng cổng kiểm).
+`--day-du` chạy thật notebook `07` và phần phân tích của `06` với nấc dựng sẵn — chính chỗ
+ba lỗi `NameError`/`TypeError` của `06` từng lọt qua vì biên dịch sạch vẫn không có nghĩa
+là chạy được.
 
 ### Vòng làm việc với người dùng
 
@@ -383,13 +453,12 @@ cổng 70/70), đủ để viết thành báo cáo. `07` xuất `bang_ket_qua_*.
 ```
 vinumqa/            lõi: dsl · data · prompts · pipeline · sft · stats · io_utils · ace/
 notebooks/00–07     mỗi nấc một notebook; 00 và 07 chạy CPU
-tests/              187 test, CPU, ~2 giây, KHÔNG cần GPU
+tests/              196 test, CPU, ~4 giây, KHÔNG cần GPU
 data/               ViNumQA (24 MB, nằm luôn trong repo)
 reference/          hồ sơ xuất xứ + 5 CSV mốc tham chiếu (KHÔNG tái tạo được nếu mất)
 BAN_GIAO.md         tài liệu này
 tools/kiem_tra.py   bộ kiểm toàn dự án (notebook + cấu hình + thang prompt + mã chết)
-HUONG_DAN_COLAB.md  bảng kiểm thao tác từng bước, số ô đã đối chiếu thật
-CAC_BUOC_THUC_HIEN.md  runbook đầy đủ kèm cổng kiểm
+HUONG_DAN_COLAB.md  runbook MỘT LUỒNG: 12 bước, số ô đã đối chiếu thật, kèm cổng kiểm
 ```
 
 Phần cần GPU nhận `generate_fn` **tiêm từ ngoài vào**, nên toàn bộ package test được trên

@@ -1,53 +1,52 @@
 # -*- coding: utf-8 -*-
 """Thang prompt LỒNG NHAU (basic ⊂ no_fewshot ⊂ engineered), cộng prompt self-eval.
 
-Ba mức đầu cắt ra từ CHÍNH prompt hoàn chỉnh (:func:`PromptKit.bo_vi_du`,
+Ba mức cắt ra từ CHÍNH prompt hoàn chỉnh (:func:`PromptKit.bo_vi_du`,
 :func:`PromptKit.bo_huong_dan_tu_khoa`), nên phần dùng chung giống nhau từng ký tự và
 mỗi bước là một phép **chèn thuần** — hiệu số giữa hai nấc kề nhau vì thế đo đúng phần
 vừa thêm, không lẫn chuyện viết lại câu chữ. Có test canh điều đó.
 
 ======================  ==========================================================
 ``basic``               Nấc 1. Mở đầu + danh sách phép toán (có mô tả từng phép) +
-                        toàn bộ yêu cầu định dạng đầu ra. 2 535 ký tự.
+                        toàn bộ yêu cầu định dạng đầu ra.
 ``no_fewshot``          Bậc giữa, KHÔNG phải nấc phải chạy. = ``basic`` + ánh xạ
-                        **từ khoá tiếng Việt → phép toán** (14 mục). 5 408 ký tự.
+                        **từ khoá tiếng Việt → phép toán** (14 mục).
 ``engineered``          Nấc 2 trở đi. = ``no_fewshot`` + 2 ví dụ mẫu có khung.
-                        5 924 ký tự.
 ``self_eval``           Prompt bước 2: đưa lại ngữ cảnh + lời giải bước 1, yêu
                         cầu model tự soát và sửa.
-``plain``               Prompt trần 530 ký tự, ĐÃ RỜI thang bậc: thiếu cả quy tắc
-                        định dạng nên 32 % mẫu sinh ra program không chạy được —
-                        một cái sàn hỏng. Giữ lại cho tương thích, đừng dùng để đo.
 ======================  ==========================================================
 
-Prompt ``engineered`` và ``self_eval`` nằm trong :mod:`vinumqa._prompt_text`, chép
-**nguyên văn** từ bản đã dùng ở lần chạy tham chiếu, nên kết quả mới luôn so sánh được với kết
-quả cũ. Prompt ``plain`` là bản mới, cố tình viết tối giản để đo xem prompt engineering
-đóng góp bao nhiêu.
+Prompt gốc nằm trong :mod:`vinumqa._prompt_text`, chép **nguyên văn** từ
+``reference/original_notebooks/inference_with_difference_models.ipynb`` — có test canh
+từng ký tự. Nhưng bản gốc có **ba chỗ nói SAI so với chính dữ liệu gold**, nên
+:func:`PromptKit.theo_du_lieu` sửa chúng trước khi dùng. Mỗi chỗ sửa neo vào một con số
+đếm được trên toàn bộ 4 074 mẫu train+valid+test, không phải ý kiến:
+
+=========================  ==========================================  ==============
+bản gốc nói                dữ liệu gold nói                            số đo
+=========================  ==========================================  ==============
+``table_*`` nhận TÊN CỘT   nhận NHÃN HÀNG (ô đầu mỗi dòng)             618/618 khớp
+                                                                       nhãn hàng,
+                                                                       0 khớp tên cột
+``add(#0,c), add(#0,d)``   mỗi bước tham chiếu bước NGAY TRƯỚC         2053 lần ngay
+                                                                       trước / 109 lùi
+                                                                       xa hơn
+"giảm ⇒ kết quả luôn âm"   chỉ đúng khi hỏi TỶ LỆ giảm (có divide);    tỷ lệ: 61/74
+                           hỏi MỨC giảm tuyệt đối thì lấy dương        giữ âm (82 %)
+                                                                       mức: 45/74 lấy
+                                                                       dương (61 %)
+=========================  ==========================================  ==============
+
+Sửa ở **cả** bước 1 lẫn bước 2 — sửa bước 1 mà bỏ bước 2 thì bước 2 dạy lại điều sai
+ngay sau khi bước 1 vừa làm đúng.
 """
 from __future__ import annotations
 
 from ._prompt_text import (SYSTEM_PROMPT_STEP_1, SYSTEM_PROMPT_STEP_2,
                            table_to_str as _table_to_str)
 
-__all__ = ["PromptKit", "PLAIN_SYSTEM_PROMPT", "strip_assistant",
+__all__ = ["PromptKit", "strip_assistant",
            "MEMORY_ASK", "MEMORY_PREFIX", "MEMORY_SUFFIX"]
-
-# ────────────────── prompt trần (đã rời thang bậc, xem README) ──────────────────
-
-PLAIN_SYSTEM_PROMPT = """Bạn là trợ lý phân tích báo cáo tài chính. Hãy đọc văn bản và bảng số liệu rồi trả lời câu hỏi.
-
-Thay vì tự tính nhẩm, hãy viết một chương trình tính toán dùng các phép sau:
-add(a, b), subtract(a, b), multiply(a, b), divide(a, b),
-table_max(nhãn, none), table_min(nhãn, none), table_sum(nhãn, none), table_average(nhãn, none)
-
-Nếu cần nhiều phép, viết lần lượt và dùng #0, #1, ... để chỉ kết quả của phép trước.
-
-Trả lời theo đúng định dạng:
-```plaintext
-program: <các phép toán, ngăn bởi dấu phẩy>
-answer: <kết quả cuối cùng>
-```"""
 
 # ─────────────────── lượt "hồi tưởng" để chèn playbook ACE ───────────────────
 
@@ -66,23 +65,24 @@ class PromptKit:
 
     Parameters
     ----------
-    repo_dir : không còn dùng, giữ để tương thích chữ ký cũ.
     tokenizer : tokenizer của model; ``None`` thì dùng định dạng ``<<SYSTEM>>`` thuần.
     model_name : dùng để tự tắt thinking-mode với Qwen3.
     max_ctx_chars, max_prev_chars : trần ký tự cho ngữ cảnh / lời giải bước 1.
         ``None`` = không cắt. Chỉ cần đặt khi chạy trên GPU nhỏ.
     """
 
-    LEVELS = ("plain", "basic", "no_fewshot", "engineered", "engineered_v2")
+    #: Mức chạy được. ``no_fewshot`` là BẬC GIỮA — không phải nấc phải chạy, nó ở đây
+    #: để bộ kiểm chứng minh thang prompt là phép CHÈN THUẦN từng bước.
+    LEVELS = ("basic", "no_fewshot", "engineered")
 
-    def __init__(self, repo_dir: str = "", tokenizer=None, model_name: str = "",
+    def __init__(self, tokenizer=None, model_name: str = "",
                  enable_thinking: bool | None = None,
                  max_ctx_chars: int | None = None, max_prev_chars: int | None = None):
-        # repo_dir giữ lại cho tương thích với chữ ký cũ; prompt nay nằm trong package.
-        self.ENGINEERED_SYSTEM_PROMPT = SYSTEM_PROMPT_STEP_1
-        self.SELF_EVAL_SYSTEM_PROMPT = SYSTEM_PROMPT_STEP_2
-        self.PLAIN_SYSTEM_PROMPT = PLAIN_SYSTEM_PROMPT
-        self.NO_FEWSHOT_SYSTEM_PROMPT = self.bo_vi_du(SYSTEM_PROMPT_STEP_1)
+        # Prompt DÙNG THẬT = bản gốc đã sửa ba chỗ mà dữ liệu gold bác bỏ.
+        # Bản gốc chưa sửa vẫn nằm nguyên ở `_prompt_text` để truy xuất xứ.
+        self.ENGINEERED_SYSTEM_PROMPT = self.theo_du_lieu(SYSTEM_PROMPT_STEP_1)
+        self.SELF_EVAL_SYSTEM_PROMPT = self.theo_du_lieu_step2(SYSTEM_PROMPT_STEP_2)
+        self.NO_FEWSHOT_SYSTEM_PROMPT = self.bo_vi_du(self.ENGINEERED_SYSTEM_PROMPT)
         # Thang prompt LỒNG NHAU — mỗi nấc thêm đúng một khối, cắt ra từ chính prompt
         # hoàn chỉnh nên phần dùng chung giống nhau từng ký tự. Nhờ vậy hiệu số giữa hai
         # nấc kề nhau đo đúng phần vừa thêm, không lẫn chữ nghĩa viết lại.
@@ -91,9 +91,7 @@ class PromptKit:
         #   no_fewshot  = basic + HƯỚNG DẪN CHỌN PHÉP THEO TỪ KHÓA (14 mục)
         #   engineered  = no_fewshot + 2 ví dụ mẫu có khung
         self.BASIC_SYSTEM_PROMPT = self.bo_vi_du(
-            self.bo_huong_dan_tu_khoa(SYSTEM_PROMPT_STEP_1))
-        #: Nhánh rẽ: đúng ``engineered`` nhưng sửa chỗ dạy ngược về ``table_*``.
-        self.ENGINEERED_V2_SYSTEM_PROMPT = self.sua_nhan_bang(SYSTEM_PROMPT_STEP_1)
+            self.bo_huong_dan_tu_khoa(self.ENGINEERED_SYSTEM_PROMPT))
         self.table_to_str = staticmethod(_table_to_str).__func__
 
         self.tokenizer = tokenizer
@@ -164,16 +162,6 @@ class PromptKit:
                 f"<<USER>>\n{user_message}\n\n<<ASSISTANT>>\n")
 
     # ── nội dung user message ──
-    def _user_plain(self, sample) -> str:
-        pre, post, table = self.context_block(sample)
-        return f"""Câu hỏi: {sample["qa"]["question"]}
-
-Văn bản trước bảng: {pre}
-Văn bản sau bảng: {post}
-Bảng:
-{table}
-"""
-
     def _user_engineered(self, sample) -> str:
         """Giữ nguyên user message của bản tham chiếu."""
         pre, post, table = self.context_block(sample)
@@ -195,9 +183,6 @@ Output:"""
     # ── API chính ──
     def step1(self, sample, bullets_text: str = "", level: str = "engineered") -> str:
         """Prompt sinh program. ``level`` ∈ :attr:`LEVELS` (thang lồng nhau)."""
-        if level == "plain":
-            return self._render(self.PLAIN_SYSTEM_PROMPT, self._user_plain(sample),
-                                bullets_text)
         if level == "engineered":
             return self._render(self.ENGINEERED_SYSTEM_PROMPT,
                                 self._user_engineered(sample), bullets_text)
@@ -207,15 +192,13 @@ Output:"""
         if level == "no_fewshot":
             return self._render(self.NO_FEWSHOT_SYSTEM_PROMPT,
                                 self._user_engineered(sample), bullets_text)
-        if level == "engineered_v2":
-            return self._render(self.ENGINEERED_V2_SYSTEM_PROMPT,
-                                self._user_engineered(sample), bullets_text)
         raise ValueError(f"level lạ: {level!r}, chọn trong {self.LEVELS}")
 
     # ── biến thể bỏ ví dụ mẫu ──
     _MOC_VI_DU = "=== VÍ DỤ ==="
     _MOC_SAU_VI_DU = "==== CÂU HỎI ===="
-    #: Chỗ prompt dạy NGƯỢC về ``table_*``. Xem :func:`sua_nhan_bang`.
+    #: Chỗ bản gốc dạy NGƯỢC về ``table_*``. Đo trên 4 074 mẫu: 618/618 tham số khớp
+    #: NHÃN HÀNG, 0 khớp tên cột. Xem :func:`theo_du_lieu`.
     _SUA_TABLE = (
         ("- table_max(column, none): Giá trị lớn nhất của cột.",
          "- table_max(nhãn_hàng, none): Giá trị lớn nhất của HÀNG mang nhãn đó."),
@@ -249,23 +232,81 @@ Output:"""
          "hàng; truyền NHÃN HÀNG (ô đầu dòng) chứ không cho mảng vào"),
     )
 
-    @classmethod
-    def sua_nhan_bang(cls, prompt: str) -> str:
-        """Sửa chỗ prompt dạy ngược về ``table_*``: "cột" → "nhãn hàng".
+    #: Chỗ bản gốc SAI TOÁN: ``add(#0,d)`` cộng dồn bỏ mất số hạng ``c``. Đo trên gold:
+    #: 2 053 tham chiếu trỏ bước NGAY TRƯỚC, chỉ 109 lùi xa hơn. Có ở CẢ hai prompt.
+    _SUA_CHUOI = (
+        ("   → Dùng add liên tiếp: add(a,b), add(#0,c), add(#0,d)...",
+         "   → Dùng add liên tiếp: add(a,b), add(#0,c), add(#1,d)... "
+         "(mỗi bước tham chiếu kết quả NGAY TRƯỚC nó, đừng quay lại #0)"),
+    )
 
-        Executor (:func:`vinumqa.dsl.table_row_values`) đọc theo NHÃN HÀNG — chuỗi ở ô
-        đầu mỗi dòng. Đo trên tập test: **61/61** mẫu gold dùng ``table_*`` có nhãn khớp
-        nhãn hàng, **0/61** khớp tên cột. Prompt gốc lại nói "cột" ở mọi chỗ, thậm chí
-        "chỉ nhận đúng 1 cột, không thêm hàng" — lái thẳng khỏi đáp án đúng.
+    #: Chỗ bản gốc nói dấu SAI. Bản gốc: "giảm ⇒ kết quả sẽ âm", tuyệt đối. Đo trên
+    #: gold thì phụ thuộc dạng câu: hỏi TỶ LỆ giảm (có divide) → 61/74 giữ dấu âm (82 %);
+    #: hỏi MỨC giảm tuyệt đối (không divide) → 45/74 lấy giá trị dương (61 %).
+    _SUA_DAU_GIAM = (
+        ("2. Giảm bao nhiêu % / Giảm …% yoy / -…% yoy\n"
+         "   → Vẫn dùng đúng pattern trên (kết quả sẽ âm → đúng bản chất giảm)",
+         "2. Giảm bao nhiêu % / Giảm …% yoy / -…% yoy — DẤU phụ thuộc dạng câu:\n"
+         "   → Hỏi TỶ LỆ giảm (có chia): subtract(mới, cũ), divide(#0, cũ) — GIỮ dấu âm\n"
+         "   → Hỏi MỨC giảm tuyệt đối (không chia), nhất là khi trừ hai số vốn đã là %:\n"
+         "     subtract(số_lớn, số_nhỏ) — trả về giá trị DƯƠNG"),
+    )
 
-        Không sửa đè lên ``ENGINEERED_SYSTEM_PROMPT``: giữ nấc 2 nguyên vẹn để còn so
-        được với mốc tham chiếu, và để chỗ sửa này trở thành một phép đo riêng.
-        """
-        for cu, moi in cls._SUA_TABLE:
+    #: Bước 2 dùng chung 12/13 mốc với bước 1; riêng mục 13 viết khác nên phải nêu riêng.
+    _SUA_TABLE_STEP2 = (
+        ("13. Khi cần tìm số lớn nhất hoặc nhỏ nhất trong cột nhưng số đó được dùng để "
+         "tính toán",
+         "13. Khi cần tìm số lớn nhất hoặc nhỏ nhất trong hàng nhưng số đó được dùng để "
+         "tính toán"),
+    )
+
+    @staticmethod
+    def _ap_dung_sua(prompt: str, cap) -> str:
+        """Thay từng cặp (cũ → mới), NÉM LỖI nếu mốc không còn — đừng sửa im lặng."""
+        for cu, moi in cap:
             if cu not in prompt:
                 raise ValueError(f"không thấy mốc cần sửa: {cu[:60]!r}")
             prompt = prompt.replace(cu, moi, 1)
         return prompt
+
+    @classmethod
+    def theo_du_lieu(cls, prompt: str) -> str:
+        """Sửa BƯỚC 1 ở ba chỗ bản gốc nói sai so với chính dữ liệu gold.
+
+        Không phải chỉnh văn phong — mỗi chỗ đều neo vào một con số đếm được trên toàn
+        bộ 4 074 mẫu train+valid+test:
+
+        * ``table_*`` — bản gốc nói tham số là TÊN CỘT. Executor
+          (:func:`vinumqa.dsl.table_row_values`) đọc theo NHÃN HÀNG, và gold cũng vậy:
+          **618/618** tham số khớp nhãn hàng, **0** khớp tên cột. Bản gốc còn viết
+          "chỉ nhận đúng 1 cột, không thêm hàng" — cấm thẳng thứ cần làm.
+        * **chuỗi ``#N``** — bản gốc dạy ``add(#0,c), add(#0,d)``, tức bỏ mất số hạng
+          ``c``. Gold: **2 053** tham chiếu trỏ bước ngay trước, **109** lùi xa hơn.
+        * **dấu của câu "giảm"** — bản gốc nói kết quả *luôn* âm. Gold chia hai nhánh
+          rõ rệt theo dạng câu; xem :attr:`_SUA_DAU_GIAM`.
+
+        Bản gốc chưa sửa vẫn nằm nguyên ở :mod:`vinumqa._prompt_text` để truy xuất xứ,
+        có test canh khớp từng ký tự với notebook tham chiếu.
+        """
+        return cls._ap_dung_sua(prompt,
+                                cls._SUA_TABLE + cls._SUA_CHUOI + cls._SUA_DAU_GIAM)
+
+    @classmethod
+    def theo_du_lieu_step2(cls, prompt: str) -> str:
+        """Y như :func:`theo_du_lieu` nhưng cho prompt BƯỚC 2.
+
+        Bước 2 chép gần nguyên khối hướng dẫn của bước 1 nên mang theo **toàn bộ** chỗ
+        nói sai. Sửa bước 1 mà bỏ bước 2 thì bước 2 dạy lại điều sai ngay sau khi bước 1
+        vừa làm đúng.
+        """
+        cap = [(cu, moi) for cu, moi in cls._SUA_TABLE if cu in prompt]
+        # Đã đo: đúng 12/13 mốc của bước 1 có mặt ở bước 2. Chốt con số lại để lần sau
+        # ai sửa prompt gốc thì vỡ ở đây, chứ không im lặng bỏ sót một chỗ nói sai.
+        if len(cap) != len(cls._SUA_TABLE) - 1:
+            raise ValueError(f"bước 2 khớp {len(cap)} mốc, chờ {len(cls._SUA_TABLE) - 1} "
+                             f"— prompt gốc đã đổi, kiểm lại _SUA_TABLE_STEP2")
+        return cls._ap_dung_sua(prompt, tuple(cap) + cls._SUA_TABLE_STEP2
+                                + cls._SUA_CHUOI + cls._SUA_DAU_GIAM)
 
     _MOC_HUONG_DAN = "=== HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA ==="
     _MOC_DINH_DANG = "- Trả lời đúng 2 dòng:"
@@ -361,15 +402,12 @@ answer:...
     # ── dùng cho SFT: trả về messages thay vì chuỗi đã render ──
     def sft_messages(self, sample, target_text: str, level: str = "engineered") -> list[dict]:
         """Bộ ``messages`` để huấn luyện: system + user + assistant(target)."""
-        system = {"plain": self.PLAIN_SYSTEM_PROMPT,
-                  "basic": self.BASIC_SYSTEM_PROMPT,
+        system = {"basic": self.BASIC_SYSTEM_PROMPT,
                   "no_fewshot": self.NO_FEWSHOT_SYSTEM_PROMPT,
-                  "engineered": self.ENGINEERED_SYSTEM_PROMPT,
-                  "engineered_v2": self.ENGINEERED_V2_SYSTEM_PROMPT}[level]
-        # Chỉ ``plain`` dùng user message riêng; ba mức còn lại dùng chung một bản, nên
-        # hiệu số giữa chúng chỉ do system prompt — đúng điều kiện của phép ablation.
-        user = (self._user_plain(sample) if level == "plain"
-                else self._user_engineered(sample))
+                  "engineered": self.ENGINEERED_SYSTEM_PROMPT}[level]
+        # Mọi mức dùng CHUNG một user message, nên hiệu số giữa chúng chỉ do system
+        # prompt — đúng điều kiện của phép ablation.
+        user = self._user_engineered(sample)
         return [{"role": "system", "content": system},
                 {"role": "user", "content": user},
                 {"role": "assistant", "content": target_text}]

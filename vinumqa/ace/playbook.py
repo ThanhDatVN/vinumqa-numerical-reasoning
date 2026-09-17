@@ -226,14 +226,14 @@ class Retriever:
 
     def __init__(self, embedder: Embedder | None = None, k_tier1=3, k_tier2=4,
                  tier1_max=5, tier1_min_uses=12, tier1_min_lift=0.01,
-                 max_bullets=30, section_aware=True, section_aware_min=10,
+                 max_bullets=30, section_aware_min=10,
                  w_sem=0.35, w_bm25=0.25, w_value=0.20, w_freq=0.20):
         self.embedder = embedder
         self.k_tier1, self.k_tier2 = k_tier1, k_tier2
         self.tier1_max = tier1_max
         self.tier1_min_uses, self.tier1_min_lift = tier1_min_uses, tier1_min_lift
         self.max_bullets = max_bullets
-        self.section_aware, self.section_aware_min = section_aware, section_aware_min
+        self.section_aware_min = section_aware_min
         self.w_sem, self.w_bm25 = w_sem, w_bm25
         self.w_value, self.w_freq = w_value, w_freq
 
@@ -336,19 +336,13 @@ class Retriever:
         t2 = [b for b in bullets if b["id"] not in self.tier1_ids]
 
         if not t1:                                           # chưa có Tier-1 → top-k phẳng
-            idxs = (self._section_aware_topk(question, bullets, k1 + k2)
-                    if self.section_aware else
-                    [i for i, _ in sorted(self.score(question, bullets),
-                                          key=lambda x: -x[1])[:k1 + k2]])
-            chosen = [bullets[i] for i in idxs]
+            chosen = [bullets[i]
+                      for i in self._section_aware_topk(question, bullets, k1 + k2)]
         else:
             s1 = sorted(self.score(question, t1), key=lambda x: -x[1])
             chosen = [t1[i] for i, _ in s1[:k1]]
             if t2 and k2 > 0:
-                idxs = (self._section_aware_topk(question, t2, k2) if self.section_aware
-                        else [i for i, _ in sorted(self.score(question, t2),
-                                                   key=lambda x: -x[1])[:k2]])
-                chosen += [t2[i] for i in idxs]
+                chosen += [t2[i] for i in self._section_aware_topk(question, t2, k2)]
 
         if record:
             for b in chosen:
@@ -473,7 +467,7 @@ class QualityGate:
 
     def __init__(self, embedder: Embedder | None = None, retriever: Retriever | None = None,
                  min_len=30, max_len=220, dedup_thresh=0.98, overlap_thresh=0.80,
-                 enabled=True, min_ops=1):
+                 min_ops=1):
         """``dedup_thresh`` phải khớp với embedder đang dùng — ngưỡng KHÔNG chuyển được
         giữa các model.
 
@@ -493,7 +487,6 @@ class QualityGate:
         self.min_len, self.max_len = min_len, max_len
         self.min_ops = min_ops
         self.dedup_thresh, self.overlap_thresh = dedup_thresh, overlap_thresh
-        self.enabled = enabled
 
     # ── kiểm tra từng luật ──
     @staticmethod
@@ -504,10 +497,6 @@ class QualityGate:
 
     def has_enough_ops(self, text: str) -> bool:
         return len(OP_DETECT_RE.findall(text)) >= self.min_ops
-
-    @staticmethod
-    def has_two_ops(text: str) -> bool:            # giữ cho test cũ
-        return len(OP_DETECT_RE.findall(text)) >= 2
 
     @staticmethod
     def is_nested(text: str) -> bool:
@@ -623,8 +612,6 @@ class QualityGate:
     def __call__(self, content: str, playbook: str) -> tuple[str, str]:
         """Trả ``('add'|'reject', lý do)``."""
         c = (content or "").strip()
-        if not self.enabled:                                 # chế độ ablation
-            return ("add", "gate_tat") if c else ("reject", "rong")
         if len(c) < self.min_len:
             return "reject", "qua_ngan"
         if len(c) > self.max_len:

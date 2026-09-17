@@ -5,12 +5,12 @@ Ba backend:
 
 * ``"slm"`` (mặc định) — dùng chính model đang chạy, **không cần API key**, và mọi lời gọi
   trong một vòng được gom thành MỘT lô vLLM;
-* ``"openai"`` / ``"gemini"`` — giống bản ACE gốc (dùng ``gpt-4o-mini``), cho bullet chất
-  lượng cao hơn nhưng phải trả phí và vi phạm ràng buộc "constrained-resource" của dự án.
+* ``"openai"`` — giống bản ACE gốc (``gpt-4o-mini``), cho bullet chất lượng cao hơn
+  nhưng phải trả phí.
 
-Lưu ý về thiết lập: cấu hình *constrained* cấm dùng LLM/API ngoài ở cả train
-lẫn inference. Vậy nên **chỉ backend ``"slm"`` mới nằm trong thiết lập constrained**;
-dùng ``"gemini"`` thì kết quả phải báo cáo ở nhóm *unconstrained*.
+Lưu ý về thiết lập: cấu hình *constrained* cấm dùng LLM/API ngoài ở cả train lẫn
+inference. Vậy nên **chỉ backend ``"slm"`` mới nằm trong thiết lập constrained**; dùng
+``"openai"`` thì kết quả phải báo cáo ở nhóm *unconstrained*.
 """
 from __future__ import annotations
 
@@ -71,6 +71,8 @@ Nhiệm vụ: rút ra MỘT CHIẾN LƯỢC TỔNG QUÁT giúp làm đúng các 
 
 ⚠ ĐỪNG đề xuất lại bất cứ điều gì đã nằm trong danh sách trên — nó đã có hiệu lực rồi,
 nhắc lại không giúp gì. Chỉ đề xuất điều mà danh sách đó CHƯA nói tới.
+⚠ NGOẠI LỆ: phần "LUẬT DSL" ngay bên dưới mới là luật ĐÚNG. Chỗ nào danh sách trên mâu
+thuẫn với LUẬT DSL thì LUẬT DSL thắng, và bạn ĐƯỢC PHÉP đề xuất chiến lược theo LUẬT DSL.
 
 === MỘT CA CÙNG LOẠI MÀ MODEL ĐÃ LÀM ĐÚNG ===
 {ca_dung}
@@ -83,7 +85,7 @@ Hãy so ca sai với ca đúng này để tìm ra ĐIỂM KHÁC BIỆT cụ th�
 - #0 là kết quả phép thứ nhất, #1 phép thứ hai... Ở phép thứ i chỉ được tham chiếu #N với N < i.
 - KHÔNG có hằng số const_*; dùng số thường. Toán hạng dạng 20% nghĩa là 0.2.
 - Tỷ lệ/phần trăm trả về SỐ THẬP PHÂN (0.15), TUYỆT ĐỐI không multiply(#n, 100).
-- table_* nhận NHÃN HÀNG ở cột đầu tiên của bảng, không nhận tên năm.
+- table_* nhận NHÃN HÀNG ở ô đầu mỗi dòng (đo trên gold: 618/618), không nhận tên cột hay năm.
 - Hai số khác đơn vị phải quy đổi bằng multiply/divide NGAY TRONG program.
 
 === CỤM BÀI TOÁN ===
@@ -118,7 +120,7 @@ Chỉ in ra DUY NHẤT một JSON, không thêm lời dẫn:
 1. Bắt đầu bằng "Khi ..." nêu rõ điều kiện kích hoạt (bám từ khoá của cụm {cluster_id}).
 2. Là quy tắc TỔNG QUÁT, áp dụng được cho nhiều câu, KHÔNG phải lời giải của câu này.
 3. TUYỆT ĐỐI không chứa số liệu cụ thể của ca này và không chứa năm. Chỉ được dùng các số 1, 2, 3, 10, 100, 1000, 1000000.
-4. Phải chứa ÍT NHẤT HAI phép toán DSL kèm dấu ngoặc, ví dụ: subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu)
+4. Phải chứa ÍT NHẤT MỘT phép toán DSL kèm dấu ngoặc. Bài MỘT phép chiếm 64 % tập test, nên chiến lược một phép — ví dụ table_max(ten_chi_tieu, none) — cũng rất đáng giá; đừng gò cho đủ hai phép.
 5. Toán hạng dùng tên biến tiếng Việt không dấu: gia_tri_moi, gia_tri_cu, gia_tri_hien_tai, tong, phan, tu_so, mau_so, ty_le_tang, he_so, ten_chi_tieu, a, b, v1, v2.
 6. Nêu RÕ mẫu số của mọi phép divide.
 7. Không nhắc tên công ty, tên cột, nhãn hàng cụ thể.
@@ -126,7 +128,7 @@ Chỉ in ra DUY NHẤT một JSON, không thêm lời dẫn:
 9. Không lặp lại ý của các bullet đã có ở trên.
 
 === MẪU THAM KHẢO (chỉ để học văn phong) ===
-- Khi hỏi tốc độ tăng/giảm giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) và giữ nguyên dấu âm nếu giảm.
+- Khi hỏi TỶ LỆ tăng/giảm giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) và giữ nguyên dấu âm nếu giảm.
 - Khi hai số liệu khác đơn vị, quy đổi trước bằng multiply(gia_tri, 1000) rồi mới divide(phan, #0).
 - Khi hỏi giá trị lớn nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none) rồi mới đưa vào add/subtract nếu cần."""
 
@@ -144,18 +146,44 @@ def summarize_playbook(playbook, all_bullets_fn, max_show=14) -> str:
     return "\n".join(lines)
 
 
-def luat_dang_ap_dung(prompt_kit, gioi_han=1800) -> str:
-    """Trích phần ánh xạ từ khoá → phép toán của system prompt.
+#: Chốt phòng hờ. Prompt dùng thật đã sửa chỗ dạy ngược về ``table_*``, nên danh sách
+#: này thường lọc ra 0 dòng. Giữ lại để nếu ai đó lỡ đưa bản gốc chưa sửa vào thì
+#: Reflector vẫn không bị cấm đề xuất đúng luật nhãn-hàng.
+_DONG_DAY_NGUOC = ("table_max(tên cột", "table_min(tên cột", "table_average(tên cột",
+                   "table_sum(tên cột", "tổng của cột", "tên của cột",
+                   "chỉ nhận đúng 1 cột", "nhất trong cột")
+
+_MUC_TO_ATTR = {"basic": "BASIC_SYSTEM_PROMPT",
+                "no_fewshot": "NO_FEWSHOT_SYSTEM_PROMPT",
+                "engineered": "ENGINEERED_SYSTEM_PROMPT"}
+
+
+def luat_dang_ap_dung(prompt_kit, level="engineered", gioi_han=1800) -> str:
+    """Trích phần ánh xạ từ khoá → phép toán của system prompt ĐANG DÙNG THẬT.
 
     Reflector trước đây KHÔNG biết system prompt đã dặn model những gì, nên nó đề xuất
-    lại chính các quy tắc đã có — bullet đúng nhưng thừa, không thêm được gì. Đưa phần
-    này vào để nó biết mà tránh.
+    lại chính các quy tắc đã có — bullet đúng nhưng thừa. Đưa phần này vào để nó tránh.
+
+    Hai chỗ bản trước làm sai, đều đã đo:
+
+    * Nó đọc cứng ``ENGINEERED_SYSTEM_PROMPT`` bất kể nấc nào đang chạy. Ở **nấc 5c**
+      model chỉ nhận prompt ``basic`` — vốn KHÔNG có khối ánh xạ từ khoá — nhưng
+      Reflector vẫn bị bảo "model đã được dặn 14 mục này rồi, đừng nhắc lại". Thế là
+      triệt tiêu đúng lý do tồn tại của 5c.
+    * Khối đó chứa các dòng dạy NGƯỢC về ``table_*``. Cấm Reflector nhắc lại chúng
+      nghĩa là cấm luôn nó phát hiện ra luật nhãn-hàng.
     """
-    p = getattr(prompt_kit, "ENGINEERED_SYSTEM_PROMPT", "") or ""
+    p = getattr(prompt_kit, _MUC_TO_ATTR.get(level, "ENGINEERED_SYSTEM_PROMPT"), "") or ""
     i = p.find("=== HƯỚNG DẪN CHỌN PHÉP TOÁN THEO TỪ KHÓA ===")
     j = p.find("=== VÍ DỤ ===")
-    doan = p[i:j] if 0 <= i < j else p[:gioi_han]
-    return doan.strip()[:gioi_han]
+    if not (0 <= i < j):
+        # `basic` không có khối này → nói thẳng là CHƯA dặn gì, đừng bịa ra luật đã có.
+        return ("(system prompt ở nấc này KHÔNG chứa hướng dẫn chọn phép toán nào — "
+                "mọi quy tắc chọn phép đều còn trống, cứ đề xuất)")
+    doan = p[i:j].strip()[:gioi_han]
+    giu = [ln for ln in doan.splitlines()
+           if not any(x in ln for x in _DONG_DAY_NGUOC)]
+    return chr(10).join(giu)
 
 
 def ca_lam_dung(row, prompt_kit, gioi_han=420) -> str:
@@ -171,12 +199,12 @@ def ca_lam_dung(row, prompt_kit, gioi_han=420) -> str:
 
 def build_reflector_prompt(sample, pred_prog, pred_value, bullets_text, diag,
                            playbook, cluster_id, prompt_kit, all_bullets_fn,
-                           row_dung=None) -> str:
+                           row_dung=None, prompt_level="engineered") -> str:
     c = CLUSTER_BY_ID.get(cluster_id, CLUSTER_BY_ID["C11_khac"])
     pre, post, table = prompt_kit.context_block(sample)
     context = (f"{pre} {post}".strip()[:500] + "\n" + table[:400]).strip()
     return REFLECTOR_PROMPT.format(
-        luat_da_co=luat_dang_ap_dung(prompt_kit),
+        luat_da_co=luat_dang_ap_dung(prompt_kit, prompt_level),
         ca_dung=ca_lam_dung(row_dung, prompt_kit),
         cluster_id=c["id"], cluster_lesson=c["lesson"], cluster_pattern=c["pattern"],
         cluster_wrong="\n".join(f"  - {w}" for w in c["wrong"]) or "  (chưa ghi nhận)",
@@ -220,27 +248,29 @@ class Reflector:
 
     Parameters
     ----------
-    backend : ``"slm"`` | ``"openai"`` | ``"gemini"``
+    backend : ``"slm"`` | ``"openai"``
     generate_fn : hàm ``(prompts, sampling_params) -> list[str]`` — chỉ dùng cho backend slm.
     """
 
     def __init__(self, prompt_kit, all_bullets_fn, backend="slm", generate_fn=None,
                  sampling_params=None, api_model="gpt-4o-mini",
-                 gemini_model="gemini-2.5-flash", temperature=0.0, max_tokens=512):
+                 temperature=0.0, max_tokens=512, prompt_level="engineered"):
         self.prompt_kit = prompt_kit
         self.all_bullets_fn = all_bullets_fn
         self.backend = backend
         self.generate_fn = generate_fn
         self.sampling_params = sampling_params
-        self.api_model, self.gemini_model = api_model, gemini_model
+        self.api_model = api_model
         self.temperature, self.max_tokens = temperature, max_tokens
+        self.prompt_level = prompt_level
         self.n_calls = 0
 
     def build_prompts(self, items, playbook):
         return [build_reflector_prompt(it["sample"], it["pred_prog"], it["pred_value"],
                                        it["bullets_text"], it["diag"], playbook,
                                        it["cluster_id"], self.prompt_kit,
-                                       self.all_bullets_fn, it.get("row_dung"))
+                                       self.all_bullets_fn, it.get("row_dung"),
+                                       prompt_level=self.prompt_level)
                 for it in items]
 
     def __call__(self, items, playbook) -> list[dict]:
@@ -252,8 +282,6 @@ class Reflector:
 
         if self.backend == "openai":
             outs = self._call_openai(prompts)
-        elif self.backend == "gemini":
-            outs = self._call_gemini(prompts)
         else:
             formatted = [self.prompt_kit.chat([{"role": "user", "content": p}])
                          for p in prompts]
@@ -274,18 +302,5 @@ class Reflector:
                 outs.append(r.choices[0].message.content)
             except Exception as e:                        # noqa: BLE001
                 print(f"[REFLECT] ⚠ OpenAI lỗi: {e}")
-                outs.append(None)
-        return outs
-
-    def _call_gemini(self, prompts):
-        import google.generativeai as genai
-        genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
-        gm = genai.GenerativeModel(self.gemini_model)
-        outs = []
-        for p in prompts:
-            try:
-                outs.append(gm.generate_content(p).text)
-            except Exception as e:                        # noqa: BLE001
-                print(f"[REFLECT] ⚠ Gemini lỗi: {e}")
                 outs.append(None)
         return outs

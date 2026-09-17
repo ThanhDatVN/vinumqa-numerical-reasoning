@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Bộ kiểm toàn dự án — chạy trước mỗi lần commit và trước mỗi lần chạy lại thang bậc.
 
-    python tools/kiem_tra.py           # 4 phép kiểm nhanh, ~5 giây
+    python tools/kiem_tra.py           # 6 phép kiểm nhanh, ~5 giây
     python tools/kiem_tra.py --day-du  # + chạy notebook 07 end-to-end với nấc dựng sẵn
 
 Trả mã thoát khác 0 nếu có lỗi, để cắm vào CI hoặc pre-commit được.
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import builtins
 import difflib
 import glob
 import io
@@ -199,7 +200,197 @@ def kiem_ma_chet():
     print(f"   {len(khai_bao)} khai báo công khai · {n_chet} mã chết · {n_thua} import thừa")
 
 
-# ══════════════════════ 5. (tuỳ chọn) notebook 07 chạy end-to-end ═════════════════════
+# ══════════════════════ 5. tên dùng mà chưa bao giờ được định nghĩa ═══════════════════
+_TEN_CO_SAN = set(dir(builtins)) | {
+    "get_ipython", "display", "In", "Out", "_ih", "_oh", "__name__", "__file__"}
+
+
+class _ThuTen(ast.NodeVisitor):
+    """Gom tên được GÁN và tên được DÙNG trong một ô notebook."""
+
+    def __init__(self):
+        self.gan, self.dung = set(), []
+
+    def visit_Name(self, n):
+        (self.gan.add(n.id) if isinstance(n.ctx, ast.Store)
+         else self.dung.append((n.id, n.lineno)))
+
+    def visit_FunctionDef(self, n):
+        self.gan.add(n.name)
+        a = n.args
+        for x in a.posonlyargs + a.args + a.kwonlyargs + [a.vararg, a.kwarg]:
+            if x is not None:
+                self.gan.add(x.arg)
+        self.generic_visit(n)
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_Lambda(self, n):
+        a = n.args
+        for x in a.posonlyargs + a.args + a.kwonlyargs + [a.vararg, a.kwarg]:
+            if x is not None:
+                self.gan.add(x.arg)
+        self.generic_visit(n)
+
+    def visit_ClassDef(self, n):
+        self.gan.add(n.name)
+        self.generic_visit(n)
+
+    def visit_Import(self, n):
+        for a in n.names:
+            self.gan.add((a.asname or a.name).split(".")[0])
+
+    def visit_ImportFrom(self, n):
+        for a in n.names:
+            self.gan.add(a.asname or a.name)
+
+    def visit_ExceptHandler(self, n):
+        if n.name:
+            self.gan.add(n.name)
+        self.generic_visit(n)
+
+    def visit_Global(self, n):
+        self.gan.update(n.names)
+
+
+def kiem_ten_notebook():
+    """Bắt tên được gọi mà KHÔNG ô nào định nghĩa.
+
+    Vì sao cần riêng phép kiểm này: `kiem_notebook` chỉ BIÊN DỊCH, nên `NameError` lọt
+    qua sạch. Đã có tiền lệ đắt: notebook 06 gọi `ea(...)` ở hai ô mà hàm đó chưa bao giờ
+    tồn tại — lỗi nằm NGAY SAU toàn bộ phần chạy GPU, làm hỏng ô ghi CSV và ô vẽ biểu đồ.
+    """
+    print("═" * 78)
+    print("  5. NOTEBOOK — tên gọi mà không ô nào định nghĩa")
+    tong = 0
+    for p in sorted(glob.glob(os.path.join(NBDIR, "*.ipynb"))):
+        _nb, o = _o_code(p)
+        gan, dung = set(), []
+        for k, _c, s in o:
+            try:
+                cay = ast.parse(_sang_python(s))
+            except SyntaxError as e:
+                loi.append(f"{os.path.basename(p)} ô {k}: không parse được ({e.msg})")
+                continue
+            t = _ThuTen()
+            t.visit(cay)
+            gan |= t.gan
+            dung += [(ten, k) for ten, _ln in t.dung]
+        # Tên nằm trong `"x" in globals()` là có chủ ý, đừng báo động.
+        van_ban = "\n".join(s for _k, _c, s in o)
+        thieu = {}
+        for ten, k in dung:
+            if ten in gan or ten in _TEN_CO_SAN:
+                continue
+            if f'"{ten}" in globals()' in van_ban or f"'{ten}' in globals()" in van_ban:
+                continue
+            thieu.setdefault(ten, set()).add(k)
+        for ten, o_list in sorted(thieu.items()):
+            loi.append(f"{os.path.basename(p)}: gọi `{ten}` ở ô {sorted(o_list)} "
+                       f"mà không ô nào định nghĩa")
+            tong += 1
+    print(f"   {len(glob.glob(os.path.join(NBDIR, '*.ipynb')))} notebook · "
+          f"{tong} tên chưa định nghĩa")
+
+
+# ══════════════════════ 6. runbook khớp notebook ══════════════════════════════════════
+#: (notebook, ô # theo ô CODE, mảnh chuỗi phải nằm trong ô đó). Đây là các mốc mà
+#: HUONG_DAN_COLAB.md dẫn người chạy bám theo; lệch một ô là người chạy soi nhầm chỗ.
+NEO_RUNBOOK = [
+    ("00_data_audit", 3, "Executor tái tạo đúng 100%"),
+    ("01_baseline_basic", 3, "[GÓI] "),
+    ("01_baseline_basic", 3, "executor tái tạo exe_ans trên test"),
+    ("01_baseline_basic", 4, "[CFG] max_seq="),
+    ("01_baseline_basic", 5, "[WARMUP] ✅"),
+    ("01_baseline_basic", 6, "thang lồng nhau"),
+    ("01_baseline_basic", 6, "mọi prompt đều lọt ngân sách"),
+    ("01_baseline_basic", 6, 'PROMPT_LEVEL = "basic"'),
+    ("01_baseline_basic", 8, "NẤC: {STAGE}"),
+    ("01_baseline_basic", 10, "save_stage"),
+    ("02_prompt_engineering", 6, "[NẤC] 2 — prompt hoàn chỉnh"),
+    ("02_prompt_engineering", 7, "chèn thuần"),
+    ("02_prompt_engineering", 8, 'STAGE = "02_prompt_eng"'),
+    ("02_prompt_engineering", 11, "save_stage"),
+    ("03_sft_qwen3", 7, "SFT_TRAIN_SUBSET"),
+    ("03_sft_qwen3", 9, "build_sft_records"),
+    ("03_sft_qwen3", 11, "latest.txt"),
+    ("03_sft_qwen3", 21, "ADAPTER_DIR"),
+    ("03_sft_qwen3", 22, 'STAGE = "03_sft"'),
+    ("03_sft_qwen3", 24, "save_stage"),
+    ("04_self_evaluation", 6, "USE_SFT_ADAPTER"),
+    ("04_self_evaluation", 7, "mọi prompt đều lọt ngân sách"),
+    ("04_self_evaluation", 9, "04_selfeval_"),
+    ("04_self_evaluation", 13, "save_stage"),
+    ("05_ace", 6, "USE_SFT_ADAPTER"),
+    ("05_ace", 8, "ACE_TREN_PROMPT"),
+    ("05_ace", 8, "gọi thử"),
+    ("05_ace", 10, "AceTrainer"),
+    ("05_ace", 12, "NẤC: {STAGE}"),
+    ("05_ace", 14, "RUN_RANDOM_CONTROL"),
+    ("05_ace", 16, "save_stage"),
+    ("06_combination", 7, "MATRIX = ["),
+    ("06_combination", 8, "[PLAYBOOK]"),
+    ("06_combination", 10, "CỔNG MỤC TIÊU"),
+    ("06_combination", 11, "TÁC ĐỘNG CHÍNH"),
+    ("06_combination", 14, "ma_tran_to_hop_"),
+    ("06_combination", 15, "plt.savefig"),
+    ("07_final_report", 3, "chưa có kết quả"),
+    ("07_final_report", 4, "KIỂM TRA CÔNG BẰNG"),
+    ("07_final_report", 6, "ĐỘ PHỨC TẠP"),
+    ("07_final_report", 7, "EA THEO LOẠI PHÉP TOÁN"),
+    ("07_final_report", 8, "ap_cong_buoc2"),
+    ("07_final_report", 9, "PHÂN BỐ KẾT CỤC"),
+    ("07_final_report", 11, "bang_ket_qua_"),
+    ("07_final_report", 12, "bao_cao_"),
+]
+
+
+def kiem_runbook():
+    """HUONG_DAN_COLAB.md phải khớp notebook: số ô code và vị trí từng cổng kiểm.
+
+    Vì sao cần: runbook dẫn người chạy tới ĐÚNG MỘT Ô rồi bảo phải thấy dòng gì. Thêm
+    hay bớt một ô là mọi số sau đó lệch, và người chạy đi soi nhầm chỗ trên một phiên
+    GPU đang tính tiền. Không ai phát hiện được điều đó bằng cách đọc.
+    """
+    print("═" * 78)
+    print("  6. RUNBOOK — HUONG_DAN_COLAB khớp notebook")
+    doc = os.path.join(GOC, "HUONG_DAN_COLAB.md")
+    if not os.path.exists(doc):
+        loi.append("thiếu HUONG_DAN_COLAB.md")
+        return
+    van = io.open(doc, encoding="utf-8").read()
+
+    # (a) mỗi "## Bước k · `<notebook>`" kèm "**N ô code" phải đúng số ô thật
+    n_dem = 0
+    for m in re.finditer(r"## Bước \d+ · `([0-9]{2}_[a-z_0-9]+)`(.{0,600}?)\*\*(\d+) ô code",
+                         van, re.S):
+        nb_ten, _giua, n_noi = m.group(1), m.group(2), int(m.group(3))
+        p = os.path.join(NBDIR, nb_ten + ".ipynb")
+        if not os.path.exists(p):
+            loi.append(f"runbook trỏ tới notebook không có: {nb_ten}")
+            continue
+        that = len(_o_code(p)[1])
+        n_dem += 1
+        if that != n_noi:
+            loi.append(f"runbook nói {nb_ten} có {n_noi} ô code, thật ra {that}")
+
+    # (b) từng cổng kiểm phải nằm đúng ô mà runbook dẫn tới
+    n_neo = 0
+    for nb_ten, so_o, xau in NEO_RUNBOOK:
+        ma = _o_code(os.path.join(NBDIR, nb_ten + ".ipynb"))[1]
+        if so_o > len(ma):
+            loi.append(f"{nb_ten}: runbook dẫn tới ô #{so_o} nhưng chỉ có {len(ma)} ô")
+            continue
+        if xau not in ma[so_o - 1][2]:
+            o_that = [i for i, (_k, _c, s) in enumerate(ma, 1) if xau in s]
+            loi.append(f"{nb_ten} ô #{so_o} không chứa {xau!r}"
+                       + (f" — thật ra ở ô {o_that}" if o_that else " — không ô nào có"))
+        else:
+            n_neo += 1
+    print(f"   {n_dem} bước có số ô · {n_neo}/{len(NEO_RUNBOOK)} cổng kiểm đúng ô")
+
+
+# ══════════════════ 7–8. (tuỳ chọn) notebook 07 và 06 chạy thật ══════════════════
 def kiem_bao_cao_day_du():
     """Dựng vài nấc GIẢ rồi chạy trọn notebook 07.
 
@@ -207,7 +398,7 @@ def kiem_bao_cao_day_du():
     Ghi vào ``runs/stages`` (đã gitignore) rồi dọn sạch sau khi chạy.
     """
     print("═" * 78)
-    print("  5. NOTEBOOK 07 — chạy trọn mọi ô với nấc dựng sẵn")
+    print("  7. NOTEBOOK 07 — chạy trọn mọi ô với nấc dựng sẵn")
     os.environ.setdefault("MPLBACKEND", "Agg")
     import random
     import traceback
@@ -281,14 +472,116 @@ def kiem_bao_cao_day_du():
             exec(compile(code, f"07#{k}", "exec"), ns)
         except Exception:                                # noqa: BLE001
             loi.append(f"07#{k} không chạy được:\n{traceback.format_exc(limit=4)}")
+    # ── GỌI THẬT save_stage / stage_path / load_stage ──
+    # Ô bootstrap chỉ được ĐỊNH NGHĨA khi chạy 07, chưa bao giờ được GỌI. Đúng chỗ đó đã
+    # để lọt `KeyError: 'csv'` ra tận Colab và làm hỏng hai lượt chạy GPU: notebook ghi
+    # xong jsonl rồi mới nổ ở dòng in đường dẫn. Biên dịch sạch không bắt được khoá dict.
+    try:
+        _rows_thu = [{"id": "x", "question": "q", "gold_program": "add(1,2)",
+                      "gold_answer": "3", "program_step1": "add(1,2)",
+                      "program_step2": "", "final_program": "add(1,2)",
+                      "pred_value": 3.0, "ea": True, "ea_tol1e-3": True,
+                      "pa_strict": True, "pa_loose": True, "n_ops_gold": 1,
+                      "outcome": "dung", "used_bullets": [], "bullets_text": "",
+                      "raw_step1": "", "raw_step2": ""}]
+        for _kind in ("jsonl", "meta"):
+            ns["stage_path"]("_kiemtra", _kind)
+        ns["save_stage"]("_kiemtra", _rows_thu, {"EA": 1.0, "PA_strict": 1.0},
+                         extra={"prompt_level": "engineered"}, quiet=True)
+        _lai = ns["load_stage"]("_kiemtra", quiet=True)
+        if not _lai or _lai[0]["id"] != "x":
+            loi.append("save_stage ghi rồi load_stage đọc lại KHÔNG ra đúng dữ liệu")
+    except Exception:                                    # noqa: BLE001
+        loi.append(f"ô bootstrap: save_stage/load_stage lỗi khi gọi thật:\n"
+                   f"{traceback.format_exc(limit=4)}")
+
     for f in glob.glob(os.path.join(ra, "stages", "*")):
         if "noisy_train_ids" not in f:
             os.remove(f)
+    for f in glob.glob(os.path.join(ra, "logs", "_kiemtra_raw_*.jsonl")):
+        os.remove(f)
     for f in glob.glob(os.path.join(ra, "bao_cao_*.png")) \
             + glob.glob(os.path.join(ra, "bang_ket_qua_*.csv")) \
             + glob.glob(os.path.join(ra, "kiem_dinh_*.csv")):
         os.remove(f)
-    print(f"   {n_o} ô đã chạy, đã dọn sạch nấc dựng sẵn")
+    print(f"   {n_o} ô đã chạy · save_stage/load_stage gọi thật · đã dọn nấc dựng sẵn")
+
+
+def kiem_ma_tran_06():
+    """Chạy các ô PHÂN TÍCH của notebook 06 với ma trận dựng sẵn.
+
+    Phần đầu của 06 cần vLLM nên không chạy nổi ở đây; nhưng mọi lỗi từng lọt lưới đều
+    nằm ở phần ĐUÔI — sau khi GPU đã chạy xong. Ba lỗi thật đã gặp: gọi `ea()` chưa
+    định nghĩa, `json.dump` với khoá tuple, và vẽ biểu đồ trên tuple. Cả ba chỉ lộ ra
+    khi thực thi, và lộ ra đúng lúc đắt nhất.
+    """
+    print("═" * 78)
+    print("  8. NOTEBOOK 06 — chạy phần phân tích với ma trận dựng sẵn")
+    os.environ.setdefault("MPLBACKEND", "Agg")
+    import random
+    import traceback
+    from vinumqa import data, dsl, pipeline, stats
+
+    test = data.load_all(os.path.join(GOC, "data"))["test"]
+    rng = random.Random(11)
+    ra = os.path.join(GOC, "runs")
+    os.makedirs(ra, exist_ok=True)
+
+    def o_ma_tran(ty_le):
+        rows = []
+        for s in test:
+            gold = s["qa"].get("program") or ""
+            prog = gold if rng.random() < ty_le else "add(abc, 2)"
+            val = dsl.execute_program(prog, s.get("table") or []) if prog else None
+            ea = dsl.check_ea(val, s["qa"].get("exe_ans")) if prog else False
+            pa_s, pa_l = dsl.check_pa(prog, gold) if prog and gold else (False, False)
+            rows.append({"id": s["id"], "question": s["qa"]["question"],
+                         "gold_program": gold, "gold_answer": s["qa"].get("exe_ans"),
+                         "program_step1": prog, "program_step2": "",
+                         "final_program": prog, "pred_value": val,
+                         "ea": ea, "ea_tol1e-3": ea, "pa_strict": pa_s, "pa_loose": pa_l,
+                         "n_ops_gold": dsl.n_ops(gold),
+                         "outcome": dsl.classify_outcome(ea, pa_s, prog, val),
+                         "used_bullets": [], "bullets_text": ""})
+        return rows
+
+    MATRIX = [("E", False, False, False, "02_prompt_eng"),
+              ("E+A", False, False, True, "06_comb_E_A"),
+              ("E+S", False, True, False, "04_selfeval_base"),
+              ("E+S+A", False, True, True, "05_ace_base"),
+              ("F", True, False, False, "03_sft"),
+              ("F+A", True, False, True, "06_comb_F_A"),
+              ("F+S", True, True, False, "04_selfeval_sft"),
+              ("F+S+A", True, True, True, "05_ace_sft")]
+    NICE = {"E": "prompt", "E+A": "prompt+ACE", "E+S": "prompt+selfeval",
+            "E+S+A": "prompt+selfeval+ACE", "F": "SFT", "F+A": "SFT+ACE",
+            "F+S": "SFT+selfeval", "F+S+A": "SFT+selfeval+ACE"}
+    RESULTS = {}
+    for i, (c, *_r) in enumerate(MATRIX):
+        rows = o_ma_tran(0.60 + 0.02 * i)
+        m = pipeline.summarize(rows, NICE[c])
+        m["minutes"] = 20.0
+        RESULTS[c] = (rows, m, _r[-1])
+
+    ns = {"__name__": "__main__", "MATRIX": MATRIX, "NICE": NICE, "RESULTS": RESULTS,
+          "test_all": test, "stats": stats, "pipeline": pipeline, "dsl": dsl,
+          "OUTPUT_DIR": ra, "STAMP": "kiemtra", "MUC_PROMPT": "engineered",
+          "os": os, "json": json, "csv": __import__("csv")}
+    # Chỉ các ô PHÂN TÍCH: từ ô dựng bảng ma trận trở đi, bỏ ô cần model/playbook.
+    _nb, o = _o_code(os.path.join(NBDIR, "06_combination.ipynb"))
+    n_o = 0
+    for k, _c, src in o:
+        if k < 16:                       # ô 0–15 cần vLLM, Drive, playbook
+            continue
+        n_o += 1
+        try:
+            exec(compile(_sang_python(src), f"06#{k}", "exec"), ns)
+        except Exception:                                # noqa: BLE001
+            loi.append(f"06#{k} không chạy được:\n{traceback.format_exc(limit=4)}")
+    for f in (glob.glob(os.path.join(ra, "ma_tran*"))
+              + glob.glob(os.path.join(ra, "tuong_tac_*.json"))):
+        os.remove(f)
+    print(f"   {n_o} ô phân tích đã chạy, đã dọn file tạm")
 
 
 def main():
@@ -302,8 +595,11 @@ def main():
     kiem_cau_hinh()
     kiem_thang_prompt()
     kiem_ma_chet()
+    kiem_ten_notebook()
+    kiem_runbook()
     if args.day_du:
         kiem_bao_cao_day_du()
+        kiem_ma_tran_06()
 
     print("═" * 78)
     if loi:

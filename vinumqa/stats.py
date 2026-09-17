@@ -44,11 +44,17 @@ def bootstrap_delta_ci(flags_a, flags_b, n_boot=10000, seed=42, alpha=0.05):
 
 
 def interpret(delta, p_value, lo, hi) -> str:
-    if p_value < 0.05 and delta > 0:
-        return "✅ cải tiến CÓ ý nghĩa thống kê (p < 0.05)"
-    if p_value < 0.05 and delta < 0:
-        return "❌ TỤT có ý nghĩa thống kê (p < 0.05)"
-    if lo <= 0 <= hi:
+    """Kết luận chỉ được đưa ra khi p < 0.05 **VÀ** KTC không chứa 0.
+
+    Luật của dự án: KTC chứa 0 = không kết luận được gì. Bản trước phán "có ý nghĩa"
+    chỉ dựa p, nên một Δ có KTC [−0.001, +0.05] vẫn được tô thành cải tiến.
+    """
+    ktc_chua_0 = lo <= 0 <= hi
+    if p_value < 0.05 and not ktc_chua_0 and delta > 0:
+        return "✅ cải tiến CÓ ý nghĩa (p < 0.05 và KTC không chứa 0)"
+    if p_value < 0.05 and not ktc_chua_0 and delta < 0:
+        return "❌ TỤT có ý nghĩa (p < 0.05 và KTC không chứa 0)"
+    if ktc_chua_0:
         return "⚠ chưa phân biệt được với nhiễu (KTC chứa 0)"
     return "⚠ chưa đạt mức ý nghĩa 0.05"
 

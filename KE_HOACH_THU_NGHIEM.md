@@ -3,7 +3,7 @@
 Ngân sách ~100 compute unit (CU)/tháng. A100 ≈ **11.8 CU/giờ**.
 
 Tài liệu này trả lời *vì sao chạy theo thứ tự này và tốn bao nhiêu*. Thao tác cụ thể
-từng bước nằm ở [CAC_BUOC_THUC_HIEN.md](CAC_BUOC_THUC_HIEN.md).
+từng bước nằm ở [HUONG_DAN_COLAB.md](HUONG_DAN_COLAB.md).
 
 ## Đính chính so với lần ước lượng trước
 

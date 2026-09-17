@@ -4,17 +4,18 @@
 Một hàm :func:`run_pipeline` duy nhất phục vụ mọi cấu hình — đổi nấc bằng tham số
 chứ không bằng code khác nhau, nhờ vậy các nấc luôn so sánh được với nhau::
 
-    nấc 1  run_pipeline(..., prompt_level="plain",      use_selfeval=False)
-    nấc 2  run_pipeline(..., prompt_level="engineered", use_selfeval=False)
-    nấc 3  giống nấc 2 nhưng model đã SFT
-    nấc 4  run_pipeline(..., prompt_level="engineered", use_selfeval=True)
-    nấc 5  thêm retriever=<Retriever> và playbook
+    nấc 1   run_pipeline(..., prompt_level="basic",      use_selfeval=False)
+    nấc 2   run_pipeline(..., prompt_level="engineered", use_selfeval=False)
+    nấc 3   giống nấc 2 nhưng model đã SFT
+    nấc 4   run_pipeline(..., prompt_level="engineered", use_selfeval=True)
+    nấc 4b  như nấc 4 nhưng thêm cong_buoc2=True
+    nấc 5   thêm retriever=<Retriever> và playbook
 
 Lớp sinh văn bản được **tiêm vào** (``generate_fn``) nên module chạy và test được
 trên CPU mà không cần model.
 
-Khi ``use_selfeval=True``, chương trình cuối lấy theo đúng logic của notebook gốc:
-**program của bước 2 → thiếu thì lấy của bước 1.**
+Khi ``use_selfeval=True``, chương trình cuối mặc định lấy **program của bước 2 → thiếu
+thì lấy của bước 1**. Bật ``cong_buoc2=True`` thì bước 2 còn phải CHẠY ĐƯỢC mới được nhận.
 """
 from __future__ import annotations
 
@@ -28,9 +29,9 @@ from .dsl import (check_ea, check_pa, classify_outcome, execute_program,
                   extract_program_answer, n_ops)
 from .prompts import strip_assistant
 
-__all__ = ["run_pipeline", "summarize", "print_summary", "compare_ladder",
+__all__ = ["run_pipeline", "summarize", "print_summary",
            "phan_loai_khong_co_program", "phan_loai_khong_chay_duoc",
-           "bo_sung_ly_do", "ty_le_lap", "so_sanh_hai_buoc",
+           "bo_sung_ly_do", "ap_cong_buoc2", "ty_le_lap", "so_sanh_hai_buoc",
            "phan_loai_sai", "nhom_phep"]
 
 
@@ -39,8 +40,14 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
                  playbook="", retriever=None,
                  sp_step1=None, sp_step2=None,
                  desc="infer", record_usage=False, keep_raw=True,
-                 vot_mau_bi_cat=True, bao_gia_tri_cho_buoc2=True):
-    """Chạy một cấu hình trên danh sách mẫu. Trả list dict kết quả từng mẫu."""
+                 vot_mau_bi_cat=True, cong_buoc2=False):
+    """Chạy một cấu hình trên danh sách mẫu. Trả list dict kết quả từng mẫu.
+
+    ``cong_buoc2`` — CỔNG cho self-eval (nấc 4b). Mặc định ``False`` = giữ đúng hành vi
+    cũ (bước 2 luôn thắng). Bật lên thì chỉ nhận program của bước 2 khi nó **thực thi
+    được**, hoặc khi bước 1 vốn cũng không chạy được. Cổng chỉ dùng executor, KHÔNG
+    đụng tới đáp án vàng, nên không rò nhãn.
+    """
     if not samples:
         return []
 
@@ -86,16 +93,14 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
             print(f"    {desc}/vớt: {n_vot}/{len(_can)} mẫu bị cắt đã cứu được")
 
     if use_selfeval:
-        if bao_gia_tri_cho_buoc2:
-            _gt = []
-            for s, r in zip(samples, raw1):
-                _p, _ = extract_program_answer(r)
-                _gt.append(execute_program(_p, s.get("table") or []) if _p else None)
-            _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g)
-                         for s, r, b, g in zip(samples, raw1, bullets_texts, _gt)]
-        else:
-            _prompts2 = [prompt_kit.step2(s, r, b)
-                         for s, r, b in zip(samples, raw1, bullets_texts)]
+        # Bước 2 luôn được cho biết chương trình bước 1 CHẠY THẬT ra số bao nhiêu —
+        # độ lớn của con số là chỗ lộ lỗi rõ nhất.
+        _gt = []
+        for s, r in zip(samples, raw1):
+            _p, _ = extract_program_answer(r)
+            _gt.append(execute_program(_p, s.get("table") or []) if _p else None)
+        _prompts2 = [prompt_kit.step2(s, r, b, gia_tri_buoc1=g, level=prompt_level)
+                     for s, r, b, g in zip(samples, raw1, bullets_texts, _gt)]
         raw2 = generate_fn(_prompts2, sp_step2, desc=f"{desc}/step2")
         raw2 = [strip_assistant(r) for r in raw2]
     else:
@@ -108,18 +113,34 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
     except Exception:                                    # noqa: BLE001
         pass
 
-    rows = []
+    rows, n_cong_chan = [], 0
     for s, r1, r2, bt, ids in zip(samples, raw1, raw2, bullets_texts, used_ids_list):
         prog1, ans1 = extract_program_answer(r1)
         prog2, ans2 = extract_program_answer(r2) if use_selfeval else (None, None)
 
-        final_prog = prog2 or prog1
-        final_ans_text = ans2 if prog2 else ans1
-        value = execute_program(final_prog, s.get("table") or []) if final_prog else None
+        bang = s.get("table") or []
+        val1 = execute_program(prog1, bang) if prog1 else None
+        val2 = execute_program(prog2, bang) if prog2 else None
+
+        # CỔNG BƯỚC 2. Không có cổng thì `prog2 or prog1` cho bước 2 thắng vô điều kiện,
+        # kể cả khi bước 2 sinh ra một program KHÔNG CHẠY ĐƯỢC còn bước 1 thì chạy được —
+        # tức là bước "tự soát" làm hỏng một mẫu vốn đã đúng. Cổng chỉ hỏi executor.
+        if not prog2:
+            lay_buoc2 = False
+        elif not cong_buoc2:
+            lay_buoc2 = True
+        else:
+            lay_buoc2 = (val2 is not None) or (val1 is None)
+
+        final_prog = prog2 if lay_buoc2 else prog1
+        final_ans_text = ans2 if lay_buoc2 else ans1
+        value = val2 if lay_buoc2 else val1
+        if cong_buoc2 and prog2 and not lay_buoc2:
+            n_cong_chan += 1
 
         # Vì sao executor từ chối — tính NGAY ở đây vì chỉ chỗ này còn giữ `s["table"]`,
         # và lưu vào row để file jsonl sau này phân tích lại được mà không cần bảng.
-        ly_do = (ly_do_khong_chay(final_prog, s.get("table") or [])
+        ly_do = (ly_do_khong_chay(final_prog, bang)
                  if final_prog and value is None else None)
 
         gold_prog = s.get("qa", {}).get("program", "") or ""
@@ -147,7 +168,11 @@ def run_pipeline(samples, prompt_kit, generate_fn, *,
             "bullets_text": bt,
             "raw_step1": r1 if keep_raw else "",
             "raw_step2": r2 if keep_raw else "",
+            "lay_buoc2": bool(lay_buoc2),
         })
+    if cong_buoc2 and n_cong_chan:
+        print(f"    {desc}/cổng bước 2: giữ lại bước 1 ở {n_cong_chan} mẫu "
+              f"(bước 2 sinh program không chạy được)")
     return rows
 
 
@@ -202,6 +227,46 @@ def phan_loai_khong_co_program(rows) -> dict | None:
         out["lap_trung_vi"] = round(statistics.median(lap), 3)
         out["so_ca_lap_nang"] = sum(1 for x in lap if x >= 0.5)
     return out
+
+
+def ap_cong_buoc2(rows, samples) -> list[dict]:
+    """Áp CỔNG bước 2 lên một nấc ĐÃ CHẠY XONG, chấm lại — **không tốn GPU**.
+
+    Nấc self-eval lưu cả ``program_step1`` lẫn ``program_step2``, mà cổng chỉ cần
+    executor và bảng của mẫu. Vì vậy "nấc 4 có cổng" không phải chạy lại model: tính
+    thẳng từ file jsonl của nấc 4.
+
+    Trả về list row MỚI (không sửa ``rows`` gốc), cùng schema, để đưa thẳng vào
+    :func:`summarize` và :func:`vinumqa.stats.compare_pair`.
+    """
+    bang = {s.get("id"): (s.get("table") or []) for s in samples}
+    ra = []
+    for r in rows:
+        t = bang.get(r.get("id"), [])
+        p1 = (r.get("program_step1") or "").strip()
+        p2 = (r.get("program_step2") or "").strip()
+        v1 = execute_program(p1, t) if p1 else None
+        v2 = execute_program(p2, t) if p2 else None
+        lay2 = bool(p2) and ((v2 is not None) or (v1 is None))
+
+        moi = dict(r)
+        moi["final_program"] = (p2 if lay2 else p1) or ""
+        moi["pred_value"] = v2 if lay2 else v1
+        moi["lay_buoc2"] = lay2
+
+        gold_prog = r.get("gold_program") or ""
+        gold_ans = r.get("gold_answer")
+        val = moi["pred_value"]
+        moi["ea"] = check_ea(val, gold_ans) if gold_ans is not None else False
+        moi["ea_tol1e-3"] = (check_ea(val, gold_ans, abs_tol=1e-3)
+                             if gold_ans is not None else False)
+        ps, pl = check_pa(moi["final_program"], gold_prog) if gold_prog else (False, False)
+        moi["pa_strict"], moi["pa_loose"] = ps, pl
+        moi["outcome"] = classify_outcome(moi["ea"], ps, moi["final_program"], val)
+        moi["ly_do_khong_chay"] = (ly_do_khong_chay(moi["final_program"], t)
+                                   if moi["final_program"] and val is None else None)
+        ra.append(moi)
+    return ra
 
 
 def bo_sung_ly_do(rows, samples) -> int:
@@ -449,21 +514,3 @@ def print_summary(m) -> None:
     print("\n  Phân bố kết cục:")
     for k, v in sorted(m["outcome"].items(), key=lambda x: -x[1]):
         print(f"    {k:<28}{v:>5} ({v/m['n']:.1%})")
-
-
-def compare_ladder(metrics_by_stage: dict, order: list[str], key="EA") -> None:
-    """In bảng thang bậc: mỗi nấc và phần tăng thêm so với nấc ngay trước."""
-    print(f"\n{'═'*84}\n  THANG BẬC — {key}\n{'═'*84}")
-    print(f"{'nấc':<28}{key:>10}{'Δ so với nấc trước':>22}{'Δ so với nấc 1':>18}")
-    base = None
-    prev = None
-    for name in order:
-        if name not in metrics_by_stage:
-            continue
-        v = metrics_by_stage[name][key]
-        if base is None:
-            base, prev = v, v
-            print(f"{name:<28}{v:>10.4f}{'(mốc)':>22}{'—':>18}")
-            continue
-        print(f"{name:<28}{v:>10.4f}{v - prev:>+22.4f}{v - base:>+18.4f}")
-        prev = v
