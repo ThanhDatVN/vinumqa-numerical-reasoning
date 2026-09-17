@@ -1,7 +1,8 @@
 # Bàn giao — ViNumQA: đo tác động của từng kỹ thuật lên suy luận số học tài chính tiếng Việt
 
 > **Tài liệu này để mở một phiên làm việc mới. Đọc hết §1–§4 và §9 trước khi sửa bất cứ thứ gì.**
-> Mốc: commit `05047fc`+ · 187 test · 8 notebook · 111 ô code · nhánh `main`.
+> Mốc: 187 test · 8 notebook · 111 ô code · nhánh `main`.
+> Kiểm nhanh mọi thứ trong tài liệu này còn đúng không: `python tools/kiem_tra.py`
 
 ---
 
@@ -210,6 +211,36 @@ nhiêu mẫu.
 
 ---
 
+## 5b. ACE hoạt động thế nào trong repo này
+
+Cần biết trước khi "cải tiến ACE" — nếu không sẽ sửa mù.
+
+**Vòng lặp:** Generator (Qwen3 sinh program) → **Reflector** (`gpt-4o-mini` qua API, đọc
+ca sai rồi đề xuất một chiến lược) → **Curator** (nhận/loại bullet) → **Verify** (sinh lại
+với bullet mới, giữ nếu sửa được) → nhập playbook.
+
+| Thành phần | Tham số | Ghi chú |
+|---|---|---|
+| Playbook | trần **30 bullet**, tối đa **3 bullet/cụm** | cụm = 11 loại lỗi, xem `ace/clusters.py` |
+| Cụm lỗi | `C1_ty_trong` `C2_tang_truong` `C3_chenh_lech` `C4_dao_nguoc_tang_truong` `C5_tong_nhieu_ky` `C6_quy_doi_don_vi` `C7_max_min_bang` `C8_trung_binh_bang` `C9_ty_le_don_gian` `C10_nhieu_buoc` `C11_khac` | |
+| Truy hồi | Tier-1 + Tier-2, `k = TOP_K_TIER1 + TOP_K_TIER2` | có **đối chứng bullet ngẫu nhiên** |
+| Quality gate | `dedup_thresh 0.98` · `min_ops 1` | xem bẫy bên dưới |
+| Verify | sinh lại **2 lượt**, chỉ sinh lại ứng viên còn trượt | temperature 0.1 vẫn ngẫu nhiên |
+| Cách ly | chỉ áp cho bullet bị **gate** loại (lỗi nội tại) | KHÔNG áp cho trượt verify (ngẫu nhiên) hay quota |
+| Reflector | biết **luật prompt đã có** (đừng đề xuất lại) + thấy **một ca cùng cụm đã làm đúng** | truy hồi phản chứng |
+
+### Bẫy ACE đã dẫm phải
+
+| Bẫy | Chi tiết |
+|---|---|
+| **Ngưỡng tương đồng KHÔNG chuyển được giữa hai embedder** | MiniLM/bge có sàn ~0,1–0,3; multilingual-e5 có sàn ~0,70–0,90. Đổi embedder mà giữ ngưỡng cũ → 113/217 bullet bị loại oan vì "trùng ngữ nghĩa" với một playbook chỉ có 1 bullet. |
+| `min_ops = 2` chặn oan | 64 % tập test là câu **1 phép**; yêu cầu bullet phải nhắc 2 phép là loại sạch lời khuyên cho phần lớn dữ liệu. Nay `min_ops = 1`. |
+| Đối chứng ngẫu nhiên **thoái hoá** | playbook 3 bullet mà k = 7 → cả hai bên lấy TOÀN BỘ bullet, prompt giống hệt nhau. Notebook tự phát hiện và gọi đúng tên: đó là **phép đo nhiễu**, không phải tác dụng của truy hồi. |
+| Dev set 120 mẫu quá ồn để chọn snapshot | composite dao động 0,6383–0,6717 trên **cùng một** playbook 3 bullet. Nay `DEV_SUBSET = 240`, `EVAL_EVERY_ROUNDS = 5` (cùng chi phí). |
+| ACE chồng lên prompt hoàn chỉnh gần như hết đất | prompt engineered **đã chứa sẵn** ánh xạ từ khoá → phép toán, tức đúng loại tri thức ACE định khám phá. Vì vậy mới có **nấc 5c** (`ACE_TREN_PROMPT = "basic"`): ở đó khoảng trống là 156 mẫu chứ không phải 10. |
+
+---
+
 ## 6. Cải tiến đã cài nhưng CHƯA ĐO
 
 | # | Cải tiến | Kỳ vọng |
@@ -294,10 +325,38 @@ và ACE. **PA là chỉ số khó hơn** (+48 so với +26).
    ghi đè canh `MAX_TOKENS` và `MAX_SEQ_LENGTH`; `GPU_MEM_UTIL`/`MAX_NUM_SEQS`/`BATCH_SIZE`
    chỉ đổi tốc độ (mỗi request có seed riêng) nên đổi thoải mái.
 
+### Lệnh kiểm bắt buộc trước mỗi commit
+
+```bash
+python -m pytest tests/ -q -W error     # 187 test, CPU, ~2 giây
+python tools/kiem_tra.py                # notebook + cấu hình + thang prompt + mã chết
+python tools/kiem_tra.py --day-du       # + chạy trọn notebook 07 với nấc dựng sẵn
+```
+
+`tools/kiem_tra.py` trả mã thoát khác 0 nếu có lỗi. Nó kiểm những thứ `pytest` **không**
+kiểm được: LADDER có giống hệt nhau ở cả 8 notebook không, trần token có lệch giữa các ô
+cấu hình không, ngân sách ngữ cảnh còn dư bao nhiêu, thang prompt còn lồng nhau không, và
+notebook có sót output không.
+
+### Vòng làm việc với người dùng
+
+1. Người dùng chạy notebook trên Colab, **dán khối meta** (notebook tự in giữa hai đường
+   kẻ ngang) hoặc CSV của `07` vào hội thoại.
+2. Đọc số → đánh giá → **chỉ sửa khi có bảng phân loại lỗi**, không đoán.
+3. Sửa xong: chạy 3 lệnh trên, commit, push. Người dùng `git pull` trên Colab rồi chạy tiếp.
+
+Người dùng viết tiếng Việt và mong trả lời tiếng Việt. Compute Colab có hạn — mỗi lượt
+chạy GPU là tiền thật, nên **đừng đề nghị chạy lại khi chưa cần**.
+
+### Sản phẩm cuối
+
+Bảng thang bậc + kiểm định McNemar + ma trận tổ hợp 2×2×2 (tác động chính, tương tác,
+cổng 70/70), đủ để viết thành báo cáo. `07` xuất `bang_ket_qua_*.csv`, `kiem_dinh_*.csv`,
+`bao_cao_*.png`; `06` xuất `ma_tran_to_hop_*.csv`.
+
 ### Về quy trình
 
-6. Mọi thay đổi phải qua: `pytest tests/ -q -W error` (**187 test**), bộ kiểm notebook
-   (nbformat + compile + không sót output), và chạy thử `07` end-to-end với nấc dựng sẵn.
+6. Mọi thay đổi phải qua **cả ba lệnh kiểm ở trên**. Đừng commit khi chưa xanh.
 7. Notebook sửa bằng **script Python thao tác JSON**, không sửa tay — 10 ô bootstrap phải
    giống hệt nhau, có bộ kiểm canh LADDER đồng nhất ở cả 8 notebook.
 8. **Không dùng `open(p, "w")` để ghi đè file nguồn.** Nó **cắt cụt file NGAY khi mở**,
@@ -328,6 +387,7 @@ tests/              187 test, CPU, ~2 giây, KHÔNG cần GPU
 data/               ViNumQA (24 MB, nằm luôn trong repo)
 reference/          hồ sơ xuất xứ + 5 CSV mốc tham chiếu (KHÔNG tái tạo được nếu mất)
 BAN_GIAO.md         tài liệu này
+tools/kiem_tra.py   bộ kiểm toàn dự án (notebook + cấu hình + thang prompt + mã chết)
 HUONG_DAN_COLAB.md  bảng kiểm thao tác từng bước, số ô đã đối chiếu thật
 CAC_BUOC_THUC_HIEN.md  runbook đầy đủ kèm cổng kiểm
 ```
