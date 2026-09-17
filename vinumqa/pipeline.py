@@ -204,14 +204,23 @@ def phan_loai_khong_chay_duoc(rows) -> dict | None:
 
     Trả ``None`` nếu không mẫu nào thuộc diện này (khỏi in một khối rỗng).
     """
-    dem = Counter(r["ly_do_khong_chay"] for r in rows
-                  if r.get("ly_do_khong_chay"))
+    dem, vi_du = Counter(), defaultdict(list)
+    for r in rows:
+        ly = r.get("ly_do_khong_chay")
+        if not ly:
+            continue
+        dem[ly] += 1
+        # Giữ vài program THẬT cho mỗi lý do. Con số "120 mẫu cú pháp dị dạng" không nói
+        # được phải sửa gì; nhìn ba cái program hỏng là biết ngay.
+        if len(vi_du[ly]) < 3:
+            vi_du[ly].append((r.get("final_program") or "")[:160])
     if not dem:
         return None
     n = len(rows) or 1
     return {"tong": sum(dem.values()),
             "theo_ly_do": dict(dem.most_common()),
-            "ty_le": {k: round(v / n, 4) for k, v in dem.most_common()}}
+            "ty_le": {k: round(v / n, 4) for k, v in dem.most_common()},
+            "vi_du": {k: vi_du[k] for k, _ in dem.most_common()}}
 
 
 def summarize(rows, label="") -> dict:
@@ -261,6 +270,10 @@ def print_summary(m) -> None:
     if _kc:
         for _k, _v in _kc["theo_ly_do"].items():
             print(f"      {_k:<32}{_v:>5} ({_v/m['n']:.1%})")
+        # Ba lý do lớn nhất, kèm một program thật — để biết phải sửa CÁI GÌ.
+        for _k, _ in list(_kc["theo_ly_do"].items())[:3]:
+            for _p in (_kc.get("vi_du", {}).get(_k) or [])[:1]:
+                print(f"         {_k} ← {_p}")
     print(f"\n  {'số phép':<9}{'mẫu':>6}{'EA':>9}{'PA':>9}")
     for k, (tot, ea, pa) in m["by_steps"].items():
         print(f"  {k:<9}{tot:>6}{ea/tot:>9.1%}{pa/tot:>9.1%}")
