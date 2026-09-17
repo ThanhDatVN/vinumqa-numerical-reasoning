@@ -1,7 +1,7 @@
 # Bàn giao — ViNumQA: đo tác động của từng kỹ thuật lên suy luận số học tài chính tiếng Việt
 
 > **Tài liệu này để mở một phiên làm việc mới. Đọc hết §1–§4 và §9 trước khi sửa bất cứ thứ gì.**
-> Mốc: 209 test · 9 notebook · 122 ô code · nhánh `main`.
+> Mốc: 209 test · 9 notebook · 123 ô code · nhánh `main`.
 > Kiểm nhanh mọi thứ trong tài liệu này còn đúng không: `python tools/kiem_tra.py`
 
 ---
@@ -109,9 +109,15 @@ A100-40GB: GPU_MEM_UTIL 0.85 · MAX_NUM_SEQS 48 · BATCH_SIZE 512
 01_basic · 02_prompt_eng · 03_sft · 04_selfeval_base · 04_selfeval_sft
 05_ace_base · 05_ace_sft · 05c_ace_basic_base · 05_ace_random_base
 06_comb_E_A · 06_comb_F_A · 08_tu_nhat_quan · 09_vidu_dong
+06_comb_E_A_moi · 06_comb_F_A_moi
 ```
-**13 nấc.** Chỉ còn MỘT prompt engineered — nấc 2c đã gộp vào nó, xem §4.1i.
-Hai nấc `08`/`09` là ba phương pháp mới, xem §6c.
+**15 nấc.** Chỉ còn MỘT prompt engineered — nấc 2c đã gộp vào nó, xem §4.1i.
+Hai nấc `08`/`09` là ba phương pháp mới, xem §6c. Hai nấc `*_moi` là hai ô MỤC TIÊU
+chạy cấu hình tốt nhất — chỉ chạy nếu §6c cho thấy phương pháp mới vượt sàn nhiễu.
+
+**Lộ trình chốt: 12 bước, ~16–19 giờ GPU, 4 công tắc, 4 nút quyết định.** Xem
+`HUONG_DAN_COLAB.md`. Ma trận 2×2×2 luôn giữ cấu hình thang bậc (1 mẫu, temp 0.1) để
+tác động chính và tương tác sạch; hai ô mục tiêu ghi ra tên nấc riêng nên không đè lên.
 
 ### Thang prompt (lồng nhau — có test canh)
 

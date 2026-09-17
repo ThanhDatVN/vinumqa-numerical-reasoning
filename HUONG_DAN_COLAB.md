@@ -9,20 +9,37 @@ thấy đúng dòng đó rồi mới đi tiếp.
 * Thời gian đã gồm ~15 phút cài đặt + nạp model mỗi phiên GPU.
 * Sau mỗi bước: dán **khối meta** (notebook tự in giữa hai đường kẻ ngang) vào hội thoại.
 
-| bước | notebook | runtime | ~ | ra nấc |
-|--:|---|---|--:|---|
-| 1 | `00_data_audit` | CPU | 2 ph | — |
-| 2 | `01_baseline_basic` | A100 | 35 ph | `01_basic` |
-| 3 | `02_prompt_engineering` | A100 | 35 ph | `02_prompt_eng` |
-| 4 | **`08_phuong_phap_moi`** | A100 | 180 ph | `08_tu_nhat_quan`, `09_vidu_dong` |
-| 5 | `07_final_report` | CPU | 2 ph | — |
-| 6 | `04_self_evaluation` | A100 | 60 ph | `04_selfeval_base` |
-| 7 | `05_ace` | A100 | 150 ph | `05_ace_base` + `05_ace_random_base` |
-| 8 | `03_sft_qwen3` | A100 | 145 ph | `03_sft` |
-| 9 | `04` + `05` lần 2 | A100 | 170 ph | `04_selfeval_sft`, `05_ace_sft` |
-| 10 | `05_ace` nhánh 5c | A100 | 110 ph | `05c_ace_basic_base` |
-| 11 | `06_combination` | A100 | 100 ph | `06_comb_E_A`, `06_comb_F_A` |
-| 12 | `07_final_report` | CPU | 2 ph | — |
+| bước | notebook | công tắc phải đặt | runtime | ~ | ra nấc |
+|--:|---|---|---|--:|---|
+| 1 | `00_data_audit` | — | CPU | 2 ph | — |
+| 2 | `01_baseline_basic` | — | A100 | 35 ph | `01_basic` |
+| 3 | `02_prompt_engineering` | — | A100 | 35 ph | `02_prompt_eng` |
+| 4 | **`08_phuong_phap_moi`** | — | A100 | 180 ph | `08_tu_nhat_quan`, `09_vidu_dong` |
+| 5 | `07_final_report` | — | CPU | 2 ph | — · **NÚT 1** |
+| 6 | `04_self_evaluation` | `USE_SFT_ADAPTER=False` | A100 | 60 ph | `04_selfeval_base` |
+| 7 | `05_ace` | mặc định | A100 | 150 ph | `05_ace_base`, `05_ace_random_base` · **NÚT 2** |
+| 8 | `03_sft_qwen3` | — | A100 | 145 ph | `03_sft` · **NÚT 3** |
+| 9 | `04` + `05` lần 2 | `USE_SFT_ADAPTER=True` (cả hai) | A100 | 170 ph | `04_selfeval_sft`, `05_ace_sft` |
+| 10 | `05_ace` nhánh 5c | `ACE_TREN_PROMPT="basic"`, `USE_SFT_ADAPTER=False` | A100 | 110 ph | `05c_ace_basic_base` |
+| 11 | `06_combination` | `CHAY_O_TOT_NHAT` theo **NÚT 1** | A100 | 100–260 ph | `06_comb_*` |
+| 12 | `07_final_report` | — | CPU | 2 ph | — · **CHỐT CUỐI** |
+
+**Tổng GPU ≈ 16–19 giờ.** Chỉ có **4 công tắc** trong cả lộ trình, tất cả đều nằm trong
+bảng này — không phải sửa dòng code nào khác.
+
+### Bốn nút quyết định
+
+Chạy xong bước có nút thì **dán kết quả rồi hỏi trước khi đi tiếp**. Đây là chỗ quyết
+định có đáng tiêu GPU cho bước sau không, **không phải** chỗ sửa code.
+
+| nút | sau bước | nhìn gì | quyết gì |
+|---|--:|---|---|
+| **1** | 5 | `07` §5d: đường cong k, ví dụ động, trần best-of-K | `CHAY_O_TOT_NHAT` ở bước 11. Δ dưới sàn nhiễu 1,6 điểm → để `False` |
+| **2** | 7 | ACE so với nấc 4; đối chứng bullet ngẫu nhiên | ACE nằm trong nhiễu → cân nhắc bỏ bước 10 (nhánh 5c) |
+| **3** | 8 | val loss + PA nấc 3 so với nấc 2 | SFT làm PA tụt mạnh → bỏ bước 9, ma trận thu còn 4 ô |
+| **cuối** | 12 | cổng 70/70 + ma trận + bảng thang bậc | chốt báo cáo |
+
+Bỏ một bước chỉ làm ma trận thiếu ô tương ứng; `06` tự phát hiện và tự thu lại, không vỡ.
 
 ---
 
@@ -349,26 +366,42 @@ không còn bị cấm đề xuất chính những quy tắc mà `basic` chưa c
 
 ---
 
-## Bước 11 · `06_combination` · A100 · ~100 ph
+## Bước 11 · `06_combination` · A100 · ~100 ph (hoặc ~260 ph)
 
-Mở → A100 → Chạy tất cả. **15 ô code. Không sửa gì.**
+**16 ô code.** Một công tắc duy nhất, ở **ô #10**:
+
+```python
+CHAY_O_TOT_NHAT = False     # đặt True nếu NÚT 1 nói phương pháp mới ăn tiền
+```
+
+| | ma trận 2×2×2 | hai ô MỤC TIÊU (`*`) |
+|---|---|---|
+| để làm gì | đo đóng góp SFT × self-eval × ACE | **đạt 70/70** |
+| cấu hình sinh | 1 mẫu, temp 0.1, ví dụ cố định | K=5 mẫu, temp 0.7, ví dụ truy hồi, sửa-khi-lỗi |
+| tên nấc | `06_comb_E_A`, `06_comb_F_A` | `06_comb_E_A_moi`, `06_comb_F_A_moi` |
+| chi phí thêm | — | ~160 phút |
+
+Hai nhóm ghi ra **tên nấc khác nhau** nên không đè nhau, và bảng kiểm công bằng ở `07`
+không báo động oan. Ma trận 2×2×2 luôn giữ cấu hình thang bậc — chỉ như vậy tác động
+chính và tương tác mới sạch.
 
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
 | #7 | bảng 8 ô, ô nào `đã có — đọc lại`, ô nào `CẦN CHẠY` |
 | #8 | `[PLAYBOOK] model gốc → playbook_ace_base.txt (… bullet)` |
 | #9 | chạy các ô còn thiếu — mỗi ô in `Ô E+A — prompt+ACE \| SFT=False self-eval=False ACE=True` |
-| #10 | `MA TRẬN TỔ HỢP` rồi `CỔNG MỤC TIÊU — EA > 70 % VÀ PA_strict > 70 %` |
-| #14 | ghi được `ma_tran_to_hop_*.csv` và `tuong_tac_*.json` |
-| #15 | vẽ được `ma_tran_*.png` (cột **xám** = KTC chứa 0) |
+| #10 | `[Ô TỐT NHẤT] tắt` — hoặc, nếu bật: `[Ô TỐT NHẤT] ✅ cổng kiểm: nhận đúng 5 mẫu/prompt` |
+| #11 | `MA TRẬN TỔ HỢP` rồi `CỔNG MỤC TIÊU — EA > 70 % VÀ PA_strict > 70 %` |
+| #15 | ghi được `ma_tran_to_hop_*.csv` và `tuong_tac_*.json` |
+| #16 | vẽ được `ma_tran_*.png` (cột **xám** = KTC chứa 0) |
 
-Cổng 70/70 in thẳng còn thiếu bao nhiêu mẫu mỗi chỉ số. Chưa đạt thì xem `by_phep` và
-`vi_sao_sai` ở `07`, **đừng đoán**.
+Cổng 70/70 ở ô #11 nay chấm **cả bốn** ô: `E+A`, `F+A`, `E+A*`, `F+A*`. Đạt ở ô nào thì
+in thẳng `✅ ĐẠT MỤC TIÊU ở: …`; chưa đạt thì in còn thiếu bao nhiêu mẫu mỗi chỉ số.
 
 Bốn ô cần SFT bị bỏ nếu chưa có adapter — notebook tự báo và tự thu ma trận lại còn 4 ô.
 
-Ô #11 tính tác động chính + tương tác cho **cả EA lẫn PA**, kèm KTC bootstrap. Ô #12
-kiểm định tổ hợp tốt nhất. Ô #13 tính chi phí mỗi điểm EA.
+Ô #12 tính tác động chính + tương tác cho **cả EA lẫn PA**, kèm KTC bootstrap. Ô #13
+kiểm định tổ hợp tốt nhất. Ô #14 tính chi phí mỗi điểm EA.
 
 ---
 
