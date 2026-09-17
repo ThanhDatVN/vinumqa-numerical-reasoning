@@ -111,6 +111,7 @@ Không đạt ô #3 → **dừng hẳn**. Executor sai thì mọi con số sau �
 không có cổng nào.
 
 ---
+
 ## Bước 2 · `01_baseline_basic` · A100 · ~35 ph
 
 Mở → A100 → bật **Thực thi nền** → Chạy tất cả. **10 ô code.**
@@ -153,6 +154,7 @@ Cuối ô #8, ngoài bảng kết quả còn hai thứ đáng ghi:
 Ô #9 in vài ca sai để xem prompt cơ bản hụt ở đâu. Ô #10 ghi nấc và in khối meta.
 
 ---
+
 ## Bước 3 · `02_prompt_engineering` · A100 · ~35 ph
 
 Mở → A100 → Chạy tất cả. **11 ô code. Không sửa gì.**
@@ -171,6 +173,7 @@ phép toán (14 mục) cộng 2 ví dụ mẫu. Lần chạy trước cho **+20,
 Ô #9 so trực tiếp với nấc 1 bằng McNemar. Ô #10 xem ca nấc 2 sửa được mà nấc 1 thì không.
 
 ---
+
 ## Bước 4 · `08_phuong_phap_moi` · A100 · ~180 ph
 
 Ba phương pháp mới, đo trọn trong **một** lượt. **14 ô code. Không sửa gì.**
@@ -227,6 +230,7 @@ sách token không. Sai bất kỳ cái nào thì nó `assert` ngay, đừng ch�
   chọn, không phải sinh thêm mẫu.
 
 ---
+
 ## Bước 5 · `07_final_report` lần 1 · CPU · 2 ph
 
 Mở → **CPU** → Chạy tất cả. **13 ô code.** Không tốn GPU, chạy được bất cứ lúc nào.
@@ -252,6 +256,7 @@ Mở → **CPU** → Chạy tất cả. **13 ô code.** Không tốn GPU, chạy
 Dán CSV `bang_ket_qua_*.csv` vào hội thoại.
 
 ---
+
 ## Bước 6 · `03_sft_qwen3` · A100 · ~145 ph · **3 phần, restart giữa chừng**
 
 **24 ô code**, chia ba phần bởi hai ô chữ `⚠ RESTART RUNTIME TẠI ĐÂY`.
@@ -280,6 +285,7 @@ Chạy hết phần B → **Restart session** lần hai → chạy từ ô #16.
 Ô #23 so nấc 3 với nấc 2. Ô #24 ghi nấc.
 
 ---
+
 ## Bước 7 · `04_self_evaluation` · A100 · ~120 ph · **2 cấu hình**
 
 Mở → A100 → Chạy tất cả. **13 ô code. Không sửa gì.**
@@ -315,6 +321,7 @@ số đo được chỉ là cận dưới. Ghi lại, đừng bỏ qua.
 Nấc "self-eval **có cổng**" **không phải chạy lại** — `07` ô #9 tính thẳng nó từ jsonl.
 
 ---
+
 ## Bước 8 · `05_ace` · A100 · ~370 ph · **3 cấu hình**
 
 Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì.**
@@ -333,8 +340,8 @@ và retriever vẫn nằm trên GPU.
 
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
+| #6 | `[CẤU HÌNH] chạy 1/3: '05_ace_base' … còn lại: [...]` — đúng lượt đang chạy |
 | #8 | `[ACE] ✅ gọi thử gpt-4o-mini OK → …` — **chưa qua thì đừng vào pha A** |
-| #6 | `[CẤU HÌNH] chạy 1/3: '05_ace_base' … còn lại: [...]` |
 | #8 | `[ACE] chồng lên prompt '<mức>' \| self-eval=…` — khớp lượt đang chạy |
 | #8 | `[ACE] cổng: dedup≥0.98 \| tối thiểu 1 phép DSL \| ≤3 bullet/cụm` |
 | #8 | `[ACE] embedding=… \| top_k=3+4 \| trần=30 bullet \| reflector=openai` |
@@ -354,6 +361,7 @@ nhiên** (`RUN_RANDOM_CONTROL = True`, ~20 phút) — giữ nguyên, đó là th
 > tác dụng của truy hồi.
 
 ---
+
 ## Bước 9 · `06_combination` · A100 · ~260 ph
 
 Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì** — ô #10 đã ghim
@@ -392,6 +400,7 @@ Bốn ô cần SFT bị bỏ nếu chưa có adapter — notebook tự báo và 
 kiểm định tổ hợp tốt nhất. Ô #14 tính chi phí mỗi điểm EA.
 
 ---
+
 ## Bước 10 · `07_final_report` lần cuối · CPU · 2 ph
 
 Chạy lại như bước 5, lần này đã đủ 15 nấc.
@@ -404,15 +413,24 @@ Chạy lại như bước 5, lần này đã đủ 15 nấc.
 | #13 | ghi `bao_cao_*.png` |
 
 ---
+
 ## Gửi lại gì
 
-Sau mỗi bước, dán vào hội thoại **một** trong hai:
+Lộ trình chạy thẳng, không chờ ai. Nhưng ở **ba điểm 📤** (sau bước 5, 6, 8) và ở **bước
+10**, dán kết quả vào hội thoại để tôi đọc.
 
-1. **khối meta** — notebook tự in giữa hai đường kẻ ngang ở ô cuối, hoặc
-2. CSV của `07` (`bang_ket_qua_*.csv`, `kiem_dinh_*.csv`).
+| 📤 | dán cái gì |
+|--:|---|
+| 1 (sau b5) | CSV `bang_ket_qua_*.csv` + toàn bộ output của `07` ô #8 (bảng phương pháp mới) |
+| 2 (sau b6) | khối meta của `03_sft`, và biểu đồ loss ở ô #15 nếu nhìn thấy bất thường |
+| 3 (sau b8) | CSV `bang_ket_qua_*.csv` mới nhất |
+| chốt (b10) | `bang_ket_qua_*.csv`, `kiem_dinh_*.csv`, `ma_tran_to_hop_*.csv` |
 
-Đọc số xong mới sửa. **Không sửa prompt / ACE / tham số khi chưa có bảng phân loại lỗi** —
-ba lần đoán mù gần nhất đều sai.
+**Khối meta** là đoạn JSON notebook tự in giữa hai đường kẻ ngang ở ô cuối — copy nguyên
+khối đó là đủ.
+
+Nếu một bước nổ lỗi thì dán **nguyên traceback**, đừng tóm tắt: dòng cuối thường không
+phải chỗ hỏng thật.
 
 ---
 
@@ -441,7 +459,9 @@ ba lần đoán mù gần nhất đều sai.
 | vLLM `CUDA error: invalid argument` khi dựng engine | **không** phải model hỏng. Restart session; notebook tự lùi về `enforce_eager` + util 0,80 và in `[MODEL] ✅ nạp được ở chế độ an toàn` |
 | Checkpoint ACE nối tiếp nhầm cấu hình | phải thấy `[RESUME] ⚠ CẤU HÌNH ĐÃ ĐỔI`; thấy `tiếp từ vòng N` mà cấu hình đã đổi thì xoá `progress_*.json` |
 | Ép `enable_thinking=False` | mất ~10 điểm PA. Dấu hiệu: 497 mẫu xong trong ~1 phút thay vì ~16 phút |
-| Drive hết chỗ giữa chừng | mỗi nấc ghi ~20 MB (jsonl + raw). Cả 11 nấc ~250 MB |
+| `SamplingParams(n=K)` không có tác dụng | self-consistency âm thầm thành K=1. Cổng ở `08` ô #8 và `06` ô #10 `assert` trong ~10 giây, **trước** khi tiêu GPU |
+| K mẫu giống hệt nhau | temp quá thấp → bỏ phiếu vô nghĩa. Cùng cổng đó in `k/5 chương trình khác nhau` |
+| Drive hết chỗ giữa chừng | mỗi nấc ~20 MB (jsonl + raw thô); nấc K mẫu thêm ~0,4 MB. Cả 15 nấc + adapter SFT ~1,5 GB |
 
 ---
 
