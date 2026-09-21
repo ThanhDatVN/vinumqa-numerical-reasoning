@@ -288,6 +288,13 @@ Dán CSV `bang_ket_qua_*.csv` vào hội thoại.
 Chạy hết phần A → **Runtime → Restart session** → chạy từ ô #10.
 Chạy hết phần B → **Restart session** lần hai → chạy từ ô #16.
 
+> ⛔ **Notebook DUY NHẤT không được Ctrl+F9.** Chạy tất cả ở đây là dựng lại engine
+> vLLM của phần A, nó giữ 85 % VRAM, và phần B không còn chỗ nạp model huấn luyện.
+> Sau mỗi lần restart phải bấm vào **đúng ô #10 (rồi #16)** và chạy xuống từ đó
+> (`Ctrl+F10` = chạy ô này và mọi ô bên dưới). Ô #12 có cổng VRAM chặn sẵn nếu quên:
+> nó thử dọn engine trước, không được thì dừng và nhắc restart — mất 5 giây, không
+> mất lượt GPU nào.
+
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
 | #7 | `SFT_TRAIN_SUBSET = 2000`, `DROP_NOISY_GOLD = True`, `ADD_GOLD_FALLBACK = False` |
