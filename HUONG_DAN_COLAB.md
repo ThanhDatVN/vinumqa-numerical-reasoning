@@ -300,6 +300,32 @@ Chạy hết phần B → **Restart session** lần hai → chạy từ ô #16.
 > Ô #12 có cổng VRAM chặn sẵn nếu quên restart: nó thử dọn engine trước, không được
 > thì dừng và nhắc — mất 5 giây, không mất lượt GPU nào.
 
+### Card cho từng pha — ĐÃ CHỐT
+
+| pha | card | vì sao |
+|---|---|---|
+| A | A100-80GB (High-RAM **bật**) | |
+| B | A100-80GB | `bs=2` thay `bs=1`, nhanh hơn ~10–15 ph |
+| **C** | **A100-40GB (High-RAM TẮT)** | **bắt buộc** — xem dưới |
+
+Pha C **không phải** huấn luyện: nó chạy 497 mẫu test và ghi ra nấc `03_sft`, tức một
+con số đem so với nấc 02/04/05/06. Bốn nấc đã chạy — `01_basic`, `02_prompt_eng`,
+`08_tu_nhat_quan`, `09_vidu_dong` — đều trên **A100-40GB** với `MAX_NUM_SEQS=48`. Để
+pha C chạy 80 GB là nấc 3 lệch phần cứng so với cả bảng, và `07` sẽ in
+`⛔ KHÔNG ĐỒNG NHẤT ở: GPU`: hiệu số nấc 3 − nấc 2 lẫn cả ảnh hưởng card, không quy
+cho SFT được nữa.
+
+Pha A và B thì tuỳ ý: A chỉ dựng dữ liệu, B chỉ sinh ra file adapter. Cả hai đều không
+phải nấc được so, nên card nào cũng hợp lệ.
+
+**Đổi card giữa B và C:** đổi loại runtime sẽ **xoá VM**, nên pha C khởi đầu trên máy
+trắng. Không sao — ô #16 vốn là ô cài gói, pha C tự đủ. Trả giá đúng một lượt cài
+(6–12 ph), và đó là lý do phương án này gần như hoà vốn so với chạy tất cả trên 40 GB.
+
+Ô #18 tự đặt `GPU_MEM_UTIL/MAX_NUM_SEQS/BATCH_SIZE` theo VRAM, nên trên 40 GB nó tự về
+`0.85 / 48 / 512` — khớp đúng bốn nấc kia. `MAX_SEQ_LENGTH=17000`, `MAX_TOKENS=4096`,
+`TEMPERATURE=0.1` cố định ở mọi card.
+
 **Nếu lỡ xoá hẳn thời gian chạy** (`Xóa thời gian chạy`, khác `Khởi động lại`): VM mới
 không còn gói cài lẫn cache model. Trước khi vào phần B hoặc C phải chạy **ô #1** (cài
 gói, 6–12 ph) rồi mới bấm sang ô #10 / #16. Dữ liệu SFT và adapter nằm trên Drive nên
