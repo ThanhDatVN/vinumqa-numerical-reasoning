@@ -223,6 +223,33 @@ class TestTrainingConfig:
         assert cfg["metric_for_best_model"] == "eval_loss"
         assert cfg["greater_is_better"] is False
 
+    @pytest.mark.parametrize("vram", [15, 24, 40, 80])
+    def test_logits_khong_vuot_ngan_sach_vram(self, vram):
+        """Tensor logits phải nằm gọn trong VRAM, ở ĐỘ DÀI TRẦN.
+
+        Bảng cũ chia batch theo SỐ CHUỖI nên trên A100 80GB cho ``bs=16``; với chuỗi
+        8192 token thì riêng logits là 37 GB bf16, và cross-entropy upcast fp32 thành
+        ~111 GB. Tràn ngay step đầu. Giới hạn ở đây: logits bf16 ≤ 1/8 VRAM, tức còn
+        đủ chỗ cho bản fp32 (×2) lẫn model, activation và optimizer.
+        """
+        m = sft.training_config(vram, 2000, max_seq=8192)["_meta"]
+        if m["vua_vram"]:
+            assert m["logits_gb"] <= vram / 8, (
+                f"{m['logits_gb']} GB logits trên GPU {vram} GB — "
+                f"bs={m['token_moi_lo'] // 8192} quá lớn cho chuỗi 8192 token")
+        else:
+            # Không lọt ngay cả ở bs=1 thì phải NÓI RA, để notebook chặn trước khi
+            # huấn luyện chứ không tràn giữa chừng. T4 15GB rơi vào nhánh này.
+            assert vram < 18 and m["token_moi_lo"] == 8192
+
+    def test_chuoi_dai_hon_thi_batch_nho_hon(self):
+        """Cùng một GPU: nhân đôi độ dài thì batch phải giảm, batch hiệu dụng giữ nguyên."""
+        ngan = sft.training_config(80, 2000, max_seq=2048)
+        dai = sft.training_config(80, 2000, max_seq=8192)
+        assert ngan["per_device_train_batch_size"] > dai["per_device_train_batch_size"]
+        assert (ngan["_meta"]["effective_batch"]
+                == dai["_meta"]["effective_batch"] == 16)
+
     def test_du_lieu_nho_khong_chia_cho_0(self):
         cfg = sft.training_config(24, n_train=3, epochs=1)
         assert cfg["_meta"]["steps_per_epoch"] >= 1

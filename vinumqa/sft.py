@@ -182,27 +182,39 @@ def lora_config() -> dict:
 
 
 def training_config(vram_gb: float, n_train: int, *, epochs=3, output_dir="outputs",
-                    bf16=True, max_seq: int = 8192) -> dict:
-    """Tham số ``TrainingArguments``, tự chỉnh batch theo VRAM.
+                    bf16=True, max_seq: int = 8192, vocab: int = 151936) -> dict:
+    """Tham số ``TrainingArguments``, chia batch theo NGÂN SÁCH TOKEN.
 
-    Notebook cũ dùng ``per_device_train_batch_size=112`` cho A100 80GB. Trên L4 24GB
-    thì phải hạ batch và bù lại bằng gradient accumulation để **batch hiệu dụng**
-    không đổi quá nhiều — nếu không, learning rate 2e-4 sẽ quá lớn so với batch nhỏ.
+    Đếm theo SỐ CHUỖI là sai, và sai rất đắt. Thứ quyết định bộ nhớ khi huấn luyện
+    causal LM là tensor logits — ``tokens × vocab × 2 byte`` cho bf16, rồi cross-entropy
+    còn upcast lên fp32 nữa, tức nhân ba. Cùng ``batch=16``:
+
+    * chuỗi 512 token  →  8.192 token/micro-batch  →  2,3 GB logits
+    * chuỗi 8.192 token → 131.072 token/micro-batch → 37 GB logits, 111 GB kèm fp32
+
+    Bảng cũ lấy từ notebook fine-tune trước (chuỗi ngắn) nên cho ``bs=16`` trên A100
+    80GB, và tràn ngay ở step đầu với bản ghi ~3.400 token của bộ này. Giờ chốt ngân
+    sách token rồi mới suy ra ``bs``; ``accum`` bù lại để **batch hiệu dụng vẫn là 16**
+    (learning rate 2e-4 chỉ hợp lệ ở mức đó).
+
+    ``max_seq`` dùng làm TRẦN chứ không phải độ dài trung bình: một chuỗi dài có thể
+    rơi vào bất kỳ batch nào, và ``packing=False`` thì cả batch đệm theo chuỗi dài nhất.
     """
     if vram_gb < 18:              # T4 15GB
-        bs, accum, eval_bs = 1, 16, 1
+        ngan_sach_token = 2048
     elif vram_gb < 30:            # L4 24GB
-        bs, accum, eval_bs = 2, 8, 2
+        ngan_sach_token = 4096
     elif vram_gb < 50:            # A100 40GB
-        bs, accum, eval_bs = 8, 2, 8
-    else:                         # A100 80GB — như notebook cũ
-        bs, accum, eval_bs = 16, 1, 16
+        ngan_sach_token = 8192
+    else:                         # A100 80GB
+        ngan_sach_token = 16384
 
-    # Chuỗi dài hơn thì activation nặng hơn tương ứng → hạ batch, tăng accum để
-    # BATCH HIỆU DỤNG không đổi (lr 2e-4 chỉ hợp lệ ở batch hiệu dụng 16).
-    while max_seq > 8192 * (2 ** 0) and bs > 1 and max_seq / 8192 > 1.2:
-        bs, accum, eval_bs = max(1, bs // 2), accum * 2, max(1, eval_bs // 2)
-        max_seq /= 2
+    bs = max(1, min(16, ngan_sach_token // max(1, int(max_seq))))
+    accum = max(1, round(16 / bs))
+    eval_bs = bs
+
+    token_moi_lo = bs * int(max_seq)
+    logits_gb = token_moi_lo * vocab * 2 / 1024 ** 3
 
     effective = bs * accum
     steps_per_epoch = max(1, n_train // effective)
@@ -236,5 +248,10 @@ def training_config(vram_gb: float, n_train: int, *, epochs=3, output_dir="outpu
         report_to="none",
         seed=3407,
         _meta=dict(effective_batch=effective, steps_per_epoch=steps_per_epoch,
-                   total_steps=total_steps, eval_every=interval),
+                   total_steps=total_steps, eval_every=interval,
+                   token_moi_lo=token_moi_lo, ngan_sach_token=ngan_sach_token,
+                   logits_gb=round(logits_gb, 1),
+                   # False = ngay ở bs=1 cũng không lọt. Không phải "chật" mà là
+                   # KHÔNG CHẠY ĐƯỢC: T4 15GB với chuỗi 8192 rơi vào đây.
+                   vua_vram=bool(logits_gb <= vram_gb / 8)),
     )

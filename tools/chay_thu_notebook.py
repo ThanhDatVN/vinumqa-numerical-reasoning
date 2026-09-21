@@ -175,6 +175,8 @@ def _tiem_sau_pha_b(ns):
     ns["trainer"] = TrainerGia()
     ns.setdefault("_VRAM", 40.0)
     ns.setdefault("BF16", True)
+    # Chot o o nap model cua pha B (cong thiet bi chon 'unsloth' hay True).
+    ns.setdefault("GC_MODE", "unsloth")
     # Sinh ra o o dung dataset + o dung SFTTrainer — ca hai deu bi bo qua.
     ns.setdefault("train_ds", [0] * 1730)
     ns.setdefault("val_ds", [0] * 192)
