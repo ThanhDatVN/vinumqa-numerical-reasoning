@@ -195,6 +195,25 @@ vLLM gộp lô khác nhau thì thứ tự cộng dồn trong kernel khác nhau, 
 cuối, và ở `temperature=0.1` là đủ để lật token rồi kéo theo cả chuỗi suy luận. Đây là
 MỘT lần bốc từ phân phối nhiễu, không phải bằng chứng "40 GB tốt hơn".
 
+Phép đo thứ hai tách được phần do CARD khỏi phần do chạy lại. Chạy `02_prompt_eng` lần
+nữa trên **đúng card 40 GB**, cùng `MAX_NUM_SEQS=48`; giữa hai lượt `vinumqa/` chỉ đổi
+mỗi `_day_phep` (hàm phân loại để báo cáo, không nằm trên đường sinh):
+
+| nguồn | Δ EA | Δ PA_strict |
+|---|---:|---:|
+| chạy lại, **cùng card** | +0,20 điểm (1 mẫu) | +1,20 điểm (6 mẫu) |
+| **đổi card** 80 → 40 GB | +2,21 điểm (11 mẫu) | +2,22 điểm |
+
+Tức pipeline **không tất định** ngay cả trên cùng card — `exec_none` đi từ 12 mẫu xuống
+6, chạm trần token từ 33 xuống 26 — nhưng EA gần như đứng yên. Phần lớn chênh lệch
+2,21 điểm kia là do ĐỔI CARD, không phải do chạy lại. Vì cả lộ trình nay chốt trên
+A100-40GB, con số đáng dùng để đọc kết quả là **hàng trên**, không phải hàng dưới.
+
+⚠ Còn thiếu một số: hai lượt `02` BẤT ĐỒNG ở bao nhiêu mẫu. EA ròng chỉ đổi 1 mẫu,
+nhưng ròng nhỏ vẫn có thể che một lượng lật lớn mà đối xứng. Ghép cặp hai file
+`02_prompt_eng.jsonl` là tính ra ngay, và đó mới là sàn nhiễu thật của mọi so sánh
+trong nghiên cứu này.
+
 Ngưỡng đúng phụ thuộc số mẫu hai cấu hình BẤT ĐỒNG. Theo McNemar, dưới giả thuyết không
 thì hiệu số có độ lệch chuẩn `√(b+c)` mẫu, nên ngưỡng 95 % là `1,96·√(b+c)/497`:
 
