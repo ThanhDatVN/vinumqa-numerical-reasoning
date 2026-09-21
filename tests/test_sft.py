@@ -223,6 +223,61 @@ class TestTrainingConfig:
         assert cfg["metric_for_best_model"] == "eval_loss"
         assert cfg["greater_is_better"] is False
 
+    def test_dich_huan_luyen_GIU_khoi_suy_luan(self):
+        """Hồi quy cho lỗi đã làm nấc SFT tụt 11,27 điểm EA.
+
+        Bản cũ cắt bỏ ``<think>…</think>`` khỏi đích, còn lại đúng khối ``program:``.
+        Chat template Qwen3 dựng lượt assistant thành ``<think>{reasoning}</think>
+        {content}``; reasoning rỗng thì thành ``<think></think>`` — 1.271 ví dụ dạy
+        model đừng suy nghĩ. Model học đúng thế: 497/497 mẫu test sinh khối suy nghĩ
+        dài 2 ký tự.
+        """
+        raw = ("<think>" + chr(10) + "Doanh thu 2021 là 8458, 2020 là 2981. Cộng lại."
+               + chr(10) + "</think>" + chr(10) + chr(10)
+               + "```plaintext" + chr(10) + "program: add(8458, 2981)" + chr(10)
+               + "answer: 11439.0" + chr(10) + "```")
+        giu = sft._clean_target(raw)
+        assert "</think>" in giu, "đích PHẢI giữ khối suy luận"
+        assert "Doanh thu 2021" in giu
+        assert "program: add(8458, 2981)" in giu
+        assert len(giu) > 100, "giữ suy luận thì đích không thể chỉ ~69 ký tự"
+
+        bo = sft._clean_target(raw, giu_suy_luan=False)
+        assert "</think>" not in bo and "program:" in bo
+        assert len(bo) < len(giu)
+
+    def test_nap_lora_co_duong_lui_khi_thieu_load_lora(self, tmp_path):
+        """unsloth bản đang dùng KHÔNG gắn `load_lora` lên Qwen3ForCausalLM.
+
+        Gọi thẳng `model.load_lora` thì AttributeError nổ SAU khi engine vLLM đã dựng
+        xong — mất vài phút GPU mỗi lần. Helper phải tự dò.
+        """
+        d = tmp_path / "adapter"
+        d.mkdir()
+        (d / "adapter_config.json").write_text("{}", encoding="utf-8")
+
+        class CoLoadLora:
+            def load_lora(self, p):
+                return ("moi", p)
+
+        assert sft.nap_lora(CoLoadLora(), str(d)) == ("moi", str(d))
+
+        class KhongCo:
+            pass
+
+        # Không có `load_lora` thì phải đi đường unsloth_zoo — ở đây chưa cài nên
+        # ImportError là bằng chứng nó ĐÃ rẽ nhánh, không phải AttributeError.
+        with pytest.raises((ImportError, ModuleNotFoundError)):
+            sft.nap_lora(KhongCo(), str(d))
+
+    def test_nap_lora_bao_ro_khi_thieu_adapter(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            sft.nap_lora(object(), str(tmp_path / "khong-co"))
+        d = tmp_path / "rong"
+        d.mkdir()
+        with pytest.raises(FileNotFoundError):
+            sft.nap_lora(object(), str(d))
+
     @pytest.mark.parametrize("vram", [15, 24, 40, 80])
     def test_logits_khong_vuot_ngan_sach_vram(self, vram):
         """Tensor logits phải nằm gọn trong VRAM, ở ĐỘ DÀI TRẦN.

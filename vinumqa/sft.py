@@ -49,11 +49,33 @@ answer: {answer}
 ```"""
 
 
-def _clean_target(raw_text: str) -> str | None:
-    """Cắt gọn lời giải của model: bỏ phần thừa sau khối ```plaintext cuối cùng."""
+def _clean_target(raw_text: str, *, giu_suy_luan: bool = True) -> str | None:
+    """Cắt gọn lời giải của model: bỏ phần thừa sau khối ```plaintext cuối cùng.
+
+    ``giu_suy_luan`` — GIỮ khối ``<think>…</think>``. Mặc định True, và đây là mặc
+    định ĐÃ ĐỔI, vì bản cũ (luôn cắt bỏ) làm hỏng cả nấc SFT:
+
+    * Đích huấn luyện còn lại đúng 69 ký tự (p50) — chỉ mỗi khối ``program:``.
+    * Chat template của Qwen3 dựng lượt assistant thành
+      ``<think>
+{reasoning}
+</think>
+
+{content}``; ``reasoning`` rỗng thì nó
+      sinh ra ``<think>
+
+</think>`` — tức 1.271 ví dụ dạy model **đừng suy nghĩ**.
+    * Model học đúng như thế: 497/497 mẫu test sinh khối suy nghĩ dài 2 ký tự, thời
+      gian suy luận 10,1 phút tụt còn 1,4 phút, EA 67,81 → 56,54 (p < 0,0001).
+
+    Giữ lại khối suy luận thì cùng template đó tách được ``reasoning_content`` và
+    dựng lại đầy đủ. Đo trên điểm lưu train: đích p50 69 → 2.270 ký tự, cả bản ghi
+    vẫn p50 ~4.100 token, max ~7.550 — còn dưới trần 8.192.
+    """
     if not raw_text:
         return None
-    text = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.S).strip()
+    text = raw_text.strip() if giu_suy_luan else re.sub(
+        r"<think>.*?</think>", "", raw_text, flags=re.S).strip()
     # giữ tới hết khối plaintext cuối cùng
     blocks = list(re.finditer(r"```(?:plaintext|text)?\s*\n.*?\n```", text, re.S | re.I))
     if not blocks:
@@ -64,7 +86,8 @@ def _clean_target(raw_text: str) -> str | None:
 
 def build_sft_records(rows, samples, prompt_kit, *, level="engineered",
                       accept="pa_or_ea", add_gold_fallback=False,
-                      drop_noisy_gold=True, max_chars=20000):
+                      drop_noisy_gold=True, max_chars=20000,
+                      giu_suy_luan=True):
     """Dựng dữ liệu SFT từ kết quả chạy trên tập train.
 
     Parameters
@@ -78,6 +101,8 @@ def build_sft_records(rows, samples, prompt_kit, *, level="engineered",
         chuỗi suy luận của model). Mặc định tắt vì đây chính là thứ gây overfit ở lần chạy trước.
     drop_noisy_gold : bỏ mẫu có nhãn vàng nhiễu (``multiply(#n,100)`` hoặc gold không
         thực thi được) — xem :func:`vinumqa.data.is_noisy_gold`.
+    giu_suy_luan : giữ khối ``<think>…</think>`` trong đích huấn luyện. Xem
+        :func:`_clean_target` — đặt False là tái lập đúng lỗi đã làm nấc SFT tụt 11 điểm.
     """
     assert len(rows) == len(samples), "rows và samples phải cùng thứ tự, cùng độ dài"
 
@@ -99,7 +124,8 @@ def build_sft_records(rows, samples, prompt_kit, *, level="engineered",
         target = None
         source = None
         if ok:
-            target = _clean_target(row.get("raw_step1") or "")
+            target = _clean_target(row.get("raw_step1") or "",
+                                   giu_suy_luan=giu_suy_luan)
             source = "model"
             if target is None:
                 stats["bo_khong_trich_duoc"] += 1
@@ -179,6 +205,24 @@ def lora_config() -> dict:
         use_rslora=False,
         loftq_config=None,
     )
+
+
+def nap_lora(model, adapter_dir: str):
+    """Nạp adapter LoRA vào engine vLLM, chịu được cả hai cách unsloth phơi API.
+
+    Bản unsloth đang dùng KHÔNG gắn ``load_lora`` lên ``Qwen3ForCausalLM``, nên
+    ``model.load_lora(...)`` ném ``AttributeError`` — và ném SAU khi engine vLLM đã
+    dựng xong, tức sau vài phút GPU. Helper gốc trong ``unsloth_zoo.vllm_utils`` vẫn
+    còn, dùng làm đường lùi.
+    """
+    if not adapter_dir or not os.path.isdir(adapter_dir):
+        raise FileNotFoundError(f"Không thấy adapter tại {adapter_dir}")
+    if not os.path.isfile(os.path.join(adapter_dir, "adapter_config.json")):
+        raise FileNotFoundError(f"Thiếu adapter_config.json trong {adapter_dir}")
+    if hasattr(model, "load_lora"):
+        return model.load_lora(adapter_dir)
+    from unsloth_zoo.vllm_utils import load_lora as _load_lora
+    return _load_lora(model, adapter_dir, load_tensors=False)
 
 
 def training_config(vram_gb: float, n_train: int, *, epochs=3, output_dir="outputs",

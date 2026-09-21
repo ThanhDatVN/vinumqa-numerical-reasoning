@@ -188,9 +188,16 @@ def _tiem_sau_pha_b(ns):
     # Phai dung DUNG duong dan ma o #31 tu tinh lai, khong phai cho giu cho trong ns.
     _ad = os.path.join(ns["OUTPUT_DIR"], "sft_adapter_qwen3")
     os.makedirs(_ad, exist_ok=True)
+    # `sft.nap_lora` doi adapter_config.json + trong so — dung du de qua cong.
+    with open(os.path.join(_ad, "adapter_config.json"), "w", encoding="utf-8") as _f:
+        json.dump({"r": 16, "lora_alpha": 32}, _f)
+    open(os.path.join(_ad, "adapter_model.safetensors"), "wb").close()
     ns["ADAPTER_DIR"] = _ad
 
     class ModelGia:
+        fast_generate = staticmethod(lambda *a, **k: [])
+        vllm_engine = object()
+
         def load_lora(self, d):
             return f"lora-gia:{os.path.basename(d)}"
     ns["model"] = ModelGia()
