@@ -67,15 +67,33 @@ def dung_ns(tap):
     from vinumqa.ace import clusters, playbook as pb_mod, reflector as refl_mod
     from vinumqa.ace.trainer import AceTrainer
     from vinumqa.prompts import PromptKit
-    _id = {s["id"]: s for s in tap["test"]}
+    # Phu CA BA tap: notebook 03 cham diem tren TRAIN, va chinh tap train moi
+    # chua 5 nhan vang cut ngoac tung lam no `summarize`.
+    _mau = [s for ten in ("test", "valid", "train") for s in tap[ten]]
+    _con = [0]
     kit = PromptKit(tokenizer=TokenizerGia(), model_name="gia")
+
+    def _tim(p):
+        """Mau nao dang duoc hoi. Khop theo CAU HOI vi prompt luon chua nguyen van no.
+
+        `run_pipeline` duyet mau theo thu tu, nen con tro `_con` trung ngay o lan thu
+        dau. Quet toan bo chi xay ra voi cac lo con (vot-bi-cat, sua) va lo do rat nho.
+        """
+        n = len(_mau)
+        for k in range(n):
+            s = _mau[(_con[0] + k) % n]
+            q = s["qa"]["question"]
+            if q and q in p:
+                _con[0] = (_con[0] + k + 1) % n
+                return s
+        return None
 
     def generate(prompts, sp=None, desc=None, batch_size=None):
         n = getattr(sp, "n", 1) or 1
         ra = []
         for p in prompts:
-            sid = next((i for i in _id if i in p), None)
-            g = _id[sid]["qa"]["program"] if sid else "divide(1, 2)"
+            s = _tim(p)
+            g = s["qa"]["program"] if s else "divide(1, 2)"
             mau = [f"```plaintext\nprogram: {g}\nanswer: x\n```"]
             mau += [f"```plaintext\nprogram: divide(1, {j + 2})\nanswer: x\n```"
                     for j in range(n - 1)]
@@ -118,6 +136,8 @@ def dung_ns(tap):
         # Phải đặt tên Y HỆT hàm thật, nếu không ô in lại khối meta sẽ tìm nhầm file.
         "stage_path": lambda st, kind="jsonl": os.path.join(
             ra, "stages", {"jsonl": f"{st}.jsonl", "meta": f"{st}_meta.json"}[kind]),
+        # Dinh nghia o o bootstrap (#3) — o do bi bo qua nen phai tiem tay.
+        "_CFG_KEYS": ("MODEL_NAME", "MODEL_TAG", "TEMPERATURE", "MAX_TOKENS", "REPETITION_PENALTY", "MAX_SEQ_LENGTH", "BATCH_SIZE", "GPU_MEM_UTIL", "MAX_NUM_SEQS", "RANDOM_SEED"),
         "stage_status": lambda: 0,
         "run_env": lambda: {"gpu": "gia"},
     }
@@ -144,6 +164,36 @@ def _tiem_sau_pha_a(ns):
                "best": {"playbook": _pb, "score": 0.6, "EA": 0.6, "PA": 0.5, "round": 1}})
 
 
+#: Ten ma pha B cua `03` sinh ra. Bo qua pha B (huan luyen that) thi phai tiem thay,
+#: neu khong o ve duong cong loss va ca pha C nam im — dung cho `_day_phep` tung no.
+def _tiem_sau_pha_b(ns):
+    class TrainerGia:
+        class state:
+            log_history = (
+                [{"step": i, "loss": 1.6 - i * 0.012} for i in range(1, 60)]
+                + [{"step": i, "eval_loss": 1.5 - i * 0.010} for i in range(10, 60, 10)])
+    ns["trainer"] = TrainerGia()
+    ns.setdefault("_VRAM", 40.0)
+    ns.setdefault("BF16", True)
+    # Sinh ra o o dung dataset + o dung SFTTrainer — ca hai deu bi bo qua.
+    ns.setdefault("train_ds", [0] * 1730)
+    ns.setdefault("val_ds", [0] * 192)
+    ns.setdefault("cfg", {"per_device_train_batch_size": 2,
+                          "gradient_accumulation_steps": 8})
+    ns.setdefault("meta", {"effective_batch": 16, "steps_per_epoch": 108,
+                           "total_steps": 324, "eval_every": 54})
+    # Pha C doi adapter co that tren dia; tao thu muc rong de qua duoc cong assert.
+    # Phai dung DUNG duong dan ma o #31 tu tinh lai, khong phai cho giu cho trong ns.
+    _ad = os.path.join(ns["OUTPUT_DIR"], "sft_adapter_qwen3")
+    os.makedirs(_ad, exist_ok=True)
+    ns["ADAPTER_DIR"] = _ad
+
+    class ModelGia:
+        def load_lora(self, d):
+            return f"lora-gia:{os.path.basename(d)}"
+    ns["model"] = ModelGia()
+
+
 def chay(ten: str, tap) -> list[str]:
     p = os.path.join(GOC, "notebooks", ten)
     nb = json.load(open(p, encoding="utf-8"))
@@ -157,12 +207,21 @@ def chay(ten: str, tap) -> list[str]:
         _rf.Reflector._call_openai = lambda self, prompts: [
             '{"error_type":"khac","root_cause":"x","new_strategy":"",'
             '"bullet_tags":[]}' for _ in prompts]
+    if ten.startswith("03"):
+        # Xoa diem luu cua lan chay truoc. Giu lai thi o sinh-train bi bo qua va do phu
+        # tut xuong am tham — dung thu ma bo kiem nay sinh ra de che mat chinh no.
+        import glob as _g
+        for _f in _g.glob(os.path.join(GOC, "runs", "sft_data", "train_rows_*.jsonl")):
+            os.remove(_f)
+
     loi, n_chay, n_bo = [], 0, 0
     for i, src in enumerate(ma, 1):
         if any(t in src for t in BO_QUA):
             n_bo += 1
             if ten.startswith("05") and "AceTrainer(" in src:
                 _tiem_sau_pha_a(ns)
+            if ten.startswith("03") and "trainer.train(" in src:
+                _tiem_sau_pha_b(ns)
             continue
         src = "\n".join(("pass" if l.lstrip().startswith(("!", "%")) else l)
                         for l in src.splitlines())
@@ -188,6 +247,7 @@ def main():
     chon = sys.argv[1:]
     tap = data.load_all(os.path.join(GOC, "data"))
     ds = ["01_baseline_basic.ipynb", "02_prompt_engineering.ipynb",
+          "03_sft_qwen3.ipynb",
           "04_self_evaluation.ipynb", "05_ace.ipynb", "08_phuong_phap_moi.ipynb"]
     if chon:
         ds = [d for d in ds if any(c in d for c in chon)]

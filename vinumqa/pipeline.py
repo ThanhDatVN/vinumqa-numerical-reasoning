@@ -512,9 +512,20 @@ def bo_sung_ly_do(rows, samples) -> int:
 
 
 def _day_phep(prog: str) -> list[str]:
-    """Dãy TÊN phép toán của một program, bỏ qua toán hạng."""
+    """Dãy TÊN phép toán của một program, bỏ qua toán hạng.
+
+    FAIL-CLOSED như ``execute_program`` (trả ``None``) và ``normalize_program_strict``
+    (trả ``""``): program vô cú pháp trả dãy RỖNG, không ném lỗi. Đây là hàm PHÂN LOẠI
+    để báo cáo — để nó ném lỗi thì một nhãn vàng hỏng đủ sức giết cả lượt chạy sau khi
+    GPU đã tiêu xong. Tập train có đúng 5 nhãn vàng cụt ngoặc và đã làm ĐÚNG như vậy:
+    `summarize()` nổ ở notebook 03 sau 43 phút sinh.
+    """
     ra = []
-    for lenh in split_dsl_items((prog or "").strip()):
+    try:
+        lenh_list = split_dsl_items((prog or "").strip())
+    except ValueError:
+        return []
+    for lenh in lenh_list:
         m = re.match(r"\s*([a-z_]+)\s*\(", lenh, re.I)
         if m:
             ra.append(m.group(1).casefold())
