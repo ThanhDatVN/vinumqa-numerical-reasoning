@@ -288,12 +288,22 @@ Dán CSV `bang_ket_qua_*.csv` vào hội thoại.
 Chạy hết phần A → **Runtime → Restart session** → chạy từ ô #10.
 Chạy hết phần B → **Restart session** lần hai → chạy từ ô #16.
 
-> ⛔ **Notebook DUY NHẤT không được Ctrl+F9.** Chạy tất cả ở đây là dựng lại engine
-> vLLM của phần A, nó giữ 85 % VRAM, và phần B không còn chỗ nạp model huấn luyện.
-> Sau mỗi lần restart phải bấm vào **đúng ô #10 (rồi #16)** và chạy xuống từ đó
-> (`Ctrl+F10` = chạy ô này và mọi ô bên dưới). Ô #12 có cổng VRAM chặn sẵn nếu quên:
-> nó thử dọn engine trước, không được thì dừng và nhắc restart — mất 5 giây, không
-> mất lượt GPU nào.
+> ⛔ **Notebook DUY NHẤT không được Ctrl+F9, và phần B cũng không được Ctrl+F10.**
+> Mỗi phần phải dừng đúng ở mốc restart:
+>
+> | phần | chạy sao | vì sao |
+> |---|---|---|
+> | A | bấm ô #1, `Ctrl+F10` rồi **dừng sau ô #9** | chạy tiếp là vào phần B khi VRAM còn kẹt |
+> | B | bấm ô #10, **Shift+Enter 6 lần** (#10→#15) | `Ctrl+F10` sẽ chạy thẳng vào phần C, nạp engine vLLM đè lên model đang huấn luyện → tràn |
+> | C | bấm ô #16, `Ctrl+F10` | #24 là ô cuối, không có gì để chạy quá |
+>
+> Ô #12 có cổng VRAM chặn sẵn nếu quên restart: nó thử dọn engine trước, không được
+> thì dừng và nhắc — mất 5 giây, không mất lượt GPU nào.
+
+**Nếu lỡ xoá hẳn thời gian chạy** (`Xóa thời gian chạy`, khác `Khởi động lại`): VM mới
+không còn gói cài lẫn cache model. Trước khi vào phần B hoặc C phải chạy **ô #1** (cài
+gói, 6–12 ph) rồi mới bấm sang ô #10 / #16. Dữ liệu SFT và adapter nằm trên Drive nên
+không mất gì, chỉ tốn lại thời gian cài.
 
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
