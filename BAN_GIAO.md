@@ -181,7 +181,34 @@ quy tắc **định dạng**, mà sau nấc 2 lỗi định dạng chỉ còn 10
 **e) Chế độ suy nghĩ Qwen3 phải để template tự quyết** (`enable_thinking = None`). Ép
 `False` từng làm mất ~10 điểm PA. Dấu hiệu: 497 mẫu xong trong ~1 phút thay vì ~16 phút.
 
-**f) Sàn nhiễu ~1,6 điểm EA**, đo từ hai lần chạy input giống hệt nhau.
+**f) Sàn nhiễu KHÔNG phải một con số cố định.** Con số "~1,6 điểm" dùng trước đây là
+ước lượng quá lạc quan. Phép đo trực tiếp, ngày 22/09/2026: cùng adapter, cùng dữ liệu
+SFT, cùng seed, cùng commit của `vinumqa/` — **chỉ đổi card** (A100-80GB với
+`MAX_NUM_SEQS=128` sang A100-40GB với `MAX_NUM_SEQS=48`) — nấc `03_sft` cho
+
+| | 80 GB | 40 GB | chênh |
+|---|---:|---:|---:|
+| EA | 0,6761 | 0,7002 | **+2,21 điểm** |
+| PA_strict | 0,6197 | 0,6419 | +2,22 điểm |
+
+vLLM gộp lô khác nhau thì thứ tự cộng dồn trong kernel khác nhau, logits lệch ở chữ số
+cuối, và ở `temperature=0.1` là đủ để lật token rồi kéo theo cả chuỗi suy luận. Đây là
+MỘT lần bốc từ phân phối nhiễu, không phải bằng chứng "40 GB tốt hơn".
+
+Ngưỡng đúng phụ thuộc số mẫu hai cấu hình BẤT ĐỒNG. Theo McNemar, dưới giả thuyết không
+thì hiệu số có độ lệch chuẩn `√(b+c)` mẫu, nên ngưỡng 95 % là `1,96·√(b+c)/497`:
+
+| bất đồng (b+c) | ngưỡng 95 % |
+|--:|--:|
+| 30 | 2,2 điểm |
+| 60 | 3,1 điểm |
+| 90 | 3,7 điểm |
+| 180 | 5,3 điểm |
+
+**Đừng dùng một con số cố định. Đọc KTC mà `stats.compare_pair` in ra** — nó đã tính
+đúng việc này từ đầu. Không kết luận nào trong dự án bị lật khi áp ngưỡng mới: mọi phát
+hiện "có ý nghĩa" đều đã vượt ngưỡng tương ứng của nó, mọi kết luận "chưa tách được khỏi
+nhiễu" vẫn nằm dưới.
 
 **g) Tương tác trong ma trận 2×2×2 gần như KHÔNG tách được khỏi nhiễu.** Thử với tương
 tác thật −0,05 (5 điểm): KTC vẫn chứa 0. Đừng viết "cộng hưởng"/"trùng nhau" vào báo cáo

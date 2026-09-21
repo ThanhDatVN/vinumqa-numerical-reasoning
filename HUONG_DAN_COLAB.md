@@ -517,7 +517,10 @@ phải chỗ hỏng thật.
 | **PA_strict** | chương trình **khớp gold** sau chuẩn hoá — **đây là con số thật** |
 | PA_loose | bản so chuỗi cũ, chỉ để đối chiếu mốc tham chiếu. `PA_loose < PA_strict` là **bình thường**, hai normalizer khác nhau |
 
-- **Sàn nhiễu ~1,6 điểm EA.** Chênh lệch dưới mức đó không phải phát hiện.
+- **Sàn nhiễu KHÔNG cố định — đọc KTC, đừng đọc một con số.** Đo thật: cùng adapter,
+  cùng seed, cùng mã, chỉ đổi card 80 GB sang 40 GB thì nấc `03_sft` chênh **2,21 điểm
+  EA**. Ngưỡng 95 % tuỳ số mẫu bất đồng: ~2,2 điểm khi bất đồng 30 mẫu, ~3,7 điểm khi
+  bất đồng 90 mẫu. Dòng `KTC 95% bootstrap` mà notebook in ra đã tính đúng việc này.
 - **KTC chứa 0 = không kết luận được gì.** Không viết "cải tiến" hay "cộng hưởng".
 - **Δ = 0 là kết quả.** Nấc nào cho Δ = 0 thì nói thẳng, kèm lý do.
 - Cột **xám** trong biểu đồ ma trận nghĩa là KTC chứa 0 — đừng đọc nó như xanh hay đỏ.
