@@ -17,13 +17,30 @@ thấy đúng dòng đó rồi mới đi tiếp.
 | 4 | `08_phuong_phap_moi` | A100 | 180 ph | `08_tu_nhat_quan`, `09_vidu_dong` |
 | 5 | `07_final_report` | CPU | 2 ph | — · 📤 **gửi kết quả** |
 | 6 | `03_sft_qwen3` | A100 | 145 ph | `03_sft` · 📤 |
-| 7 | `04_self_evaluation` | A100 | 120 ph | `04_selfeval_base`, `04_selfeval_sft` |
-| 8 | `05_ace` | A100 | 370 ph | `05_ace_base`, `05_ace_sft`, `05c_ace_basic_base`, `05_ace_random_base` · 📤 |
-| 9 | `06_combination` | A100 | 260 ph | `06_comb_E_A`, `06_comb_F_A` + hai ô mục tiêu `*_moi` |
+| 7 | `04_self_evaluation` | A100 | 60 ph | `04_selfeval_base` |
+| 8 | `05_ace` | A100 | 260 ph | `05_ace_base`, `05c_ace_basic_base`, `05_ace_random_base` · 📤 |
+| 9 | `06_combination` | A100 | 180 ph | `06_comb_E_A` + ô mục tiêu `06_comb_E_A_moi` |
 | 10 | `07_final_report` | CPU | 2 ph | — · 📤 **chốt** |
 
-**Tổng GPU ≈ 19 giờ.** Chạy thẳng một mạch, **không phải mở lại notebook nào đã chạy
+**Tổng GPU ≈ 15 giờ.** Chạy thẳng một mạch, **không phải mở lại notebook nào đã chạy
 xong, không phải sửa dòng code nào.**
+
+### Vì sao nhánh SFT đã bị bỏ khỏi bước 7–9
+
+Bước 6 vẫn chạy và vẫn ghi ra nấc `03_sft` — đó là một bậc của thang, phải có. Nhưng
+**mọi ô chạy TRÊN adapter đã bị gỡ** khỏi bước 7, 8, 9.
+
+Lý do là một con số: nấc 3 đo được EA 0,6761 so với 0,6781 của nấc 2 — McNemar
+`p = 1,000`, KTC `[-0,036; +0,034]`, 41 mẫu đúng thêm đổi lấy 42 mẫu hỏng đi. SFT không
+tách được khỏi nhiễu.
+
+Đây là kết luận **sạch**, không phải bỏ cuộc: lượt SFT đầu tiên tụt 11,27 điểm vì mã
+dựng dữ liệu cắt mất khối `<think>` khỏi đích huấn luyện; lỗi đó đã được tìm ra, sửa, và
+đo lại — kết quả về đúng mức nấc 2. Lời giải thích cạnh tranh đã bị loại trừ bằng thực
+nghiệm.
+
+Giữ bốn ô SFT trong ma trận là tiêu thêm ~4 giờ GPU để đo lại một số 0, và làm loãng tác
+động chính của hai yếu tố còn lại. Ma trận nay là **2×2 (self-eval × ACE)**.
 
 ### Vì sao không còn công tắc
 
@@ -32,7 +49,7 @@ hai notebook đó **tự chọn cấu hình chưa có kết quả**:
 
 ```
 [CẤU HÌNH] chạy 1/3: '05_ace_base' (ACE trên 'engineered', SFT=False)
-           | còn lại sau lượt này: ['05_ace_sft', '05c_ace_basic_base']
+           | còn lại sau lượt này: ['05c_ace_basic_base']
 ```
 
 Chạy xong, ô cuối in ra còn cấu hình nào. Bấm vào **ô #6** rồi `Ctrl+F10` là chạy tiếp
@@ -353,18 +370,14 @@ Mở → A100 → Chạy tất cả. **13 ô code. Không sửa gì.**
 
 Notebook chạy **hai cấu hình**, tự chọn cái chưa có kết quả:
 
-| lượt | nấc | model nền |
-|--:|---|---|
-| 1 | `04_selfeval_base` | Qwen3-8B gốc |
-| 2 | `04_selfeval_sft` | + adapter SFT của bước 6 |
+Một cấu hình duy nhất: `04_selfeval_base` trên Qwen3-8B gốc. Nhánh chạy trên adapter SFT
+đã bị gỡ — xem phần *Vì sao nhánh SFT đã bị bỏ* ở đầu tài liệu.
 
-Xong lượt 1, ô cuối in `CÒN 1 CẤU HÌNH` → bấm ô #6 rồi `Ctrl+F10`. Không sửa gì.
-
-Hai lượt sinh mỗi mẫu nên lâu gấp đôi.
+Hai lượt sinh mỗi mẫu (bước 1 + bước 2 tự soát) nên lâu gấp đôi một nấc thường.
 
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
-| #6 | `[CẤU HÌNH] chạy 1/2: '04_selfeval_base'` (lượt sau: `2/2`) |
+| #6 | `[CẤU HÌNH] chạy 1/1: '04_selfeval_base'` và `còn lại sau lượt này: không còn` |
 | #7 | `[PROMPT] ✅ mọi prompt đều lọt ngân sách` — bước 2 dài hơn nhiều, đây mới là chỗ dễ tràn |
 | #8 | prompt bước 2 in ra có khối `⚙ Chạy thật chương trình trên bằng máy thì ra: …` |
 | #9 | `NẤC: 04_selfeval_base \| 2 bước` |
@@ -383,18 +396,17 @@ Nấc "self-eval **có cổng**" **không phải chạy lại** — `07` ô #9 t
 
 ---
 
-## Bước 8 · `05_ace` · A100 · ~370 ph · **3 cấu hình**
+## Bước 8 · `05_ace` · A100 · ~260 ph · **2 cấu hình**
 
 Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì.**
 
-Notebook chạy **ba cấu hình**, tự chọn cái chưa có kết quả. Mỗi cấu hình học một
+Notebook chạy **hai cấu hình**, tự chọn cái chưa có kết quả. Mỗi cấu hình học một
 playbook RIÊNG nên không gộp được vào một lượt.
 
 | lượt | nấc | ACE chồng lên | model nền | ~ |
 |--:|---|---|---|--:|
 | 1 | `05_ace_base` (+ đối chứng ngẫu nhiên) | `engineered` | gốc | 150 ph |
-| 2 | `05_ace_sft` | `engineered` | + adapter SFT | 110 ph |
-| 3 | `05c_ace_basic_base` | `basic` | gốc | 110 ph |
+| 2 | `05c_ace_basic_base` | `basic` | gốc | 110 ph |
 
 Xong mỗi lượt, ô cuối in `CÒN n CẤU HÌNH ACE` → bấm ô #6 rồi `Ctrl+F10`. Model, embedder
 và retriever vẫn nằm trên GPU.
@@ -423,39 +435,41 @@ nhiên** (`RUN_RANDOM_CONTROL = True`, ~20 phút) — giữ nguyên, đó là th
 
 ---
 
-## Bước 9 · `06_combination` · A100 · ~260 ph
+## Bước 9 · `06_combination` · A100 · ~180 ph
 
 Mở → A100 → Chạy tất cả. **16 ô code. Không sửa gì** — ô #10 đã ghim
-`CHAY_O_TOT_NHAT = True`, tức chạy luôn cả hai ô mục tiêu.
+`CHAY_O_TOT_NHAT = True`, tức chạy luôn ô mục tiêu.
 
-Muốn tiết kiệm ~160 phút thì đặt `False`, nhưng chỉ nên làm vậy khi 📤 1 đã cho thấy
+Muốn tiết kiệm ~80 phút thì đặt `False`, nhưng chỉ nên làm vậy khi 📤 1 đã cho thấy
 phương pháp mới nằm trong sàn nhiễu.
 
-| | ma trận 2×2×2 | hai ô MỤC TIÊU (`*`) |
+| | ma trận 2×2 | ô MỤC TIÊU (`*`) |
 |---|---|---|
-| để làm gì | đo đóng góp SFT × self-eval × ACE | **đạt 70/70** |
+| để làm gì | đo đóng góp self-eval × ACE | **đạt 70/70** |
 | cấu hình sinh | 1 mẫu, temp 0.1, ví dụ cố định | K=5 mẫu, temp 0.7, ví dụ truy hồi, sửa-khi-lỗi |
-| tên nấc | `06_comb_E_A`, `06_comb_F_A` | `06_comb_E_A_moi`, `06_comb_F_A_moi` |
-| chi phí thêm | — | ~160 phút |
+| tên nấc | `06_comb_E_A` | `06_comb_E_A_moi` |
+| chi phí thêm | — | ~80 phút |
 
 Hai nhóm ghi ra **tên nấc khác nhau** nên không đè nhau, và bảng kiểm công bằng ở `07`
-không báo động oan. Ma trận 2×2×2 luôn giữ cấu hình thang bậc — chỉ như vậy tác động
+không báo động oan. Ma trận 2×2 luôn giữ cấu hình thang bậc — chỉ như vậy tác động
 chính và tương tác mới sạch.
 
 | ô | ⛔ Cổng — phải thấy |
 |--:|---|
-| #7 | bảng 8 ô, ô nào `đã có — đọc lại`, ô nào `CẦN CHẠY` |
+| #7 | bảng 4 ô, ô nào `đã có — đọc lại`, ô nào `CẦN CHẠY` |
 | #8 | `[PLAYBOOK] model gốc → playbook_ace_base.txt (… bullet)` |
-| #9 | chạy các ô còn thiếu — mỗi ô in `Ô E+A — prompt+ACE \| SFT=False self-eval=False ACE=True` |
+| #9 | chạy các ô còn thiếu — mỗi ô in `Ô E+A — prompt+ACE \| self-eval=False ACE=True` |
 | #10 | `[Ô TỐT NHẤT] ✅ cổng kiểm: nhận đúng 5 mẫu/prompt` |
 | #11 | `MA TRẬN TỔ HỢP` rồi `CỔNG MỤC TIÊU — EA > 70 % VÀ PA_strict > 70 %` |
 | #15 | ghi được `ma_tran_to_hop_*.csv` và `tuong_tac_*.json` |
 | #16 | vẽ được `ma_tran_*.png` (cột **xám** = KTC chứa 0) |
 
-Cổng 70/70 ở ô #11 nay chấm **cả bốn** ô: `E+A`, `F+A`, `E+A*`, `F+A*`. Đạt ở ô nào thì
-in thẳng `✅ ĐẠT MỤC TIÊU ở: …`; chưa đạt thì in còn thiếu bao nhiêu mẫu mỗi chỉ số.
+Cổng 70/70 ở ô #11 chấm hai ô: `E+A` và `E+A*`. Đạt ở ô nào thì in thẳng
+`✅ ĐẠT MỤC TIÊU ở: …`; chưa đạt thì in còn thiếu bao nhiêu mẫu mỗi chỉ số.
 
-Bốn ô cần SFT bị bỏ nếu chưa có adapter — notebook tự báo và tự thu ma trận lại còn 4 ô.
+Mốc 70/70 thực ra **đã đạt từ bước 4** (`09_vidu_dong`: EA 77,87 · PA 72,43). Bước 9 giờ
+trả lời câu khác: self-eval và ACE có cộng thêm gì lên trên các phương pháp mới không,
+hay nấc 9 đã bão hoà.
 
 Ô #12 tính tác động chính + tương tác cho **cả EA lẫn PA**, kèm KTC bootstrap. Ô #13
 kiểm định tổ hợp tốt nhất. Ô #14 tính chi phí mỗi điểm EA.
@@ -464,7 +478,7 @@ kiểm định tổ hợp tốt nhất. Ô #14 tính chi phí mỗi điểm EA.
 
 ## Bước 10 · `07_final_report` lần cuối · CPU · 2 ph
 
-Chạy lại như bước 5, lần này đã đủ 15 nấc.
+Chạy lại như bước 5, lần này đã đủ 11 nấc.
 
 | ô | ⛔ Cổng |
 |--:|---|

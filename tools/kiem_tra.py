@@ -607,17 +607,15 @@ def kiem_ma_tran_06():
                          "used_bullets": [], "bullets_text": ""})
         return rows
 
-    MATRIX = [("E", False, False, False, "02_prompt_eng"),
-              ("E+A", False, False, True, "06_comb_E_A"),
-              ("E+S", False, True, False, "04_selfeval_base"),
-              ("E+S+A", False, True, True, "05_ace_base"),
-              ("F", True, False, False, "03_sft"),
-              ("F+A", True, False, True, "06_comb_F_A"),
-              ("F+S", True, True, False, "04_selfeval_sft"),
-              ("F+S+A", True, True, True, "05_ace_sft")]
-    NICE = {"E": "prompt", "E+A": "prompt+ACE", "E+S": "prompt+selfeval",
-            "E+S+A": "prompt+selfeval+ACE", "F": "SFT", "F+A": "SFT+ACE",
-            "F+S": "SFT+selfeval", "F+S+A": "SFT+selfeval+ACE"}
+    # MATRIX/NICE đọc THẲNG từ notebook, không chép lại ở đây. Chép lại là một bản sao
+    # sẽ trôi: ma trận từng bị rút từ 2×2×2 xuống 2×2 mà phép kiểm vẫn chạy bản cũ 8 ô,
+    # nên nhánh thật (2 yếu tố) không hề được thực thi.
+    _nb, o = _o_code(os.path.join(NBDIR, "06_combination.ipynb"))
+    _src_mt = next(s for _k, _c, s in o if "MATRIX = [" in s)
+    _ns0 = {"os": os, "OUTPUT_DIR": ra, "test_all": test,
+            "stage_path": lambda st, kind="jsonl": os.path.join(ra, "_khong_co", st)}
+    exec(compile(_sang_python(_src_mt), "06#matrix", "exec"), _ns0)
+    MATRIX, NICE = _ns0["MATRIX"], _ns0["NICE"]
     RESULTS = {}
     for i, (c, *_r) in enumerate(MATRIX):
         rows = o_ma_tran(0.60 + 0.02 * i)
@@ -627,7 +625,7 @@ def kiem_ma_tran_06():
 
     # Hai ô MỤC TIÊU (hậu tố *). Không có chúng thì nhánh xuất CSV/JSON dành riêng cho
     # ô mục tiêu không bao giờ được chạy — mà đó đúng là hai ô trả lời mục tiêu 70/70.
-    for c in ("E+A", "F+A"):
+    for c in [x for x in ("E+A", "F+A") if x in NICE]:
         rows = o_ma_tran(0.78)
         m = pipeline.summarize(rows, NICE[c] + " (tốt nhất)")
         m["minutes"] = 80.0
@@ -638,7 +636,6 @@ def kiem_ma_tran_06():
           "OUTPUT_DIR": ra, "STAMP": "kiemtra", "MUC_PROMPT": "engineered",
           "os": os, "json": json, "csv": __import__("csv")}
     # Chỉ các ô PHÂN TÍCH: từ ô dựng bảng ma trận trở đi, bỏ ô cần model/playbook.
-    _nb, o = _o_code(os.path.join(NBDIR, "06_combination.ipynb"))
     n_o = 0
     # Bỏ qua theo NỘI DUNG, không theo số thứ tự: thêm/bớt một ô là số thứ tự trôi, còn
     # "ô này có gọi GPU không" thì luôn đúng. Mọi ô còn lại là ô PHÂN TÍCH — chính chỗ
