@@ -73,6 +73,11 @@ def kiem_notebook():
                 loi.append(f"{ten}#{k}: {e.msg} (dòng {e.lineno})")
             if c.get("outputs") or c.get("execution_count"):
                 loi.append(f"{ten}#{k}: còn sót output — notebook phải được xoá output")
+        # Colab nhét trạng thái thanh tiến trình tqdm vào metadata.widgets. Không phải
+        # mã, không phải kết quả, mà nặng ~6.000 dòng/notebook và lẫn vào mọi diff về
+        # sau. Đã từng lọt: một lượt tải notebook từ Colab về thêm 19.512 dòng.
+        if (nb.get("metadata") or {}).get("widgets"):
+            loi.append(f"{ten}: còn metadata.widgets của Colab — xoá trước khi commit")
     print(f"   {n_nb} notebook · {n_o} ô code")
 
 
