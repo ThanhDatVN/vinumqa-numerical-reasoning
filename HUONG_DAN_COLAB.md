@@ -445,10 +445,18 @@ phương pháp mới nằm trong sàn nhiễu.
 
 | | ma trận 2×2 | ô MỤC TIÊU (`*`) |
 |---|---|---|
-| để làm gì | đo đóng góp self-eval × ACE | **đạt 70/70** |
+| để làm gì | đo đóng góp self-eval × ACE | **tổ hợp tốt nhất** |
 | cấu hình sinh | 1 mẫu, temp 0.1, ví dụ cố định | K=5 mẫu, temp 0.7, ví dụ truy hồi, sửa-khi-lỗi |
-| tên nấc | `06_comb_E_A` | `06_comb_E_A_moi` |
-| chi phí thêm | — | ~80 phút |
+| tên nấc | `06_comb_E_A` | `04_selfeval_base_moi` |
+| chi phí thêm | — | ~40 phút |
+
+Ô mục tiêu là **E+S**, không phải E+A. Số đã đo quyết định điều đó: ACE cho Δ = 0,00 so
+với self-eval (32 câu sửa đổi 32 câu hỏng, từng bullet đều net ≈ 0), còn self-eval cho
++1,61 điểm đo bằng đối chứng trong-lượt (9 sửa / 1 hỏng). Và **E+S ở cấu hình tốt nhất
+là tổ hợp DUY NHẤT chưa từng chạy**: K=5 + ví dụ truy hồi + self-eval.
+
+Ba ô còn lại của ma trận đã có sẵn trên Drive (`02_prompt_eng`, `04_selfeval_base`,
+`05_ace_base`) nên notebook chỉ phải sinh **hai** ô: `E+A` và ô mục tiêu.
 
 Hai nhóm ghi ra **tên nấc khác nhau** nên không đè nhau, và bảng kiểm công bằng ở `07`
 không báo động oan. Ma trận 2×2 luôn giữ cấu hình thang bậc — chỉ như vậy tác động
