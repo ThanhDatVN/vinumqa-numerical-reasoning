@@ -56,7 +56,9 @@ GitHub; kết quả ghi lên Drive.
 
 ## 2. Mục tiêu người dùng đặt ra
 
-1. 🎯 **Hai ô ma trận tổ hợp (`06_comb_E_A`, `06_comb_F_A`) phải đạt > 70 % EA VÀ > 70 % PA.**
+1. 🎯 **Đạt > 70 % EA VÀ > 70 % PA.** ✅ ĐÃ ĐẠT từ bước 4: `09_vidu_dong` cho EA 77,87 ·
+   PA_strict 72,43, không dùng SFT, không dùng ACE. Bước 9 nay trả lời câu khác:
+   self-eval và ACE có cộng thêm gì lên trên các phương pháp mới không.
 2. Kết quả phải **nhìn rõ tác động thực sự của từng phương pháp**. Nấc nào cho Δ nằm
    trong nhiễu thì **phải nói thẳng là nằm trong nhiễu**, không tô thành "cải tiến".
 3. Tối ưu tốc độ inference, tận dụng tài nguyên.
@@ -103,21 +105,26 @@ REPETITION_PENALTY 1.0   RANDOM_SEED 42
 A100-40GB: GPU_MEM_UTIL 0.85 · MAX_NUM_SEQS 48 · BATCH_SIZE 512
 ```
 
-### Thang bậc hiện tại (12 nấc)
+### Thang bậc hiện tại (11 nấc)
 
 ```
-01_basic · 02_prompt_eng · 03_sft · 04_selfeval_base · 04_selfeval_sft
-05_ace_base · 05_ace_sft · 05c_ace_basic_base · 05_ace_random_base
-06_comb_E_A · 06_comb_F_A · 08_tu_nhat_quan · 09_vidu_dong
-06_comb_E_A_moi · 06_comb_F_A_moi
+01_basic · 02_prompt_eng · 03_sft · 04_selfeval_base
+05_ace_base · 05c_ace_basic_base · 05_ace_random_base
+06_comb_E_A · 08_tu_nhat_quan · 09_vidu_dong
+04_selfeval_base_moi
 ```
-**15 nấc.** Chỉ còn MỘT prompt engineered — nấc 2c đã gộp vào nó, xem §4.1i.
-Hai nấc `08`/`09` là ba phương pháp mới, xem §6c. Hai nấc `*_moi` là hai ô MỤC TIÊU
-chạy cấu hình tốt nhất — chỉ chạy nếu §6c cho thấy phương pháp mới vượt sàn nhiễu.
+**11 nấc.** Mọi nhánh chạy TRÊN adapter SFT đã bị gỡ khỏi bước 7–9: nấc 3 cho
+EA 0,7002 so với 0,6801 của nấc 2 — McNemar p = 0,28, KTC [-0,014; +0,058], không tách
+được khỏi nhiễu. Nấc `03_sft` vẫn ở lại thang bậc vì nó là một bậc ĐÃ ĐO.
 
-**Lộ trình chốt: 10 bước, ~19 giờ GPU, KHÔNG công tắc nào.** Xem `HUONG_DAN_COLAB.md`.
+Nấc `04_selfeval_base_moi` là ô MỤC TIÊU: ô ma trận tốt nhất chạy ở cấu hình tốt nhất.
+Chọn E+S chứ không phải E+A vì ACE cho Δ = 0,00 so với self-eval (32 sửa đổi 32 hỏng,
+từng bullet net ≈ 0), còn self-eval cho +1,61 (9 sửa / 1 hỏng, đối chứng trong-lượt).
+Đây cũng là tổ hợp DUY NHẤT chưa từng chạy: K=5 + ví dụ truy hồi + self-eval.
 
-`04` và `05` **tự chọn cấu hình chưa có kết quả** (2 và 3 cấu hình), in ra còn lại
+**Lộ trình chốt: 10 bước, ~15 giờ GPU, KHÔNG công tắc nào.** Xem `HUONG_DAN_COLAB.md`.
+
+`04` và `05` **tự chọn cấu hình chưa có kết quả** (1 và 2 cấu hình), in ra còn lại
 những gì; bấm ô #6 rồi `Ctrl+F10` là chạy tiếp trong cùng phiên, model vẫn trên GPU.
 `03` (SFT) chuyển lên **trước** hai notebook đó nên chúng làm trọn mọi cấu hình một lần.
 

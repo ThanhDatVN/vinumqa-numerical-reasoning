@@ -19,7 +19,7 @@ thấy đúng dòng đó rồi mới đi tiếp.
 | 6 | `03_sft_qwen3` | A100 | 145 ph | `03_sft` · 📤 |
 | 7 | `04_self_evaluation` | A100 | 60 ph | `04_selfeval_base` |
 | 8 | `05_ace` | A100 | 260 ph | `05_ace_base`, `05c_ace_basic_base`, `05_ace_random_base` · 📤 |
-| 9 | `06_combination` | A100 | 180 ph | `06_comb_E_A` + ô mục tiêu `06_comb_E_A_moi` |
+| 9 | `06_combination` | A100 | 75 ph | `06_comb_E_A` + ô mục tiêu `04_selfeval_base_moi` |
 | 10 | `07_final_report` | CPU | 2 ph | — · 📤 **chốt** |
 
 **Tổng GPU ≈ 15 giờ.** Chạy thẳng một mạch, **không phải mở lại notebook nào đã chạy
@@ -472,21 +472,71 @@ chính và tương tác mới sạch.
 | #15 | ghi được `ma_tran_to_hop_*.csv` và `tuong_tac_*.json` |
 | #16 | vẽ được `ma_tran_*.png` (cột **xám** = KTC chứa 0) |
 
-Cổng 70/70 ở ô #11 chấm hai ô: `E+A` và `E+A*`. Đạt ở ô nào thì in thẳng
-`✅ ĐẠT MỤC TIÊU ở: …`; chưa đạt thì in còn thiếu bao nhiêu mẫu mỗi chỉ số.
+Cổng 70/70 ở ô #11 chấm ba ô: `E+A`, `E+S`, `E+S*`.
 
-Mốc 70/70 thực ra **đã đạt từ bước 4** (`09_vidu_dong`: EA 77,87 · PA 72,43). Bước 9 giờ
-trả lời câu khác: self-eval và ACE có cộng thêm gì lên trên các phương pháp mới không,
-hay nấc 9 đã bão hoà.
+Mốc 70/70 **đã đạt từ bước 4** (`09_vidu_dong`: EA 77,87 · PA 72,43). Bước 9 trả lời hai
+câu khác, và chỉ hai câu đó:
 
-Ô #12 tính tác động chính + tương tác cho **cả EA lẫn PA**, kèm KTC bootstrap. Ô #13
-kiểm định tổ hợp tốt nhất. Ô #14 tính chi phí mỗi điểm EA.
+**a) ACE có ăn tiền khi KHÔNG có self-eval không?** Đã đo: ACE cộng lên self-eval cho
+Δ = 0,00 (32 câu sửa đổi 32 câu hỏng). Ô `E+A` là cặp thứ hai — biết đâu ACE chỉ vô dụng
+vì self-eval đã sửa sẵn đúng những câu đó. Hai cặp cho tác động chính đầy đủ.
+
+**b) Self-eval có cộng thêm lên cấu hình tốt nhất không?** Ô `E+S*` chạy
+`prompt + self-eval + K=5 mẫu + ví dụ truy hồi + sửa-khi-lỗi` — **tổ hợp duy nhất chưa
+từng chạy**. Self-eval đo riêng cho +1,61 điểm (9 sửa / 1 hỏng); 09 đang ở 77,87.
+
+### Số phải thấy, và khi nào dừng lại
+
+| ô | kỳ vọng | dừng lại nếu |
+|--:|---|---|
+| #7 | bảng **4 ô**: `E`, `E+S`, `E+S+A` đã có — đọc lại; `E+A` CẦN CHẠY | bảng có 8 ô → notebook cũ, `git pull` lại |
+| #8 | `[PLAYBOOK] model gốc → playbook_ace_base.txt (12 bullet)` | 0 bullet → playbook rỗng, kiểm lại bước 8 |
+| #9 | `Ô E+A — prompt+ACE \| self-eval=False ACE=True`, ~20 ph | |
+| #10 | `[Ô TỐT NHẤT] ✅ cổng kiểm: nhận đúng 5 mẫu/prompt` | không đủ 5 → `SamplingParams(n=)` hỏng, **đừng chạy tiếp** |
+| #10 | `Ô E+S (TỐT NHẤT)`, ~40 ph | |
+| #11 | `MA TRẬN TỔ HỢP` 4 ô + `CỔNG MỤC TIÊU` | |
+| #12 | tác động chính **2 cặp** cho mỗi yếu tố | `⚠ chỉ 1/2 cặp` → ô `E+A` chưa chạy xong |
+| #15 | `ma_tran_to_hop_*.csv`, `tuong_tac_*.json` | |
+| #16 | `ma_tran_*.png` — cột **xám** = KTC chứa 0 | |
+
+Đọc cho đúng: ngưỡng 95 % **không phải một con số cố định**. Nó là
+`1,96·√(hỏng+sửa)/497`, tức ~2,2 điểm khi hai ô xáo trộn 30 mẫu và ~3,7 điểm khi xáo trộn
+90 mẫu. Δ dưới ngưỡng của chính nó là **chưa kết luận được**, không phải "cải tiến nhỏ".
 
 ---
 
 ## Bước 10 · `07_final_report` lần cuối · CPU · 2 ph
 
-Chạy lại như bước 5, lần này đã đủ 11 nấc.
+Chạy lại như bước 5, lần này đã đủ 11 nấc. Không cần GPU.
+
+Bảng **PHẦN TĂNG THÊM CỦA TỪNG KỸ THUẬT** nay so mỗi nấc với **đúng nấc nó xây lên**,
+không phải với dòng liền trên. Thang bậc là một CÂY: `04_selfeval_base` xây trên
+`02_prompt_eng` chứ không phải trên `03_sft`, và `08_tu_nhat_quan` cũng vậy. Bản trước
+so theo dòng liền kề nên ba trong bảy dòng đo ra hiệu số không tương ứng với việc thêm
+bất cứ kỹ thuật nào.
+
+| cây nấc | so với |
+|---|---|
+| `02_prompt_eng` | `01_basic` |
+| `03_sft` · `04_selfeval_base` · `06_comb_E_A` · `08_tu_nhat_quan` | `02_prompt_eng` |
+| `05_ace_base` | `04_selfeval_base` |
+| `09_vidu_dong` | `08_tu_nhat_quan` |
+| `04_selfeval_base_moi` | `09_vidu_dong` |
+
+Mỗi dòng kèm số mẫu **hỏng/sửa** và **ngưỡng riêng của nó**.
+
+| ô | ⛔ Cổng — phải thấy |
+|--:|---|
+| #4 | `✅ Mọi nấc cùng GPU, cùng trần token, cùng chế độ suy nghĩ` |
+| #4 | bảng tăng thêm có **8 dòng**, mỗi dòng có cột `hỏng`/`sửa`/`ngưỡng` |
+| #9 | biến thể **self-eval có cổng** — tính lại từ jsonl, không cần GPU |
+| #13 | bảng `VÌ SAO KHÔNG SINH ĐƯỢC PROGRAM` có số liệu |
+| #24 | ghi được `bang_ket_qua_*.csv`, `kiem_dinh_*.csv`, `bao_cao_*.png` |
+
+Thấy `⛔ KHÔNG ĐỒNG NHẤT ở: GPU` thì có nấc chạy sai card — tìm nấc đó trong bảng công
+bằng ngay trên, chạy lại riêng nó trên A100-40GB.
+
+📤 **Gửi lại:** `bang_ket_qua_*.csv` + `kiem_dinh_*.csv` + khối meta. Đó là bộ số cuối.
 
 | ô | ⛔ Cổng |
 |--:|---|
