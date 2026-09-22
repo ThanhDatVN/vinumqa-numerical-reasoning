@@ -478,6 +478,50 @@ answer: <kết quả cuối cùng>
 ```"""
         return self._render(self.ENGINEERED_SYSTEM_PROMPT, user_message, bullets_text)
 
+    def step_chon(self, sample, ung_vien: list[dict], bullets_text: str = "") -> str:
+        """Prompt CHỌN: đưa các lời giải KHÁC NHAU, bắt model chọn đúng một.
+
+        Khác self-eval ở chỗ căn bản. Self-eval đưa MỘT chương trình đã chốt rồi hỏi
+        "có sai không" — model phải vừa phát hiện lỗi vừa nghĩ ra bản sửa. Ở đây model
+        chỉ phải **so sánh và chấm**, việc dễ hơn hẳn, và mọi ứng viên đều đã chạy thật
+        nên nó thấy luôn con số mà mỗi cách hiểu dẫn tới.
+
+        Vì sao cần: ở nấc 9, 116/497 câu có từ 2 giá trị phân biệt trở lên trong 5 mẫu.
+        Bỏ phiếu theo số đông đúng 49/116 (42 %), trong khi 89/116 (77 %) câu CÓ mẫu
+        đúng nằm đâu đó. Cả 40 câu chênh lệch đều là trường hợp đáp án đúng **thuộc
+        thiểu số** (1/5 hoặc 2/5 mẫu) — tức đếm phiếu về nguyên tắc không thắng được.
+
+        KHÔNG đưa số phiếu vào prompt: đó đúng là tín hiệu mà bỏ phiếu đã dùng và đã
+        sai ở 58 % nhóm này. Đưa vào là mời model neo theo số đông.
+        """
+        if len(ung_vien) < 2:
+            raise ValueError("cần ít nhất 2 ứng viên phân biệt mới có gì để chọn")
+        pre, post, table = self.context_block(sample)
+        khoi = ("\n\n").join(
+            f"[{i}] program: {u['program']}" + "\n" + f"    máy chạy ra: {u['gia_tri']}"
+            for i, u in enumerate(ung_vien, 1))
+        user_message = f"""Câu hỏi: {sample["qa"]["question"]}
+Đây là nội dung liên quan đến câu hỏi:
+Pre-text: {pre}
+Post-text: {post}
+Bảng:
+{table}
+
+Có {len(ung_vien)} lời giải KHÁC NHAU cho câu hỏi này. Mỗi lời giải đã được chạy thật:
+
+{khoi}
+
+Chọn ĐÚNG MỘT lời giải trả lời đúng câu hỏi. Soát hai việc:
+  1. Từng con số có lấy đúng ô trong bảng / trong văn bản không.
+  2. Dãy phép toán có khớp với thứ câu hỏi đòi không — chênh lệch tuyệt đối hay tỷ lệ
+     phần trăm, lấy kỳ nào trừ kỳ nào, chia cho mẫu số nào.
+
+Chỉ trả lời bằng đúng khối sau, không giải thích dài:
+```plaintext
+chon: <số thứ tự của lời giải đúng>
+```"""
+        return self._render(self.ENGINEERED_SYSTEM_PROMPT, user_message, bullets_text)
+
     # ── dùng cho SFT: trả về messages thay vì chuỗi đã render ──
     def sft_messages(self, sample, target_text: str, level: str = "engineered") -> list[dict]:
         """Bộ ``messages`` để huấn luyện: system + user + assistant(target)."""

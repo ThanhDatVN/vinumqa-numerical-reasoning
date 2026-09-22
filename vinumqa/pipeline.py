@@ -51,6 +51,97 @@ def _chuan_hoa_lo(outs) -> list[list[str]]:
     return ra
 
 
+def nhom_ung_vien(row) -> list[dict]:
+    """Gom K mẫu của một câu thành các ỨNG VIÊN PHÂN BIỆT theo giá trị chạy được.
+
+    Hai mẫu cho cùng một giá trị là cùng một lựa chọn — hỏi model chọn giữa chúng là
+    vô nghĩa. Gom lại vừa làm prompt ngắn đi vừa bỏ được tín hiệu "cái nào nhiều phiếu".
+
+    Trả list dict ``{program, gia_tri, so_mau}``, thứ tự theo lần xuất hiện đầu tiên
+    (tất định — không xếp theo số phiếu, để chỗ đứng trong prompt không rò rỉ tín hiệu
+    số đông).
+    """
+    ps = row.get("cac_program") or []
+    vs = row.get("cac_gia_tri") or []
+    thay: dict = {}
+    for p_, v in zip(ps, vs):
+        if v is None or not (p_ or "").strip():
+            continue
+        k = _khoa_gia_tri(v)
+        if k not in thay:
+            thay[k] = {"program": p_, "gia_tri": v, "so_mau": 0}
+        thay[k]["so_mau"] += 1
+    return list(thay.values())
+
+
+_CHON_RE = re.compile(r"chon\s*[:=]\s*(\d+)", re.I)
+
+
+def doc_lua_chon(raw: str, n: int) -> int | None:
+    """Rút số thứ tự model chọn. Trả ``None`` nếu không đọc được hoặc ngoài phạm vi."""
+    if not raw:
+        return None
+    m = None
+    for m in _CHON_RE.finditer(strip_assistant(raw) or ""):
+        pass                                  # lấy lần khớp CUỐI, sau phần suy nghĩ
+    if not m:
+        return None
+    i = int(m.group(1))
+    return i - 1 if 1 <= i <= n else None
+
+
+def chon_bang_model(rows, samples, prompt_kit, generate_fn, *, sp=None, desc="chon"):
+    """Thay BỎ PHIẾU bằng một lượt model tự chấm giữa các ứng viên phân biệt.
+
+    Chỉ chạy trên câu có từ 2 ứng viên trở lên — 3/4 số câu chỉ ra đúng một giá trị,
+    ở đó không có gì để chọn và prompt sẽ là lãng phí thuần tuý.
+
+    FAIL-CLOSED ở mọi nhánh: không đọc được lựa chọn, chọn ngoài phạm vi, hay ứng viên
+    không chạy được thì GIỮ NGUYÊN đáp án bỏ phiếu. Phép đo này chỉ có thể tốt lên hoặc
+    đứng yên vì lỗi kỹ thuật, không thể tụt vì lỗi kỹ thuật.
+    """
+    assert len(rows) == len(samples), "rows và samples phải cùng thứ tự, cùng độ dài"
+    uv = [nhom_ung_vien(r) for r in rows]
+    can = [i for i, u in enumerate(uv) if len(u) >= 2]
+    print(f"    {desc}: {len(can)}/{len(rows)} câu có ≥2 ứng viên phân biệt "
+          f"— chỉ sinh cho chừng đó")
+    if not can:
+        return [dict(r, da_chon=False) for r in rows]
+
+    raw = _chuan_hoa_lo(generate_fn(
+        [prompt_kit.step_chon(samples[i], uv[i]) for i in can], sp, desc=desc))
+
+    ra, n_doi, n_hong = [dict(r, da_chon=False, n_ung_vien=len(u))
+                         for r, u in zip(rows, uv)], 0, 0
+    for i, lo in zip(can, raw):
+        j = doc_lua_chon(lo[0] if isinstance(lo, list) else lo, len(uv[i]))
+        if j is None:
+            n_hong += 1
+            continue
+        u = uv[i][j]
+        s_ = samples[i]
+        gold_prog = s_.get("qa", {}).get("program", "") or ""
+        gold_ans = s_.get("qa", {}).get("exe_ans")
+        cu_prog = ra[i].get("final_program") or ""
+        if u["program"] != cu_prog:
+            n_doi += 1
+        ra[i].update({
+            "final_program": u["program"], "pred_value": u["gia_tri"],
+            "program_step1": u["program"], "da_chon": True, "chon_so": j,
+            "ea": check_ea(u["gia_tri"], gold_ans) if gold_ans is not None else False,
+            "ea_tol1e-3": (check_ea(u["gia_tri"], gold_ans, abs_tol=1e-3)
+                           if gold_ans is not None else False),
+            "ly_do_khong_chay": None,
+        })
+        if gold_prog:
+            ra[i]["pa_strict"], ra[i]["pa_loose"] = check_pa(u["program"], gold_prog)
+        ra[i]["outcome"] = classify_outcome(ra[i]["ea"], ra[i]["pa_strict"],
+                                            u["program"], u["gia_tri"])
+    print(f"    {desc}: đổi đáp án ở {n_doi} câu | {n_hong} câu không đọc được lựa chọn "
+          f"→ giữ nguyên bỏ phiếu")
+    return ra
+
+
 def run_pipeline(samples, prompt_kit, generate_fn, *,
                  prompt_level="engineered", use_selfeval=False,
                  playbook="", retriever=None,

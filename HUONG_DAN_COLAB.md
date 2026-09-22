@@ -20,7 +20,8 @@ thấy đúng dòng đó rồi mới đi tiếp.
 | 7 | `04_self_evaluation` | A100 | 60 ph | `04_selfeval_base` |
 | 8 | `05_ace` | A100 | 260 ph | `05_ace_base`, `05c_ace_basic_base`, `05_ace_random_base` · 📤 |
 | 9 | `06_combination` | A100 | 75 ph | `06_comb_E_A` + ô mục tiêu `04_selfeval_base_moi` |
-| 10 | `07_final_report` | CPU | 2 ph | — · 📤 **chốt** |
+| 10 | `07_final_report` | CPU | 2 ph | — · 📤 |
+| 11 | `10_bo_chon` | A100 | 10 ph | `10_bo_chon` · 📤 **chốt** |
 
 **Tổng GPU ≈ 15 giờ.** Chạy thẳng một mạch, **không phải mở lại notebook nào đã chạy
 xong, không phải sửa dòng code nào.**
@@ -536,7 +537,54 @@ Mỗi dòng kèm số mẫu **hỏng/sửa** và **ngưỡng riêng của nó**.
 Thấy `⛔ KHÔNG ĐỒNG NHẤT ở: GPU` thì có nấc chạy sai card — tìm nấc đó trong bảng công
 bằng ngay trên, chạy lại riêng nó trên A100-40GB.
 
-📤 **Gửi lại:** `bang_ket_qua_*.csv` + `kiem_dinh_*.csv` + khối meta. Đó là bộ số cuối.
+📤 **Gửi lại:** `bang_ket_qua_*.csv` + `kiem_dinh_*.csv` + khối meta.
+
+---
+
+## Bước 11 · `10_bo_chon` · A100-40GB · ~10 ph
+
+Mở → A100-40GB → Chạy tất cả. **11 ô code. Không sửa gì.**
+
+Nấc 9 chốt đáp án bằng **bỏ phiếu theo giá trị chạy được**. Đo trên chính 5 mẫu đã lưu
+của nó:
+
+| | |
+|---|---:|
+| câu chỉ có **1 giá trị** trong 5 mẫu | 379 — không có gì để chọn |
+| câu có **≥2 giá trị** phân biệt | 115 — đây là chỗ bộ chọn làm việc |
+| bỏ phiếu đang đúng trong nhóm đó | 49/115 ≈ **42 %** |
+| câu CÓ mẫu đúng nằm đâu đó | 89/115 ≈ **77 %** |
+
+**Cả 40 câu chênh lệch đều là trường hợp đáp án đúng thuộc THIỂU SỐ** (1/5 hoặc 2/5
+mẫu) — đếm phiếu về nguyên tắc không thắng được. Đã thử bốn luật bỏ phiếu khác (theo
+cấu trúc program, hoà thì theo program phổ biến, hoà thì chọn program ngắn nhất): không
+luật nào vượt được luật hiện tại.
+
+Nên thử cơ chế khác: **bắt model so sánh và chấm** giữa các ứng viên, thay vì tự sinh
+cho nhất quán. Mọi ứng viên đều đã chạy thật nên model thấy luôn con số mỗi cách hiểu
+dẫn tới.
+
+Notebook **không sinh lại gì** — 5 mẫu của mỗi câu đã nằm trong `09_vidu_dong.jsonl`.
+Nó chỉ sinh một lượt chọn cho ~115 câu, nên rẻ.
+
+| ô | ⛔ Cổng — phải thấy |
+|--:|---|
+| #7 | bảng phân bố ứng viên, dòng `⚖ Hoà vốn: model phải chọn đúng ≥ 49/115` |
+| #8 | `[CỔNG] ✅ lọt ngân sách` + một prompt chọn in ra thật |
+| #9 | `115/497 câu có ≥2 ứng viên phân biệt — chỉ sinh cho chừng đó` |
+| #10 | bảng `BỘ CHỌN vs BỎ PHIẾU` + khối `Chỉ trên 115 câu có ≥2 ứng viên` |
+| #11 | ghi được nấc `10_bo_chon` |
+
+**Hoà vốn là 42 %, không phải 0.** Bỏ phiếu đã đúng 49/115 câu trong nhóm này; bộ chọn
+phải vượt mức đó mới có lời. Ngưỡng 95 % cho toàn tập khoảng 4 điểm EA — lấp trọn
+khoảng cách tới trần cũng chỉ là +8,05 điểm, nên đây là phép thử **có thể ra âm**.
+
+Mọi nhánh hỏng đều giữ nguyên đáp án bỏ phiếu: không đọc được lựa chọn, chọn ngoài phạm
+vi, hay câu chỉ có một ứng viên. Phép đo chỉ có thể tốt lên hoặc đứng yên vì lỗi kỹ
+thuật, không thể tụt vì lỗi kỹ thuật.
+
+📤 **Gửi lại khối meta.** Rồi chạy lại `07_final_report` (CPU, 2 ph) để có bảng cuối
+gồm cả nấc 10.
 
 | ô | ⛔ Cổng |
 |--:|---|

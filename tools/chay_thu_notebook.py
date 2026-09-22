@@ -62,6 +62,44 @@ def _save_stage_gia(st, rows, metrics, extra=None, quiet=False):
     return st
 
 
+def _load_stage_gia(tap):
+    """`load_stage` gia: rieng nac 09 tra ve hang CO 5 mau, dung hinh dang that.
+
+    Notebook 10 khong sinh lai gi — no doc `cac_program`/`cac_gia_tri` cua nac 9 roi
+    chi sinh MOT luot chon. Khong dung san du lieu do thi toan bo notebook nam im.
+    """
+    from vinumqa import dsl
+
+    def f(st, quiet=False):
+        if st != "09_vidu_dong":
+            return None
+        ra = []
+        for k, s in enumerate(tap["test"]):
+            g = s["qa"].get("program") or ""
+            bang = s.get("table") or []
+            # Xen ke: mot so cau co 2 gia tri phan biet, so con lai chi co 1.
+            ps = [g, g] if k % 3 else [g, "divide(1, 2)"]
+            vs = [dsl.execute_program(x, bang) if x else None for x in ps]
+            ea = [dsl.check_ea(v, s["qa"].get("exe_ans")) for v in vs]
+            ra.append({
+                "id": s["id"], "question": s["qa"]["question"], "gold_program": g,
+                "gold_answer": s["qa"].get("exe_ans"),
+                "program_step1": ps[0], "program_step2": "", "final_program": ps[0],
+                "pred_value": vs[0], "pred_answer_text": "",
+                "ea": ea[0], "ea_tol1e-3": ea[0],
+                "pa_strict": dsl.check_pa(ps[0], g)[0] if g else False,
+                "pa_loose": dsl.check_pa(ps[0], g)[1] if g else False,
+                "n_ops_gold": dsl.n_ops(g),
+                "outcome": dsl.classify_outcome(ea[0], False, ps[0], vs[0]),
+                "ly_do_khong_chay": None, "used_bullets": [], "bullets_text": "",
+                "raw_step1": "", "raw_step2": "", "lay_buoc2": False,
+                "cac_program": ps, "cac_gia_tri": vs, "cac_ea": ea,
+                "cac_pa": [False] * len(ps), "k_da_sinh": len(ps), "so_phieu": 1,
+                "program_truoc_sua": ps[0], "da_sua": False, "vi_du_dong": True})
+        return ra
+    return f
+
+
 def dung_ns(tap):
     from vinumqa import data, dsl, io_utils, pipeline, sft, stats
     from vinumqa.ace import clusters, playbook as pb_mod, reflector as refl_mod
@@ -132,7 +170,9 @@ def dung_ns(tap):
         "ty_le_bi_cat": lambda: 0.0,
         "bi_cat_theo_buoc": lambda: {},
         "save_stage": _save_stage_gia,
-        "load_stage": lambda st, quiet=False: None,
+        # `10_bo_chon` doc lai nac 09 de lay 5 mau da luu. Tra None la o #7 dung o
+        # cong va moi o phia sau nam im — dung cai bay ma phep kiem nay sinh ra de bat.
+        "load_stage": _load_stage_gia(tap),
         # Phải đặt tên Y HỆT hàm thật, nếu không ô in lại khối meta sẽ tìm nhầm file.
         "stage_path": lambda st, kind="jsonl": os.path.join(
             ra, "stages", {"jsonl": f"{st}.jsonl", "meta": f"{st}_meta.json"}[kind]),
@@ -257,7 +297,8 @@ def main():
     tap = data.load_all(os.path.join(GOC, "data"))
     ds = ["01_baseline_basic.ipynb", "02_prompt_engineering.ipynb",
           "03_sft_qwen3.ipynb",
-          "04_self_evaluation.ipynb", "05_ace.ipynb", "08_phuong_phap_moi.ipynb"]
+          "04_self_evaluation.ipynb", "05_ace.ipynb", "08_phuong_phap_moi.ipynb",
+          "10_bo_chon.ipynb"]
     if chon:
         ds = [d for d in ds if any(c in d for c in chon)]
     print("═" * 78)
