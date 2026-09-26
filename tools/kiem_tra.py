@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Bộ kiểm toàn dự án — chạy trước mỗi lần commit và trước mỗi lần chạy lại thang bậc.
 
-    python tools/kiem_tra.py           # 6 phép kiểm nhanh, ~5 giây
+    python tools/kiem_tra.py           # 5 phép kiểm tĩnh, ~5 giây
     python tools/kiem_tra.py --day-du  # + chạy THẬT 07, phần phân tích 06,
                                        #   và logic 5 notebook GPU (model giả)
 
@@ -301,110 +301,6 @@ def kiem_ten_notebook():
 
 # ══════════════════════ 6. runbook khớp notebook ══════════════════════════════════════
 #: (notebook, ô # theo ô CODE, mảnh chuỗi phải nằm trong ô đó). Đây là các mốc mà
-#: HUONG_DAN_COLAB.md dẫn người chạy bám theo; lệch một ô là người chạy soi nhầm chỗ.
-NEO_RUNBOOK = [
-    ("00_data_audit", 3, "Executor tái tạo đúng 100%"),
-    ("01_baseline_basic", 3, "[GÓI] "),
-    ("01_baseline_basic", 3, "executor tái tạo exe_ans trên test"),
-    ("01_baseline_basic", 4, "[CFG] max_seq="),
-    ("01_baseline_basic", 5, "[WARMUP] ✅"),
-    ("01_baseline_basic", 6, "thang lồng nhau"),
-    ("01_baseline_basic", 6, "mọi prompt đều lọt ngân sách"),
-    ("01_baseline_basic", 6, 'PROMPT_LEVEL = "basic"'),
-    ("01_baseline_basic", 8, "NẤC: {STAGE}"),
-    ("01_baseline_basic", 10, "save_stage"),
-    ("02_prompt_engineering", 6, "[NẤC] 2 — prompt hoàn chỉnh"),
-    ("02_prompt_engineering", 7, "chèn thuần"),
-    ("02_prompt_engineering", 8, 'STAGE = "02_prompt_eng"'),
-    ("02_prompt_engineering", 11, "save_stage"),
-    ("03_sft_qwen3", 7, "SFT_TRAIN_SUBSET"),
-    ("03_sft_qwen3", 9, "build_sft_records"),
-    ("03_sft_qwen3", 11, "latest.txt"),
-    ("03_sft_qwen3", 21, "ADAPTER_DIR"),
-    ("03_sft_qwen3", 22, 'STAGE = "03_sft"'),
-    ("03_sft_qwen3", 24, "save_stage"),
-    ("04_self_evaluation", 6, "USE_SFT_ADAPTER"),
-    ("04_self_evaluation", 7, "mọi prompt đều lọt ngân sách"),
-    ("04_self_evaluation", 9, "04_selfeval_"),
-    ("04_self_evaluation", 13, "save_stage"),
-    ("05_ace", 6, "USE_SFT_ADAPTER"),
-    ("05_ace", 8, "ACE_TREN_PROMPT"),
-    ("05_ace", 8, "gọi thử"),
-    ("05_ace", 10, "AceTrainer"),
-    ("05_ace", 12, "NẤC: {STAGE}"),
-    ("05_ace", 14, "RUN_RANDOM_CONTROL"),
-    ("05_ace", 16, "save_stage"),
-    ("06_combination", 7, "MATRIX = ["),
-    ("06_combination", 8, "[PLAYBOOK]"),
-    ("06_combination", 10, "CHAY_O_TOT_NHAT"),
-    ("06_combination", 11, "CỔNG MỤC TIÊU"),
-    ("06_combination", 12, "TÁC ĐỘNG CHÍNH"),
-    ("06_combination", 15, "ma_tran_to_hop_"),
-    ("06_combination", 16, "plt.savefig"),
-    ("07_final_report", 3, "chưa có kết quả"),
-    ("07_final_report", 4, "KIỂM TRA CÔNG BẰNG"),
-    ("07_final_report", 6, "ĐỘ PHỨC TẠP"),
-    ("07_final_report", 7, "EA THEO LOẠI PHÉP TOÁN"),
-    ("07_final_report", 8, "SELF-CONSISTENCY THEO k"),
-    ("07_final_report", 9, "ap_cong_buoc2"),
-    ("07_final_report", 10, "PHÂN BỐ KẾT CỤC"),
-    ("07_final_report", 12, "bang_ket_qua_"),
-    ("07_final_report", 13, "bao_cao_"),
-    ("08_phuong_phap_moi", 7, "SO_MAU"),
-    ("08_phuong_phap_moi", 7, "KhoViDu"),
-    ("08_phuong_phap_moi", 8, "CỔNG KIỂM SỚM"),
-    ("08_phuong_phap_moi", 9, '08_tu_nhat_quan'),
-    ("08_phuong_phap_moi", 10, "SELF-CONSISTENCY THEO k"),
-    ("08_phuong_phap_moi", 12, '09_vidu_dong'),
-    ("08_phuong_phap_moi", 13, "VÍ DỤ ĐỘNG ĐÓNG GÓP"),
-]
-
-
-def kiem_runbook():
-    """HUONG_DAN_COLAB.md phải khớp notebook: số ô code và vị trí từng cổng kiểm.
-
-    Vì sao cần: runbook dẫn người chạy tới ĐÚNG MỘT Ô rồi bảo phải thấy dòng gì. Thêm
-    hay bớt một ô là mọi số sau đó lệch, và người chạy đi soi nhầm chỗ trên một phiên
-    GPU đang tính tiền. Không ai phát hiện được điều đó bằng cách đọc.
-    """
-    print("═" * 78)
-    print("  6. RUNBOOK — HUONG_DAN_COLAB khớp notebook")
-    doc = os.path.join(GOC, "HUONG_DAN_COLAB.md")
-    if not os.path.exists(doc):
-        loi.append("thiếu HUONG_DAN_COLAB.md")
-        return
-    van = io.open(doc, encoding="utf-8").read()
-
-    # (a) mỗi "## Bước k · `<notebook>`" kèm "**N ô code" phải đúng số ô thật
-    n_dem = 0
-    for m in re.finditer(r"## Bước \d+ · `([0-9]{2}_[a-z_0-9]+)`(.{0,600}?)\*\*(\d+) ô code",
-                         van, re.S):
-        nb_ten, _giua, n_noi = m.group(1), m.group(2), int(m.group(3))
-        p = os.path.join(NBDIR, nb_ten + ".ipynb")
-        if not os.path.exists(p):
-            loi.append(f"runbook trỏ tới notebook không có: {nb_ten}")
-            continue
-        that = len(_o_code(p)[1])
-        n_dem += 1
-        if that != n_noi:
-            loi.append(f"runbook nói {nb_ten} có {n_noi} ô code, thật ra {that}")
-
-    # (b) từng cổng kiểm phải nằm đúng ô mà runbook dẫn tới
-    n_neo = 0
-    for nb_ten, so_o, xau in NEO_RUNBOOK:
-        ma = _o_code(os.path.join(NBDIR, nb_ten + ".ipynb"))[1]
-        if so_o > len(ma):
-            loi.append(f"{nb_ten}: runbook dẫn tới ô #{so_o} nhưng chỉ có {len(ma)} ô")
-            continue
-        if xau not in ma[so_o - 1][2]:
-            o_that = [i for i, (_k, _c, s) in enumerate(ma, 1) if xau in s]
-            loi.append(f"{nb_ten} ô #{so_o} không chứa {xau!r}"
-                       + (f" — thật ra ở ô {o_that}" if o_that else " — không ô nào có"))
-        else:
-            n_neo += 1
-    print(f"   {n_dem} bước có số ô · {n_neo}/{len(NEO_RUNBOOK)} cổng kiểm đúng ô")
-
-
 # ══════════════════ 7–8. (tuỳ chọn) notebook 07 và 06 chạy thật ══════════════════
 def kiem_bao_cao_day_du():
     """Dựng vài nấc GIẢ rồi chạy trọn notebook 07.
@@ -413,7 +309,7 @@ def kiem_bao_cao_day_du():
     Ghi vào ``runs/stages`` (đã gitignore) rồi dọn sạch sau khi chạy.
     """
     print("═" * 78)
-    print("  7. NOTEBOOK 07 — chạy trọn mọi ô với nấc dựng sẵn")
+    print("  6. NOTEBOOK 07 — chạy trọn mọi ô với nấc dựng sẵn")
     os.environ.setdefault("MPLBACKEND", "Agg")
     import random
     import traceback
@@ -578,7 +474,7 @@ def kiem_ma_tran_06():
     khi thực thi, và lộ ra đúng lúc đắt nhất.
     """
     print("═" * 78)
-    print("  8. NOTEBOOK 06 — chạy phần phân tích với ma trận dựng sẵn")
+    print("  7. NOTEBOOK 06 — chạy phần phân tích với ma trận dựng sẵn")
     os.environ.setdefault("MPLBACKEND", "Agg")
     import random
     import traceback
@@ -667,7 +563,7 @@ def kiem_logic_notebook():
     đó chỉ lộ ra sau khi đã tiêu GPU. ~13 giây.
     """
     print("═" * 78)
-    print("  9. LOGIC NOTEBOOK GPU — chạy thật với model giả")
+    print("  8. LOGIC NOTEBOOK GPU — chạy thật với model giả")
     import subprocess as _sp
     r = _sp.run([sys.executable, os.path.join(GOC, "tools", "chay_thu_notebook.py")],
                 capture_output=True, text=True, encoding="utf-8")
@@ -692,7 +588,6 @@ def main():
     kiem_thang_prompt()
     kiem_ma_chet()
     kiem_ten_notebook()
-    kiem_runbook()
     if args.day_du:
         kiem_bao_cao_day_du()
         kiem_ma_tran_06()

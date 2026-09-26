@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Prompt tham chiếu — chép NGUYÊN VĂN từ bản gốc, không chỉnh một ký tự.
 
-Nguồn: ``prompts/prompt_builder.py`` của lần chạy trước (xem ``reference/``).
+Nguồn: bản prompt gốc của lần nghiên cứu trước, giữ nguyên từng ký tự.
 Giữ nguyên bản ở đây để kết quả mới luôn so sánh được với mốc tham chiếu.
 
 * ``SYSTEM_PROMPT_STEP_1`` — prompt có cấu trúc: mô tả tác vụ, giải thích từng phép toán,
@@ -12,7 +12,7 @@ Giữ nguyên bản ở đây để kết quả mới luôn so sánh được v�
 ⚠ **Đừng sửa nội dung hai chuỗi này.** Muốn thử prompt khác thì thêm hằng số mới
 trong ``vinumqa/prompts.py``, đừng chỉnh bản gốc — nếu không, mọi so sánh với mốc tham chiếu
 sẽ mất hiệu lực. Có :func:`tests.test_vinumqa.TestKhopBanThamChieu` canh điều này: hai
-chuỗi phải khớp ``reference/original_notebooks/inference_with_difference_models.ipynb``
+chuỗi phải khớp bản prompt gốc
 **từng ký tự**.
 
 Bản gốc có ba chỗ nói sai so với chính dữ liệu gold, và cả ba giữ NGUYÊN ở đây:

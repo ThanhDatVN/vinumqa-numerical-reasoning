@@ -27,3 +27,6 @@ vinumqa_runs/
 
 # ket qua tai tu Drive ve de phan tich — KHONG commit
 results/
+
+# file cua trinh soan thao
+*.code-workspace

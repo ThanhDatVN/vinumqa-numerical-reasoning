@@ -1,224 +1,269 @@
-# Numerical Reasoning QA cho báo cáo tài chính tiếng Việt
+# Suy luận số học trên báo cáo tài chính tiếng Việt
 
-Lộ trình thí nghiệm 5 nấc trên **ViNumQA** với **Qwen3-8B (4-bit, vLLM)**, chạy được trên
-Google Colab. Mỗi nấc thêm đúng một kỹ thuật và đo phần đóng góp riêng của nó.
+Nghiên cứu thực nghiệm về các kỹ thuật nâng độ chính xác của mô hình ngôn ngữ 8B trên
+bài toán hỏi–đáp số học có bảng biểu. Mô hình sinh ra một **chương trình DSL** thay vì
+trả lời trực tiếp; chương trình được thực thi bằng máy để lấy đáp án.
 
-Tư liệu tham chiếu — dự đoán của 5 model trên cùng tập test, notebook gốc, prompt gốc —
-nằm trong [`reference/`](reference/).
-
-```
-vinumqa/      lõi dùng chung: executor, prompt, pipeline, SFT, thống kê, ACE
-notebooks/    00 → 07, mỗi nấc một notebook chạy độc lập được
-tests/        114 test CPU trên dữ liệu thật (~2 giây)
-data/         ViNumQA: 2.993 train / 584 valid / 497 test
-reference/    tư liệu đối chiếu, không phải code chạy
-tools/        set_repo.py — điền URL repo vào notebook, chạy một lần
-```
+**Mô hình:** Qwen3-8B (vLLM, 4-bit) · **Tập test:** 497 câu · **Phần cứng:** A100-40GB
 
 ---
 
-## Lộ trình
+## 1. Bài toán
 
-| Nấc | Kỹ thuật | Notebook | GPU | Mở |
-|:---:|---|---|:---:|:---:|
-| — | Audit dữ liệu & chốt thước đo | [`00_data_audit`](notebooks/00_data_audit.ipynb) | ❌ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/00_data_audit.ipynb) |
-| 1 | Prompt cơ bản (danh sách phép toán + yêu cầu) | [`01_baseline_basic`](notebooks/01_baseline_basic.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/01_baseline_basic.ipynb) |
-| 2 | + Prompt engineering | [`02_prompt_engineering`](notebooks/02_prompt_engineering.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/02_prompt_engineering.ipynb) |
-| 3 | + SFT trên Qwen3-8B | [`03_sft_qwen3`](notebooks/03_sft_qwen3.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/03_sft_qwen3.ipynb) |
-| 4 | + Self-evaluation 2 bước | [`04_self_evaluation`](notebooks/04_self_evaluation.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/04_self_evaluation.ipynb) |
-| 5 | + ACE (playbook + truy hồi) | [`05_ace`](notebooks/05_ace.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/05_ace.ipynb) |
-| — | **Ma trận tổ hợp** — bổ sung hay trùng nhau? | [`06_combination`](notebooks/06_combination.ipynb) | ✅ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/06_combination.ipynb) |
-| — | Tổng hợp & kiểm định | [`07_final_report`](notebooks/07_final_report.ipynb) | ❌ | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ThanhDatVN/vinumqa-numerical-reasoning/blob/main/notebooks/07_final_report.ipynb) |
+Đầu vào là một câu hỏi tiếng Việt kèm trích đoạn báo cáo tài chính (văn bản trước, bảng
+số liệu, văn bản sau). Đầu ra là một chương trình DSL phẳng:
 
-Mỗi notebook **chạy độc lập được**, tự đọc kết quả nấc trước từ `OUTPUT_DIR/stages/` và so
-sánh bằng **McNemar theo cặp** (cùng 497 mẫu test, nên đây là dữ liệu cặp).
+```
+program: subtract(19296, 18511), divide(#0, 18511)
+answer: 0.0424
+```
 
-### Vì sao cần notebook 06
+DSL gồm `add · subtract · multiply · divide · exp · greater` và bốn phép đọc bảng
+`table_max · table_min · table_sum · table_average`. Các phép nối nhau qua tham chiếu
+`#N`, không lồng nhau.
 
-Năm nấc đầu là một **chuỗi** — mỗi nấc chồng lên nấc trước. Chuỗi không trả lời được câu hỏi
-đáng giá nhất: **SFT và ACE đều học từ tập train** (một cái vào trọng số, một cái vào ngữ
-cảnh) — chúng bổ sung hay đang học cùng một thứ? Tương tự, self-eval và ACE đều là cơ chế
-sửa lỗi lúc suy luận nên có thể chồng lấn.
+### Thước đo
 
-Notebook 06 chạy **ma trận 2×2×2** (SFT × self-eval × ACE) rồi tính **tác động chính** và
-**tương tác** của từng kỹ thuật. Ô nào đã chạy ở nấc trước thì đọc lại từ đĩa — chỉ sinh hai
-ô mới (`prompt+ACE` và `SFT+ACE`, tức ACE **không kèm** self-eval), nên tốn thêm ~2 giờ chứ
-không phải chạy lại cả 8 ô.
+| | ý nghĩa |
+|---|---|
+| **EA** (Executed Accuracy) | thực thi chương trình, so kết quả với đáp án vàng |
+| **PA_strict** (Program Accuracy) | chuẩn hoá chương trình rồi so với chương trình vàng |
+| **PA_loose** | bản chuẩn hoá lỏng hơn, dùng để đối chiếu với bảng tham chiếu |
 
-| Ô | SFT | Self-eval | ACE |
-|---|:---:|:---:|:---:|
-| `E` | ❌ | ❌ | ❌ |
-| `E+A` | ❌ | ❌ | ✅ |
-| `E+S` | ❌ | ✅ | ❌ |
-| `E+S+A` | ❌ | ✅ | ✅ |
-| `F` | ✅ | ❌ | ❌ |
-| `F+A` | ✅ | ❌ | ✅ |
-| `F+S` | ✅ | ✅ | ❌ |
-| `F+S+A` | ✅ | ✅ | ✅ |
-
-Một kết quả có thể rất đáng giá: nếu **`E+A` ≥ `E+S`** thì ACE **thay được** self-eval với
-nửa chi phí (một lượt sinh thay vì hai) — luận điểm mạnh cho bối cảnh tài nguyên hạn chế.
-
-### Bốn kỹ thuật khác nhau ở đâu
-
-| | Học từ train? | Đổi trọng số? | Cần API ngoài? | Lượt sinh/mẫu |
-|---|:---:|:---:|:---:|:---:|
-| Prompt engineering (nấc 2) | ❌ | ❌ | ❌ | 1 |
-| SFT (nấc 3) | ✅ | ✅ | ❌ | 1 |
-| Self-eval (nấc 4) | ❌ | ❌ | ❌ | 2 |
-| ACE (nấc 5) | ✅ | ❌ | ❌ | 2 |
-
-**Không nấc nào cần API ngoài**, nên toàn bộ lộ trình nằm trong thiết lập
-*constrained-resource* của dự án.
+EA là thước đo chính. PA chặt hơn vì đòi đúng cả cách giải, không chỉ đúng đáp án.
 
 ---
 
-## Bắt đầu
+## 2. Kết quả
 
-Code **và** dữ liệu nằm trong repo này; notebook tự `git clone` về máy ảo Colab. Chỉ **kết
-quả** ghi lên Drive, nên mất session không mất kết quả, và sửa code chỉ cần `git push`.
+| nấc | cấu hình | EA | PA_strict | phút |
+|---|---|---:|---:|---:|
+| 1 | prompt cơ bản | 43,46 | 40,44 | 9,5 |
+| 2 | prompt hoàn chỉnh | 68,01 | 63,98 | 9,7 |
+| 3 | + SFT | 70,02 | 64,19 | 12,6 |
+| 4 | + self-evaluation | 69,82 | 63,58 | 20,1 |
+| 5 | + ACE | 69,82 | 64,39 | 21,9 |
+| 8 | + self-consistency (K=5) | 73,24 | 67,81 | 32,6 |
+| 9 | + ví dụ truy hồi kNN | 77,87 | 72,43 | 29,1 |
+| **10** | **+ bộ chọn bằng mô hình** | **79,28** | **73,64** | **3,0** |
 
-**Một lần, ở máy** — tạo repo trống trên GitHub rồi:
+![Thang bậc](docs/hinh/01_thang_bac.png)
+
+Cấu hình tốt nhất đạt **EA 79,28 · PA_strict 73,64**, tăng 35,82 điểm EA so với prompt
+cơ bản và 11,27 điểm so với prompt hoàn chỉnh.
+
+### Đóng góp của từng cơ chế
+
+Mỗi cơ chế được đo bằng kiểm định McNemar ghép cặp trên cùng 497 mẫu. Cột *hỏng/sửa* là
+số câu chỉ một bên làm đúng.
+
+| cơ chế | Δ EA | hỏng | sửa | |
+|---|---:|---:|---:|:-:|
+| Prompt engineering | **+24,55** | 33 | 155 | ✅ |
+| ACE trên prompt cơ bản | **+18,71** | 26 | 119 | ✅ |
+| Self-consistency K=5 | **+5,23** | 12 | 38 | ✅ |
+| Ví dụ truy hồi kNN | **+4,63** | 19 | 42 | ✅ |
+| Supervised fine-tuning | +2,01 | 39 | 49 | — |
+| Self-evaluation | +1,81 | 24 | 33 | — |
+| Bộ chọn bằng mô hình | +1,41 | 10 | 17 | — |
+| ACE trên prompt hoàn chỉnh | ±0,00 | 32 | 32 | — |
+
+✅ = chênh lệch vượt ngưỡng ý nghĩa 95 % của phép đo. Dấu — nghĩa là ước lượng điểm
+dương nhưng chưa đủ bằng chứng ở cỡ mẫu 497.
+
+![Đóng góp từng kỹ thuật](docs/hinh/02_dong_gop.png)
+
+Số liệu đầy đủ, gồm cả các nhánh đối chứng và toàn bộ 32 phép kiểm định:
+[`docs/KET_QUA.md`](docs/KET_QUA.md).
+
+---
+
+## 3. Bốn nhận xét rút ra
+
+### 3.1 Kỹ thuật ngữ cảnh vượt xa huấn luyện lại
+
+Prompt engineering một mình đóng góp **+24,55 điểm** — lớn hơn tổng mọi cơ chế còn lại.
+Trong khi đó SFT trên 1.251 mẫu tự sinh, tốn 100 phút GPU, cho +2,01 điểm và không vượt
+ngưỡng ý nghĩa.
+
+Nguyên nhân có tính cấu trúc: dữ liệu SFT chỉ gồm những câu mô hình **vốn đã làm đúng**
+(1.251/2.000). Rejection sampling không dạy được gì về nhóm câu mô hình đang làm sai.
+
+### 3.2 ACE khám phá lại được tri thức viết tay, nhưng chỉ khi prompt còn chỗ trống
+
+ACE (Agentic Context Engineering) học một *playbook* các quy tắc từ tập train, rồi truy
+hồi quy tắc liên quan vào prompt lúc suy luận. Dùng đối chứng bullet ngẫu nhiên lấy từ
+**chính playbook đã học**, tách được phần đóng góp của *nội dung* khỏi phần của *cơ chế
+truy hồi*:
+
+| | trên prompt cơ bản | trên prompt hoàn chỉnh |
+|---|---:|---:|
+| nội dung playbook | **+16,50** ✅ | −0,40 |
+| cơ chế truy hồi | +2,21 | +2,21 |
+
+Đường học trên tập dev xác nhận: trên prompt cơ bản, điểm tổng hợp tăng đơn điệu qua các
+vòng (0,458 → 0,538 → 0,562 → 0,569 → 0,608); trên prompt hoàn chỉnh nó dao động không
+xu hướng (0,672 → 0,644 → 0,690 → 0,667 → 0,689).
+
+![ACE: nội dung và truy hồi](docs/hinh/04_ace.png)
+
+Nội dung ACE học được chính là ánh xạ từ khoá → phép toán mà prompt hoàn chỉnh đã chứa
+sẵn, ví dụ: *"Khi hỏi tỷ lệ thay đổi giữa hai kỳ, dùng `subtract(giá_trị_mới,
+giá_trị_cũ)`, `divide(#0, giá_trị_cũ)`"*. Khi tri thức đó đã có trong prompt, ACE không
+còn chỗ để đóng góp.
+
+**ACE hoạt động. Phần đóng góp của nó đã bị prompt engineering chiếm trước.**
+
+### 3.3 Tính toán lúc suy luận hiệu quả nhưng bão hoà nhanh
+
+Sinh K mẫu rồi bỏ phiếu theo giá trị thực thi cho +5,23 điểm; thay 2 ví dụ cố định bằng
+ví dụ truy hồi kNN cho thêm +4,63 điểm. Nhưng đường cong theo K phẳng từ K=4:
+
+| K | 1 | 2 | 3 | 4 | 5 |
+|---|---:|---:|---:|---:|---:|
+| EA | 74,65 | 75,25 | 75,86 | **77,26** | 77,26 |
+
+![Đường cong K](docs/hinh/03_duong_cong_k.png)
+
+Tăng K tiếp không còn lợi. Đáng chú ý hơn: self-evaluation cho +1,81 điểm khi đứng một
+mình, nhưng khi cộng lên cấu hình đã có bỏ phiếu thì cho **−1,41 điểm**. Bỏ phiếu 5 mẫu
+đã làm sẵn việc mà self-evaluation định làm — bắt lỗi ở lần thử đầu — nên chồng thêm chỉ
+đè lên những đáp án vốn đã đúng.
+
+### 3.4 Nút thắt nằm ở khâu chọn, không nằm ở năng lực mô hình
+
+Trần *best-of-5* của nấc 9 là **85,31** trong khi bỏ phiếu chỉ đạt 77,87. Phân tích 497
+câu cho thấy:
+
+| số giá trị phân biệt trong 5 mẫu | số câu |
+|---|---:|
+| 1 (hoặc 0) | 382 |
+| ≥ 2 | **115** |
+
+Ở nhóm 115 câu đó, bỏ phiếu đúng 48 câu (41,7 %) trong khi **88 câu (76,5 %) có đáp án
+đúng nằm đâu đó trong 5 mẫu**. Toàn bộ 40 câu chênh lệch đều là trường hợp đáp án đúng
+thuộc **thiểu số** (1/5 hoặc 2/5 mẫu) — phép đếm phiếu theo số đông về nguyên tắc không
+thắng được.
+
+![Bộ chọn](docs/hinh/06_bo_chon.png)
+
+Bốn luật bỏ phiếu thay thế đã được thử trên cùng dữ liệu (bỏ phiếu theo cấu trúc chương
+trình, hoà thì theo chương trình phổ biến, hoà thì chọn chương trình ngắn nhất) — không
+luật nào vượt được luật hiện tại.
+
+Nấc 10 thay phép đếm bằng một lượt để mô hình **so sánh và chấm** giữa các ứng viên phân
+biệt, kèm giá trị mỗi ứng viên chạy ra. Kết quả trên nhóm 115 câu: 41,7 % → **47,8 %**,
+lấp được 18 % khoảng cách tới trần, tốn 3 phút.
+
+Hướng cải tiến rõ ràng nhất còn lại không phải là sinh tốt hơn, mà là **chọn tốt hơn**.
+
+### 3.5 Một lỗi không cơ chế nào chạm tới
+
+Phân loại lỗi cho thấy nhóm `đúng phép toán, sai số liệu` — mô hình hiểu đúng bài nhưng
+lấy nhầm ô trong bảng — giữ nguyên tỷ trọng qua mọi nấc:
+
+| nấc | 2 | 3 | 4 | 5 | 8 | 9 | 10 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| số câu | 67 | 52 | 61 | 65 | 58 | 60 | 56 |
+
+![Cơ cấu lỗi](docs/hinh/05_phan_loai_loi.png)
+
+Không kỹ thuật nào trong nghiên cứu này làm nó giảm đáng kể. Đây là bài toán **đọc bảng**
+chứ không phải bài toán suy luận, và là hướng nghiên cứu tiếp theo.
+
+---
+
+## 4. Bố cục
+
+```text
+vinumqa/                    thư viện lõi
+  dsl.py                    phân tích cú pháp + thực thi DSL, chấm EA/PA
+  data.py                   nạp dữ liệu, lấy mẫu phân tầng, kiểm chất lượng nhãn
+  prompts.py                thang prompt lồng nhau + prompt cho từng cơ chế
+  pipeline.py               vòng suy luận: sinh, bỏ phiếu, sửa lỗi, chọn
+  fewshot.py                kho ví dụ truy hồi theo BM25
+  sft.py                    dựng dữ liệu SFT, cấu hình huấn luyện
+  stats.py                  McNemar, khoảng tin cậy bootstrap
+  io_utils.py               đọc/ghi kết quả từng nấc
+  ace/                      Generator–Reflector–Curator, playbook, truy hồi
+
+notebooks/                  00–10, mỗi nấc một notebook
+data/                       ViNumQA: 2.993 train · 584 valid · 497 test
+tests/                      245 test, chạy trên CPU, không cần mô hình
+docs/
+  PHUONG_PHAP.md            thiết kế thực nghiệm
+  KET_QUA.md                bảng đầy đủ và kiểm định
+  hinh/                     hình dựng lại được từ kết quả đã lưu
+tools/
+  kiem_tra.py               bộ kiểm toàn dự án — 8 phép
+  chay_thu_notebook.py      chạy logic notebook GPU bằng mô hình giả
+  ve_bieu_do.py             dựng hình cho tài liệu từ file nấc
+  do_do_phu.py              đo độ phủ dòng của phần phân tích
+  kiem_thu_tu_ten.py        tên dùng ở ô i phải định nghĩa ở ô ≤ i
+```
+
+Phần cần GPU nhận `generate_fn` tiêm từ ngoài vào, nên toàn bộ thư viện kiểm thử được
+trên CPU không cần mô hình.
+
+Kết quả chạy thực nghiệm ghi xuống `results/` (không đưa vào git): mỗi nấc một file
+`.jsonl` chứa từng mẫu và một file `_meta.json` chứa chỉ số tổng hợp cùng cấu hình đã
+dùng. `tools/ve_bieu_do.py` đọc thẳng các file này nên hình trong tài liệu luôn khớp số.
+
+---
+
+## 5. Tái lập
+
+### Chạy dưới máy
 
 ```bash
-python -m pytest tests/ -q                                       # 114 test, ~1,5 giây
-python tools/set_repo.py https://github.com/ThanhDatVN/vinumqa-numerical-reasoning --init
-git push -u origin main
+pip install -r requirements.txt
+python -m pytest tests/ -q          # 248 test, ~10 giây
+python tools/kiem_tra.py --day-du   # bộ kiểm toàn dự án
 ```
 
-`set_repo.py` điền URL repo vào cả 10 cell cấu hình của 8 notebook. Push xong thì **trên
-Colab không phải sửa dòng nào** — chỉ mở notebook (huy hiệu ở bảng trên), chọn runtime,
-**Run all**.
+### Chạy thực nghiệm
 
-Không muốn dùng script cũng được: sửa tay **một dòng, một lần** ở cell đầu notebook `00`,
-URL sẽ được ghi nhớ cho bảy notebook còn lại.
+Mỗi notebook trong `notebooks/` là một nấc độc lập, chạy trên Google Colab với A100-40GB.
+Ô đầu tiên tự lấy mã nguồn từ GitHub và gắn Google Drive; kết quả ghi xuống Drive dưới
+dạng `<nấc>.jsonl` + `<nấc>_meta.json` nên nấc sau đọc lại được nấc trước.
 
-```python
-GITHUB_REPO = "https://github.com/ThanhDatVN/vinumqa-numerical-reasoning"   # ← URL repo của bạn
-OUTPUT_DIR  = "/content/drive/MyDrive/vinumqa_runs"               # không cần sửa
-```
-
-Chạy lần lượt 00 → 07. Cell đầu của notebook nào cũng in **bảng tiến độ** cho biết nấc nào
-đã có kết quả:
+Thứ tự phụ thuộc:
 
 ```
-  nấc                           n       EA  PA_strict        chạy lúc
-  01_basic              ✓     497   0.xxxx     0.xxxx   20260915_1030
-  02_prompt_eng         ⊘       —        —          —       chưa chạy
+00 (kiểm dữ liệu, CPU)
+01 → 02 → 03 (SFT)
+       02 → 04 → 05 (ACE)
+       02 → 08 → 09 → 10
+       02 → 06 (ma trận tổ hợp)
+07 (báo cáo, CPU) — đọc mọi nấc đã có
 ```
 
-**Runtime:** GPU cho notebook 01–06; CPU cho notebook 00 và 07 (đỡ tốn compute unit).
-**A100** nhanh hơn L4 ~2.5× với chi phí compute unit gần như hoà (prompt dài nên prefill
-chiếm ưu thế) — có A100 thì dùng. L4 cho kết quả **so sánh trực tiếp được** với A100 vì cả
-hai đều không phải cắt ngữ cảnh. Riêng T4 thì có, nên đừng trộn kết quả từ T4 vào bảng.
+Tổng thời gian GPU cho toàn bộ lộ trình khoảng 15 giờ. Notebook `03` cần khởi động lại
+runtime giữa ba pha (dựng dữ liệu → huấn luyện → chấm điểm); notebook `05` cần khoá
+OpenAI API cho thành phần Reflector.
 
-📖 **[HUONG_DAN_COLAB.md](HUONG_DAN_COLAB.md)** — runbook MỘT LUỒNG: 12 bước, sửa ô nào,
-chạy ô nào, phải thấy gì, sai thì làm gì. **Mở cái này lúc ngồi chạy.**
-📋 **[KE_HOACH_THU_NGHIEM.md](KE_HOACH_THU_NGHIEM.md)** — chia buổi, ngân sách compute unit,
-cổng kiểm tra sau mỗi nấc, thứ tự cắt nếu thiếu ngân sách.
+Chi tiết thiết kế: [`docs/PHUONG_PHAP.md`](docs/PHUONG_PHAP.md).
 
 ---
 
-## Thư mục làm việc
+## 6. Giới hạn
 
-Mọi notebook ghi vào cùng một chỗ theo cùng quy ước:
+**Cỡ mẫu.** Tập test có 497 câu. Với mức xáo trộn mà các cơ chế gây ra, ngưỡng ý nghĩa
+95 % nằm trong khoảng 2–5 điểm EA tuỳ cặp so sánh. Các hiệu ứng 1–2 điểm (SFT,
+self-evaluation, bộ chọn) có ước lượng điểm dương nhưng không thể chứng minh ở cỡ mẫu
+này. Tập `valid` 584 câu chưa được dùng để đánh giá; gộp vào sẽ nâng n lên 1.081 và hạ
+ngưỡng xuống khoảng 1,4–2,4 điểm.
 
-```
-OUTPUT_DIR/
-├── stages/       kết quả từng nấc — <nấc>.jsonl (đầy đủ)
-│                                     <nấc>_program.csv (6 cột, mở Excel được)
-│                                     <nấc>_meta.json (cấu hình + metrics)
-├── logs/         output thô của model
-└── artifacts/    playbook, LoRA adapter, biểu đồ
-```
+**Tính tái lập số học.** Suy luận theo lô bằng vLLM không tất định tuyệt đối: thành phần
+lô đổi thì thứ tự cộng dồn trong kernel đổi, logits lệch ở chữ số cuối, và ở
+`temperature = 0.1` đủ để lật một token rồi kéo theo cả chuỗi suy luận. Mọi nấc trong
+nghiên cứu này chạy trên cùng một loại card (A100-40GB) với cùng tham số lô để loại yếu
+tố đó khỏi các phép so sánh.
 
-Ba hàm dùng chung, có sẵn ngay sau cell đầu: `save_stage()`, `load_stage()`, `stage_status()`.
+**Nhãn vàng.** Tập train có 5 nhãn vàng cụt cú pháp và 100 nhãn dùng `multiply(#n, 100)`
+để biểu diễn phần trăm. Cả hai nhóm đều bị lọc khỏi dữ liệu SFT và kho ví dụ few-shot
+(xem `vinumqa/data.py::is_noisy_gold`).
 
----
-
-## Package `vinumqa/`
-
-| Module | Nội dung |
-|---|---|
-| `dsl` | Executor DSL + chấm PA/EA. **Phần quan trọng nhất về độ chính xác.** |
-| `data` | Nạp ViNumQA, tách nguồn FinQA-Vi / Vi Data, audit nhiễu nhãn |
-| `prompts` | Thang prompt lồng nhau `basic` ⊂ `no_fewshot` ⊂ `engineered`, + `self_eval` |
-| `pipeline` | `run_pipeline` dùng chung cho cả 5 nấc |
-| `sft` | Dựng dữ liệu SFT bằng rejection sampling + cấu hình LoRA |
-| `stats` | McNemar theo cặp + bootstrap CI |
-| `io_utils` | Ghi artifact, chấm lại dự đoán đã lưu |
-| `ace/` | Playbook, truy hồi Tier-1/2, quality gate, Reflector, vòng lặp ACE |
-
-Phần cần GPU nhận `generate_fn` **tiêm từ ngoài**, nên toàn bộ package test được trên CPU.
-
-Chi tiết: [`vinumqa/README.md`](vinumqa/README.md).
-
----
-
-## Hai quyết định thiết kế đáng lưu ý
-
-**1. Executor phải tái tạo được nhãn vàng.** `table_*(nhãn, none)` trong ViNumQA đọc theo
-**nhãn hàng** (cột đầu), không phải tên cột — đã kiểm chứng 456/456 tham số trong train.
-Executor cũ (`reference/original_notebooks/pa_ea_calculator_BUGGY.py`) đọc theo tên
-cột nên chấm sai **mọi** câu dùng
-`table_*` (0/427 trên train). Notebook 00 định lượng ảnh hưởng.
-
-Tỉ lệ tái tạo `exe_ans` của executor hiện tại: train 99.83 %, valid 100 %, test 100 %.
-
-**2. SFT không fine-tune thẳng trên gold.** Cách đó đã được thử và overfit ngay (val loss tăng từ
-step 50). Nấc 3 dùng **rejection sampling**: chạy model, giữ mẫu nó làm đúng, dùng chính lời
-giải đó — *đã có chuỗi suy luận* — làm đích huấn luyện. Không cần API ngoài, và mẫu nhãn
-nhiễu phần lớn tự rơi ra.
-
----
-
-## Dữ liệu
-
-ViNumQA (VLSP 2025): 2.993 train / 584 valid / 497 test. Mỗi mẫu gồm `pre_text`, `table`,
-`post_text`, và `qa` với `question`, `program`, `exe_ans`.
-
-Hai nguồn, tách được từ `id`: **FinQA-Vi** (dịch từ FinQA) và **Vi Data** (báo cáo doanh
-nghiệp Việt Nam 2020–2025). Vi Data dùng `table_*` dày hơn hẳn.
-
-**Nhiễu nhãn đo được:** `multiply(#n,100)` xuất hiện 100 lần ở train, 1 ở valid, **0 ở test**.
-Prompt của dự án cấm dạng này, nên trên các mẫu đó model làm đúng vẫn bị chấm sai. Nấc 3 và
-nấc 5 đều lọc chúng bằng `data.is_noisy_gold()`.
-
----
-
-## Môi trường
-
-Giữ đúng của notebook gốc
-(`reference/original_notebooks/inference_with_difference_models.ipynb`):
-unsloth + vLLM, `transformers==4.56.2`, `trl==0.22.2`, `unsloth/Qwen3-8B` với
-`load_in_4bit=True`, `fast_inference=True`, `temperature=0.1`, `max_tokens=8192`,
-`max_seq_length=25000`.
-
-Khối cài đặt được chép nguyên vào mỗi notebook.
-
----
-
-## Dự án này độc lập
-
-Không phụ thuộc gì ngoài `data/` và `vinumqa/`. Prompt tham chiếu được chép **nguyên
-văn** vào `vinumqa/_prompt_text.py` (đã kiểm chứng khớp từng ký tự với bản gốc, và
-`table_to_str` cho cùng kết quả trên toàn bộ 497 mẫu test), nên không còn import chéo sang
-thư mục nào khác.
-
-`reference/` chỉ dùng cho một việc: notebook `00` và `07` đọc `baseline_results/` để đối
-chiếu với mốc tham chiếu. Không có `reference/` thì hai notebook đó vẫn chạy, chỉ bỏ phần đối chiếu
-(và 2 test tự skip).
-
-## Đã kiểm chứng
-
-| Hạng mục | Kết quả |
-|---|---|
-| Test CPU trên dữ liệu thật | 114/114 pass, ~2 giây |
-| Executor tái tạo `exe_ans` từ gold | train 99.83 %, valid 100 %, test 100 % |
-| Riêng câu dùng `table_*` | 427/427, 94/94, 61/61 |
-| `PA_loose` tái lập mốc tham chiếu | Qwen3-8B 59.56 % ✓, Mistral-7B 38.63 % ✓ |
-| 8 notebook | compile sạch, nbformat hợp lệ, outputs rỗng, chạy hết cell |
-
-## Giấy phép
-
-MIT — xem [LICENSE](LICENSE).
+**Thành phần ngoài.** Reflector của ACE dùng `gpt-4o-mini` qua API, đúng như thiết kế
+gốc của phương pháp. Nấc 5 vì vậy không thuộc nhóm *constrained* như các nấc còn lại;
+trường `reflector_backend` trong metadata giữ dấu vết này.

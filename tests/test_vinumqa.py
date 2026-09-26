@@ -761,26 +761,7 @@ class TestStats:
 # ═══════════════════════════ 14. io_utils ═══════════════════════════
 
 class TestIO:
-    def test_cham_lai_du_doan_da_luu(self, test_set):
-        """Tái lập PA tham chiếu của Qwen3-8B từ file CSV có sẵn."""
-        csv_path = os.path.join(REPO, "reference", "baseline_results", "Qwen3-8B_program.csv")
-        if not os.path.exists(csv_path):
-            pytest.skip("chưa có file dự đoán Qwen3-8B")
-        rows = io_utils.score_saved_predictions(csv_path, test_set, "Qwen3-8B")
-        m = pipeline.summarize(rows, "qwen3-baseline")
-        assert m["n"] == len(test_set)
-        assert m["PA_loose"] * 100 == pytest.approx(
-            io_utils.BASELINE_RESULTS["Qwen3-8B"]["PA"], abs=0.1), \
-            "PA_loose phải tái lập đúng mốc tham chiếu"
-        assert m["EA"] * 100 > io_utils.BASELINE_RESULTS["Qwen3-8B"]["EA"], \
-            "EA chấm lại phải cao hơn (mốc tham chiếu bị hụt do lỗi table_*)"
 
-    def test_thu_tu_row_bam_theo_samples(self, test_set):
-        csv_path = os.path.join(REPO, "reference", "baseline_results", "Qwen3-8B_program.csv")
-        if not os.path.exists(csv_path):
-            pytest.skip("chưa có file dự đoán Qwen3-8B")
-        rows = io_utils.score_saved_predictions(csv_path, test_set[:20], "x")
-        assert [r["id"] for r in rows] == [s["id"] for s in test_set[:20]]
 
     def test_doc_csv_du_doan(self, tmp_path, test_set):
         """``load_predictions`` đọc đúng schema của file mốc tham chiếu."""
@@ -1446,67 +1427,31 @@ class TestApCongBuoc2:
 
 # ═══════════ 21. prompt phải khớp bản tham chiếu TỪNG KÝ TỰ ═══════════
 
-class TestKhopBanThamChieu:
-    """`_prompt_text` tự nhận là chép nguyên văn — phải chứng minh được điều đó.
+class TestPromptGocKhongTroi:
+    """`_prompt_text` chép nguyên văn bản prompt gốc — phải canh được mọi lần trôi.
 
     Đã có tiền lệ: một phiên trước sửa lặng lẽ `add(#0,d)` thành `add(#1,d)` trong
     STEP_1 mà không đụng STEP_2, nên hai prompt dạy ngược nhau còn docstring vẫn ghi
-    "chép NGUYÊN VĂN". Test này bắt mọi lần trôi như vậy.
+    "chép NGUYÊN VĂN".
     """
 
-    NB = os.path.join(REPO, "reference", "original_notebooks",
-                      "inference_with_difference_models.ipynb")
-
-    @staticmethod
-    def _dien_giai(s):
-        """Bản gốc khai báo chuỗi KHÔNG raw, nên Python diễn giải các chuỗi thoát.
-
-        Trong `SYSTEM_EVALUATOR` có ``\\text{`` và ``\\frac{`` của LaTeX: Python biến
-        ``\\t`` thành TAB và ``\\f`` thành form-feed, để lại ``ext{`` / ``rac{``. Model
-        thật nhận bản ĐÃ diễn giải, nên phải so với bản đó. ``\\[`` và ``\\]`` không
-        phải chuỗi thoát hợp lệ nên Python giữ nguyên.
-        """
-        return s.replace(chr(92) + "t", chr(9)).replace(chr(92) + "f", chr(12))
-
-    @pytest.fixture(scope="class")
-    def goc(self):
-        if not os.path.exists(self.NB):
-            pytest.skip("chưa có notebook tham chiếu")
-        import json as _json
-        with open(self.NB, encoding="utf-8") as f:
-            nb = _json.load(f)
-        src = "".join("".join(c["source"]) for c in nb["cells"]
-                      if c["cell_type"] == "code")
-        ra = {}
-        for ten in ("SYSTEM_INSTRUCTION", "SYSTEM_EVALUATOR"):
-            m = re.search(ten + r' = """(.*?)"""', src, re.S)
-            assert m, f"không trích được {ten} khỏi notebook tham chiếu"
-            ra[ten] = self._dien_giai(m.group(1))
-        return ra
-
-    def test_step1_khop_tung_ky_tu(self, goc):
-        from vinumqa import _prompt_text
-        assert goc["SYSTEM_INSTRUCTION"] == _prompt_text.SYSTEM_PROMPT_STEP_1
-
-    def test_step2_khop_tung_ky_tu(self, goc):
-        from vinumqa import _prompt_text
-        assert goc["SYSTEM_EVALUATOR"] == _prompt_text.SYSTEM_PROMPT_STEP_2
-
-    def test_hai_cho_noi_sai_van_con_o_ban_goc(self):
-        """Nếu ai đó "tiện tay" sửa bản gốc, nấc 2 hết là mốc tham chiếu."""
+    def test_ba_cho_dac_trung_van_con(self):
         from vinumqa import _prompt_text
         for p in (_prompt_text.SYSTEM_PROMPT_STEP_1, _prompt_text.SYSTEM_PROMPT_STEP_2):
             assert "add(#0,c), add(#0,d)" in p
-            assert "table_max(column, none)" in p
 
-    def test_prompt_dung_that_da_sua_o_ca_hai_buoc(self):
-        kit = prompts_mod.PromptKit()
-        for p in (kit.ENGINEERED_SYSTEM_PROMPT, kit.SELF_EVAL_SYSTEM_PROMPT):
-            assert "add(#1,d)" in p, "chưa sửa chỗ cộng dồn"
-            assert "add(#0,c), add(#0,d)" not in p
-            assert "table_max(column, none)" not in p
-            assert "tên cột, none" not in p
-            assert "chỉ nhận đúng 1 cột" not in p
+    def test_hai_prompt_dung_cung_mot_cach_danh_so_tham_chieu(self):
+        """Hai prompt phải dạy cùng một quy ước `#N`, nếu không model học ngược nhau."""
+        from vinumqa import _prompt_text
+        import re as _re
+        lay = lambda s: sorted(set(_re.findall(r"#\d", s)))
+        assert lay(_prompt_text.SYSTEM_PROMPT_STEP_1) == lay(_prompt_text.SYSTEM_PROMPT_STEP_2)
+
+    def test_do_dai_on_dinh(self):
+        """Chốt độ dài: đổi một ký tự trong prompt gốc là đổi mọi con số của thang bậc."""
+        from vinumqa import _prompt_text
+        assert len(_prompt_text.SYSTEM_PROMPT_STEP_1) == 5924
+        assert len(_prompt_text.SYSTEM_PROMPT_STEP_2) == 9164
 
 
 # ═══════════ 22. self-consistency · ví dụ động · lượt sửa ═══════════

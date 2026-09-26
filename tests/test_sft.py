@@ -178,7 +178,7 @@ class TestIO:
 
 class TestTrainingConfig:
     def test_lora_khop_notebook_cu(self):
-        """Giữ đúng tham số LoRA của reference/original_notebooks/finetune_phi4.ipynb."""
+        """Tham số LoRA cố định: r=16, alpha=32, 7 mô-đun."""
         cfg = sft.lora_config()
         assert cfg["r"] == 16
         assert cfg["lora_alpha"] == 32
