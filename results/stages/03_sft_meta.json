@@ -1,0 +1,309 @@
+{
+ "stage": "03_sft",
+ "label": "Nấc 3 — + SFT Qwen3-8B",
+ "stamp": "20260921_2249",
+ "n": 497,
+ "metrics": {
+  "label": "03_sft",
+  "n": 497,
+  "EA": 0.7002,
+  "PA_strict": 0.6419,
+  "PA_loose": 0.6177,
+  "EA_tol1e-3": 0.7042,
+  "no_program": 0.008,
+  "exec_none": 0.0262,
+  "outcome": {
+   "sai": 136,
+   "dung": 319,
+   "dung_nhung_khac_program": 29,
+   "khong_co_program": 4,
+   "program_khong_chay_duoc": 9
+  },
+  "by_steps": {
+   "1": [
+    319,
+    216,
+    199
+   ],
+   "2": [
+    161,
+    123,
+    113
+   ],
+   "3": [
+    10,
+    6,
+    4
+   ],
+   "4": [
+    4,
+    2,
+    2
+   ],
+   "5": [
+    3,
+    1,
+    1
+   ]
+  },
+  "by_phep": {
+   "nhiều (2)": [
+    161,
+    123,
+    113
+   ],
+   "divide": [
+    115,
+    77,
+    75
+   ],
+   "subtract": [
+    96,
+    57,
+    54
+   ],
+   "table_*": [
+    61,
+    50,
+    38
+   ],
+   "add": [
+    29,
+    23,
+    22
+   ],
+   "multiply": [
+    19,
+    11,
+    10
+   ],
+   "nhiều (3)": [
+    8,
+    4,
+    4
+   ],
+   "nhiều (4)": [
+    4,
+    2,
+    2
+   ],
+   "nhiều (5)": [
+    3,
+    1,
+    1
+   ],
+   "greater": [
+    1,
+    0,
+    0
+   ]
+  },
+  "vi_sao_khong_co_program": {
+   "bi_cat_giua_suy_nghi": 0,
+   "sai_dinh_dang": 4,
+   "ty_le_bi_cat": 0.0,
+   "ty_le_sai_dinh_dang": 0.008
+  },
+  "vi_sao_khong_chay_duoc": {
+   "tong": 9,
+   "theo_ly_do": {
+    "phep_long_nhau": 5,
+    "nhan_bang_khong_khop": 4
+   },
+   "ty_le": {
+    "phep_long_nhau": 0.0101,
+    "nhan_bang_khong_khop": 0.008
+   },
+   "vi_du": {
+    "phep_long_nhau": [
+     "divide(2648, add(11219, 2648))",
+     "divide(159, add(303, 159))",
+     "divide(5, subtract(6.2, 1.4))"
+    ],
+    "nhan_bang_khong_khop": [
+     "table_max(Phương pháp, none)",
+     "table_max(số lượng chứng khoán còn lại có sẵn để phát hành trong tương lai theo các kế hoạch thưởng cổ phiếu (không bao gồm chứng khoán được phản ánh trong cột ",
+     "table_average(\"thời hạn hợp đồng (năm)\", none)"
+    ]
+   }
+  },
+  "vi_sao_sai": {
+   "tong": 136,
+   "theo_kieu": {
+    "dung_phep_sai_so_lieu": 52,
+    "thua_buoc": 47,
+    "thieu_buoc": 12,
+    "lam_dung_table": 10,
+    "dung_so_buoc_sai_phep": 8,
+    "bo_qua_table": 7
+   },
+   "ty_le": {
+    "dung_phep_sai_so_lieu": 0.1046,
+    "thua_buoc": 0.0946,
+    "thieu_buoc": 0.0241,
+    "lam_dung_table": 0.0201,
+    "dung_so_buoc_sai_phep": 0.0161,
+    "bo_qua_table": 0.0141
+   },
+   "vi_du": {
+    "dung_phep_sai_so_lieu": [
+     {
+      "hoi": "Tỷ lệ tăng trưởng trong thu nhập ròng của các công ty con tại Bermuda từ năm 2007 đến 2008",
+      "model": "subtract(1535, 873), divide(#0, 873)",
+      "gold": "subtract(684, 1535), divide(#0, 1535)"
+     },
+     {
+      "hoi": "Giá thấp nhất của cổ phiếu MKTX đã tăng bao nhiêu phần trăm từ năm 2011 đến tháng 3 năm 20",
+      "model": "subtract(29.26, 19.78), divide(#0, 19.78)",
+      "gold": "subtract(29.26, 24.57), divide(#0, 24.57)"
+     },
+     {
+      "hoi": "Tăng trưởng doanh thu của ngành Bất động sản cao hơn bao nhiêu điểm phần trăm so với mức t",
+      "model": "subtract(52.04, 22.29)",
+      "gold": "subtract(52.04, 22.3)"
+     }
+    ],
+    "thua_buoc": [
+     {
+      "hoi": "Sự thay đổi trong thu nhập ròng từ hiệu ứng tích lũy của việc áp dụng là gì?",
+      "model": "add(-54, 30), add(#0, 1)",
+      "gold": "add(30, 1)"
+     },
+     {
+      "hoi": "IDC có bao nhiêu ha quỹ đất sẵn sàng cho thuê và dự kiến bổ sung thêm bao nhiêu ha trong n",
+      "model": "add(225, 225), add(#0, 1), multiply(398, 100), divide(#0, 10000)",
+      "gold": "add(495, 398)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm các cam kết tương lai cho hợp đồng chi tiêu vốn dịch vụ, bảo trì và nâng c",
+      "model": "add(248107, 433161), add(#0, 354454), divide(#0, 1381518)",
+      "gold": "divide(433161, 15973855)"
+     }
+    ],
+    "thieu_buoc": [
+     {
+      "hoi": "Tính mức giảm của ROE từ năm 2020 đến 2021.",
+      "model": "subtract(20.4%, 19.2%)",
+      "gold": "subtract(19.2, 20.4), divide(#0, 20.4)"
+     },
+     {
+      "hoi": "Tăng trưởng lợi nhuận của ngành Tài chính cao hơn bao nhiêu phần trăm so với mức tăng trưở",
+      "model": "subtract(23.8, 23.1)",
+      "gold": "divide(48.78, 100), subtract(#0, 23.1%)"
+     },
+     {
+      "hoi": "Tác động tổng cộng lên DVA của việc tăng 1 điểm cơ bản trong chênh lệch tín dụng của JPMor",
+      "model": "add(32, 38)",
+      "gold": "add(32, 38), multiply(#0, 1000000)"
+     }
+    ],
+    "lam_dung_table": [
+     {
+      "hoi": "Sự khác biệt giữa tổng doanh số bán hàng và tổng số tiền thanh toán nhận được trong năm 20",
+      "model": "table_max(\"tổng các khoản phải thu thương mại và các khoản phải thu khác – thuần\", none)",
+      "gold": "subtract(546.5, 516.9)"
+     },
+     {
+      "hoi": "Tỷ suất lợi nhuận ròng cho năm 2019 là bao nhiêu?",
+      "model": "table_average(Lợi nhuận ròng (tỷ đồng), none)",
+      "gold": "divide(24206, 51627)"
+     },
+     {
+      "hoi": "Phần nào trong tài sản ròng thu được liên quan đến giá trị thương hiệu (goodwill)?",
+      "model": "table_max(Lợi thế thương mại, none)",
+      "gold": "divide(13536, 16594)"
+     }
+    ],
+    "dung_so_buoc_sai_phep": [
+     {
+      "hoi": "Mức lỗ chuyển đổi ngoại tệ tối thiểu là bao nhiêu, tính bằng triệu?",
+      "model": "table_min(chênh lệch tỷ giá hối đoái, none)",
+      "gold": "table_max(chênh lệch tỷ giá hối đoái, none)"
+     },
+     {
+      "hoi": "Dựa trên dự báo năm 2021, chi phí tài chính của năm 2020 là bao nhiêu tỷ đồng?",
+      "model": "add(1, 0.10), divide(182, #0)",
+      "gold": "subtract(1, 0.10), divide(182, #0)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm thay đổi trong các khoản phí bản quyền được ghi nhận trong giá vốn hàng bá",
+      "model": "subtract(9.3, 8.4), divide(#0, 8.4)",
+      "gold": "subtract(9.3, 8.4), add(#0, 8.4)"
+     }
+    ],
+    "bo_qua_table": [
+     {
+      "hoi": "Tính trung bình biên lãi hoạt động (%) của BCM trong 3 năm 2018, 2019 và 2020 dự báo.",
+      "model": "add(31.4, 22.1), add(#0, 27.7), divide(#0, 3)",
+      "gold": "table_average(Biên lãi hoạt động (%), none)"
+     },
+     {
+      "hoi": "Tổng doanh số bán các sản phẩm chưng cất tính bằng triệu đô la trong giai đoạn ba năm là b",
+      "model": "add(776, 365), add(#0, 21), add(#1, 97), add(#2, 24), add(#3, 74), add(#4, 64)",
+      "gold": "table_sum(sản phẩm chưng cất, none)"
+     },
+     {
+      "hoi": "Tính trung bình doanh thu của HPG từ năm 2015 đến năm 2019.",
+      "model": "add(27453, 33283), add(#0, 46162), add(#1, 55836), add(#2, 63658), divide(#3, 5)",
+      "gold": "table_average(Doanh thu, none)"
+     }
+    ]
+   }
+  },
+  "minutes": 12.6
+ },
+ "model": "unsloth/Qwen3-8B",
+ "temperature": 0.1,
+ "max_tokens": 4096,
+ "max_seq_length": 17000,
+ "ctx_truncated": false,
+ "enable_thinking": null,
+ "ty_le_bi_cat_token": 0.0762,
+ "bi_cat_theo_buoc": {
+  "step1": {
+   "n": 497,
+   "bi_cat": 41,
+   "ty_le": 0.0825
+  },
+  "vot-bi-cat": {
+   "n": 41,
+   "bi_cat": 0,
+   "ty_le": 0.0
+  }
+ },
+ "nap_an_toan": false,
+ "config": {
+  "MODEL_NAME": "unsloth/Qwen3-8B",
+  "MODEL_TAG": "Qwen3-8B",
+  "TEMPERATURE": 0.1,
+  "MAX_TOKENS": 4096,
+  "REPETITION_PENALTY": 1.0,
+  "MAX_SEQ_LENGTH": 17000,
+  "BATCH_SIZE": 512,
+  "GPU_MEM_UTIL": 0.85,
+  "MAX_NUM_SEQS": 48,
+  "RANDOM_SEED": 42
+ },
+ "env": {
+  "python": "3.13.15",
+  "commit": "f5d3076",
+  "branch": "main",
+  "dirty": false,
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "vram_gb": 39.5,
+  "cc": "8.0",
+  "transformers": "4.57.6",
+  "trl": "0.24.0",
+  "peft": "0.20.0",
+  "vllm": "0.23.0",
+  "unsloth": "2026.9.4",
+  "sentence_transformers": "5.7.0",
+  "numpy": "2.1.3"
+ },
+ "prompt_level": "engineered",
+ "self_eval": false,
+ "adapter": "/content/drive/MyDrive/vinumqa_runs/sft_adapter_qwen3",
+ "sft_data": "/content/drive/MyDrive/vinumqa_runs/sft_data/qwen3_sft_20260921_1621.jsonl",
+ "n_sft_records": 1251
+}

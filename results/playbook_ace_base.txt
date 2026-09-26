@@ -1,0 +1,21 @@
+## Chiến lược số học
+- [cl-00001] Khi cộng nhiều giá trị rời rạc, dùng add(a, b), add(#0, c) và đảm bảo quy đổi đơn vị nếu cần thiết. (h=36, harm=12)
+
+## Đọc bảng
+- [db-00001] Khi hỏi tỷ lệ phần trăm của một chỉ tiêu so với chỉ tiêu khác trong cùng một giai đoạn, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu). (h=3, harm=0)
+- [db-00002] Khi hỏi tỷ suất lợi nhuận ròng, dùng divide(lai_rong, doanh_thu) để tính toán.
+- [db-00003] Khi hỏi tỷ lệ giữa hai đại lượng, dùng divide(tu_so, mau_so) với tu_so là giá trị cần tính và mau_so là tổng hoặc giá trị liên quan.
+- [db-00004] Khi hỏi chênh lệch tuyệt đối giữa hai giá trị, dùng subtract(gia_tri_moi, gia_tri_cu) mà không chia cho giá trị nào.
+- [db-00005] Khi tính trung bình của nhiều giá trị, dùng add(a, b), add(#0, c), divide(#n, số_lượng) để đảm bảo kết quả chính xác.
+
+## Sinh program
+- [sp-00001] Khi hỏi tỷ lệ phần trăm của một phần so với tổng, dùng divide(phan, tong) để tính toán. (h=2, harm=0)
+- [sp-00002] Khi hỏi giá trị lớn nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none). (h=1, harm=0)
+- [sp-00003] Khi hỏi TỶ LỆ tăng/giảm giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) để tính toán. (h=4, harm=0)
+- [sp-00004] Khi tính trung bình của một chỉ tiêu trong bảng, dùng table_average(ten_chi_tieu, none).
+- [sp-00005] Khi hỏi tỷ lệ giữa hai giá trị, dùng divide(tu_so, mau_so) để tính toán.
+- [sp-00006] Khi hỏi chênh lệch giữa giá trị lớn nhất và nhỏ nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none), table_min(ten_chi_tieu, none), subtract(#0, #1).
+
+## Lỗi thường gặp
+
+## Mẹo ngữ cảnh

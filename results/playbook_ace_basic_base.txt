@@ -1,0 +1,25 @@
+## Chiến lược số học
+- [cl-00001] Khi bài toán yêu cầu tính toán nhiều bước, sử dụng add(a, b), add(#0, c), divide(#n, m) để có kết quả cuối cùng. (h=47, harm=4)
+- [cl-00002] Khi bài toán yêu cầu tính toán nhiều bước, hãy sử dụng các phép toán tuần tự với kết quả trước đó, ví dụ: add(a, b), add(#0, c), divide(#n, 5).
+
+## Đọc bảng
+- [db-00001] Khi hỏi TỶ LỆ thay đổi giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) để tính toán. (h=1, harm=0)
+- [db-00002] Khi hỏi tỷ lệ phần trăm của một giá trị so với tổng, dùng divide(phan, tong) với phan là giá trị cần tính và tong là tổng.
+- [db-00003] Khi hỏi giá trị lớn nhất hoặc nhỏ nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none) hoặc table_min(ten_chi_tieu, none).
+
+## Sinh program
+- [sp-00001] Khi hỏi TỶ LỆ tăng/giảm giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) và không nhân 100. (h=9, harm=1)
+- [sp-00002] Khi tính trung bình của một chỉ tiêu trong bảng, dùng table_average(ten_chi_tieu, none). (h=2, harm=0)
+- [sp-00003] Khi tính trung bình của hai giá trị, dùng add(gia_tri_1, gia_tri_2), divide(#0, 2).
+- [sp-00004] Khi tính tổng của một chỉ tiêu trong bảng, dùng table_sum(ten_chi_tieu, none).
+- [sp-00005] Khi cộng nhiều giá trị rời rạc, sử dụng add(a, b), add(#0, c) mà không lồng phép toán.
+- [sp-00006] Khi hỏi sự chênh lệch giữa giá trị lớn nhất và nhỏ nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none), table_min(ten_chi_tieu, none), subtract(#0, #1). (h=1, harm=0)
+- [sp-00007] Khi hỏi tỷ số giữa hai đại lượng, dùng divide(tu_so, mau_so) với tu_so là giá trị cần tính và mau_so là giá trị tham chiếu. (h=3, harm=0)
+
+## Lỗi thường gặp
+- [lt-00001] Khi cộng nhiều giá trị rời rạc để tính tỷ lệ, sử dụng add(a, b), add(#0, c) và divide(#n, mau_so) để có kết quả cuối cùng. (h=6, harm=0)
+- [lt-00002] Khi hỏi chênh lệch tuyệt đối giữa hai giá trị, dùng subtract(gia_tri_moi, gia_tri_cu). (h=1, harm=0)
+
+## Mẹo ngữ cảnh
+- [mn-00001] Khi cộng nhiều giá trị rời rạc, dùng add(a, b), add(#0, c) và sau đó divide(phan, tong) để tính tỷ lệ phần trăm. (h=1, harm=0)
+- [mn-00002] Khi bài toán yêu cầu tính toán nhiều bước, sử dụng phép toán tuần tự với kết quả trước đó, ví dụ: subtract(a, b), divide(#0, 100) để có kết quả cuối cùng.

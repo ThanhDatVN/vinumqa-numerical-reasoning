@@ -1,0 +1,283 @@
+{
+ "stage": "09_vidu_dong",
+ "label": "Mới — self-consistency + ví dụ truy hồi",
+ "stamp": "20260921_0446",
+ "n": 497,
+ "metrics": {
+  "label": "09_vidu_dong",
+  "n": 497,
+  "EA": 0.7787,
+  "PA_strict": 0.7243,
+  "PA_loose": 0.6922,
+  "EA_tol1e-3": 0.7827,
+  "no_program": 0.0,
+  "exec_none": 0.0,
+  "outcome": {
+   "sai": 110,
+   "dung": 360,
+   "dung_nhung_khac_program": 27
+  },
+  "by_steps": {
+   "1": [
+    319,
+    249,
+    234
+   ],
+   "2": [
+    161,
+    129,
+    120
+   ],
+   "3": [
+    10,
+    6,
+    4
+   ],
+   "4": [
+    4,
+    2,
+    2
+   ],
+   "5": [
+    3,
+    1,
+    0
+   ]
+  },
+  "by_phep": {
+   "nhiều (2)": [
+    161,
+    129,
+    120
+   ],
+   "divide": [
+    115,
+    87,
+    85
+   ],
+   "subtract": [
+    96,
+    69,
+    68
+   ],
+   "table_*": [
+    61,
+    58,
+    47
+   ],
+   "add": [
+    29,
+    24,
+    21
+   ],
+   "multiply": [
+    19,
+    13,
+    13
+   ],
+   "nhiều (3)": [
+    8,
+    4,
+    4
+   ],
+   "nhiều (4)": [
+    4,
+    2,
+    2
+   ],
+   "nhiều (5)": [
+    3,
+    1,
+    0
+   ],
+   "greater": [
+    1,
+    0,
+    0
+   ]
+  },
+  "vi_sao_khong_co_program": {
+   "bi_cat_giua_suy_nghi": 0,
+   "sai_dinh_dang": 0,
+   "ty_le_bi_cat": 0.0,
+   "ty_le_sai_dinh_dang": 0.0
+  },
+  "vi_sao_khong_chay_duoc": null,
+  "vi_sao_sai": {
+   "tong": 110,
+   "theo_kieu": {
+    "dung_phep_sai_so_lieu": 60,
+    "thua_buoc": 23,
+    "thieu_buoc": 11,
+    "dung_so_buoc_sai_phep": 8,
+    "lam_dung_table": 7,
+    "bo_qua_table": 1
+   },
+   "ty_le": {
+    "dung_phep_sai_so_lieu": 0.1207,
+    "thua_buoc": 0.0463,
+    "thieu_buoc": 0.0221,
+    "dung_so_buoc_sai_phep": 0.0161,
+    "lam_dung_table": 0.0141,
+    "bo_qua_table": 0.002
+   },
+   "vi_du": {
+    "dung_phep_sai_so_lieu": [
+     {
+      "hoi": "Tỷ suất lợi nhuận trên đầu tư (ROI) của Applied Materials là bao nhiêu nếu khoản đầu tư th",
+      "model": "subtract(198.27, 100), divide(#0, 100)",
+      "gold": "subtract(96.67, 100), divide(#0, 100)"
+     },
+     {
+      "hoi": "tốc độ tăng trưởng lợi nhuận sau thuế dự kiến cho năm 2020 so với năm 2019 là bao nhiêu ph",
+      "model": "subtract(30854, 18511), divide(#0, 18511)",
+      "gold": "subtract(19296, 18511), divide(#0, 18511)"
+     },
+     {
+      "hoi": "lợi nhuận ròng dự báo năm 2020 giảm bao nhiêu phần trăm so với năm 2019?",
+      "model": "subtract(349, 331), divide(#0, 349)",
+      "gold": "subtract(331, 349), divide(#0, 349)"
+     }
+    ],
+    "thua_buoc": [
+     {
+      "hoi": "Sự thay đổi trong thu nhập ròng từ hiệu ứng tích lũy của việc áp dụng là gì?",
+      "model": "add(-54, 30), add(#0, 1)",
+      "gold": "add(30, 1)"
+     },
+     {
+      "hoi": "tỷ suất lợi nhuận tổng cộng trong năm năm của Goldman Sachs Group Inc. là bao nhiêu?",
+      "model": "subtract(248.36, 100), divide(#0, 100)",
+      "gold": "subtract(248.36, 100)"
+     },
+     {
+      "hoi": "Tỷ lệ ROE (%) của HPG trong năm 2020 dự kiến giảm bao nhiêu so với năm 2019?",
+      "model": "subtract(17.1, 14.6), divide(#0, 17.1)",
+      "gold": "subtract(14.6, 17.1)"
+     }
+    ],
+    "thieu_buoc": [
+     {
+      "hoi": "Tính mức giảm của ROE từ năm 2020 đến 2021.",
+      "model": "subtract(20.4, 19.2)",
+      "gold": "subtract(19.2, 20.4), divide(#0, 20.4)"
+     },
+     {
+      "hoi": "Tác động tổng cộng lên DVA của việc tăng 1 điểm cơ bản trong chênh lệch tín dụng của JPMor",
+      "model": "add(32, 38)",
+      "gold": "add(32, 38), multiply(#0, 1000000)"
+     },
+     {
+      "hoi": "Tính giá mục tiêu trung bình dựa trên kết quả kèm tỷ trọng của FCFF và FCFE.",
+      "model": "add(27345, 28032)",
+      "gold": "add(27345, 28032), divide(#0, 2)"
+     }
+    ],
+    "dung_so_buoc_sai_phep": [
+     {
+      "hoi": "Mức lỗ chuyển đổi ngoại tệ tối thiểu là bao nhiêu, tính bằng triệu?",
+      "model": "table_min(chênh lệch tỷ giá hối đoái, none)",
+      "gold": "table_max(chênh lệch tỷ giá hối đoái, none)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm thay đổi trong các khoản phí bản quyền được ghi nhận trong giá vốn hàng bá",
+      "model": "subtract(9.3, 8.4), divide(#0, 8.4)",
+      "gold": "subtract(9.3, 8.4), add(#0, 8.4)"
+     },
+     {
+      "hoi": "Tỷ suất sinh lợi trên doanh thu thuần của PPC năm 2018 là bao nhiêu?",
+      "model": "table_min(Tỷ suất sinh lợi trên doanh thu thuần, none)",
+      "gold": "table_max(Tỷ suất sinh lợi trên doanh thu thuần, none)"
+     }
+    ],
+    "lam_dung_table": [
+     {
+      "hoi": "Phạm vi toán học của doanh thu mảng hóa chất từ năm 2014 đến 2016 là bao nhiêu, tính bằng ",
+      "model": "table_max( hóa chất, none), table_min( hóa chất, none), subtract(#1, #0)",
+      "gold": "subtract(3664, 3474)"
+     },
+     {
+      "hoi": "tính đến ngày 31 tháng 12 năm 2017, giá trị của các phần thưởng cổ phiếu được cấp là bao n",
+      "model": "table_sum(\"chưa được hưởng tại ngày 31 tháng 12 năm 2017\", none)",
+      "gold": "multiply(160196, 58.02)"
+     },
+     {
+      "hoi": "Tính tỷ lệ P/E trung bình trong giai đoạn 2015-2019.",
+      "model": "table_average(P/E (x), none)",
+      "gold": "add(14.8, 18.3), add(#0, 20.9), add(#1, 16.1), add(#2, 9.8), divide(#3, 5)"
+     }
+    ],
+    "bo_qua_table": [
+     {
+      "hoi": "Tính trung bình doanh thu của HPG từ năm 2015 đến năm 2019.",
+      "model": "add(27453, 33283), add(#0, 46162), add(#1, 55836), add(#2, 63658), divide(#3, 5)",
+      "gold": "table_average(Doanh thu, none)"
+     }
+    ]
+   }
+  },
+  "minutes": 29.1
+ },
+ "model": "unsloth/Qwen3-8B",
+ "temperature": 0.1,
+ "max_tokens": 4096,
+ "max_seq_length": 17000,
+ "ctx_truncated": false,
+ "enable_thinking": null,
+ "ty_le_bi_cat_token": 0.0112,
+ "bi_cat_theo_buoc": {
+  "step1": {
+   "n": 2485,
+   "bi_cat": 28,
+   "ty_le": 0.0113
+  },
+  "sua": {
+   "n": 15,
+   "bi_cat": 0,
+   "ty_le": 0.0
+  }
+ },
+ "nap_an_toan": false,
+ "config": {
+  "MODEL_NAME": "unsloth/Qwen3-8B",
+  "MODEL_TAG": "Qwen3-8B",
+  "TEMPERATURE": 0.1,
+  "MAX_TOKENS": 4096,
+  "REPETITION_PENALTY": 1.0,
+  "MAX_SEQ_LENGTH": 17000,
+  "BATCH_SIZE": 512,
+  "GPU_MEM_UTIL": 0.85,
+  "MAX_NUM_SEQS": 48,
+  "RANDOM_SEED": 42
+ },
+ "env": {
+  "python": "3.13.15",
+  "commit": "61f4cef",
+  "branch": "main",
+  "dirty": false,
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "vram_gb": 39.5,
+  "cc": "8.0",
+  "transformers": "4.57.6",
+  "trl": "0.24.0",
+  "peft": "0.20.0",
+  "vllm": "0.23.0",
+  "unsloth": "2026.9.4",
+  "sentence_transformers": "5.7.0",
+  "numpy": "2.1.3"
+ },
+ "prompt_level": "engineered",
+ "self_eval": false,
+ "so_mau": 5,
+ "temperature_moi": 0.7,
+ "top_p": 0.95,
+ "vi_du_dong": true,
+ "so_vi_du": 3,
+ "sua_khi_loi": true,
+ "tran_best_of_k": {
+  "EA_tran": 0.8531,
+  "PA_tran": 0.8008,
+  "n": 497
+ }
+}

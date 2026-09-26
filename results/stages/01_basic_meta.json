@@ -1,0 +1,333 @@
+{
+ "stage": "01_basic",
+ "label": "Nấc 1 — prompt cơ bản (danh sách phép toán + yêu cầu)",
+ "stamp": "20260921_0403",
+ "n": 497,
+ "metrics": {
+  "label": "01_basic",
+  "n": 497,
+  "EA": 0.4346,
+  "PA_strict": 0.4044,
+  "PA_loose": 0.3441,
+  "EA_tol1e-3": 0.4346,
+  "no_program": 0.002,
+  "exec_none": 0.3944,
+  "outcome": {
+   "sai": 85,
+   "dung": 201,
+   "program_khong_chay_duoc": 195,
+   "dung_nhung_khac_program": 15,
+   "khong_co_program": 1
+  },
+  "by_steps": {
+   "1": [
+    319,
+    193,
+    186
+   ],
+   "2": [
+    161,
+    20,
+    13
+   ],
+   "3": [
+    10,
+    3,
+    2
+   ],
+   "4": [
+    4,
+    0,
+    0
+   ],
+   "5": [
+    3,
+    0,
+    0
+   ]
+  },
+  "by_phep": {
+   "nhiều (2)": [
+    161,
+    20,
+    13
+   ],
+   "divide": [
+    115,
+    77,
+    77
+   ],
+   "subtract": [
+    96,
+    53,
+    51
+   ],
+   "table_*": [
+    61,
+    32,
+    27
+   ],
+   "add": [
+    29,
+    22,
+    21
+   ],
+   "multiply": [
+    19,
+    10,
+    10
+   ],
+   "nhiều (3)": [
+    8,
+    2,
+    2
+   ],
+   "nhiều (4)": [
+    4,
+    0,
+    0
+   ],
+   "nhiều (5)": [
+    3,
+    0,
+    0
+   ],
+   "greater": [
+    1,
+    0,
+    0
+   ]
+  },
+  "vi_sao_khong_co_program": {
+   "bi_cat_giua_suy_nghi": 0,
+   "sai_dinh_dang": 1,
+   "ty_le_bi_cat": 0.0,
+   "ty_le_sai_dinh_dang": 0.002
+  },
+  "vi_sao_khong_chay_duoc": {
+   "tong": 195,
+   "theo_ly_do": {
+    "cu_phap_di_dang": 140,
+    "phep_long_nhau": 42,
+    "table_sai_cu_phap": 6,
+    "nhan_bang_khong_khop": 3,
+    "nhan_bang_mo_ho": 2,
+    "sai_so_tham_so": 2
+   },
+   "ty_le": {
+    "cu_phap_di_dang": 0.2817,
+    "phep_long_nhau": 0.0845,
+    "table_sai_cu_phap": 0.0121,
+    "nhan_bang_khong_khop": 0.006,
+    "nhan_bang_mo_ho": 0.004,
+    "sai_so_tham_so": 0.004
+   },
+   "vi_du": {
+    "cu_phap_di_dang": [
+     "subtract(2147, 1430) → #0",
+     "subtract(19296, 18511) → divide(#0, 18511)",
+     "subtract(36613, 31624) → #0; divide(#0, 31624)"
+    ],
+    "phep_long_nhau": [
+     "divide(subtract(96.67, 100.00), 100.00)",
+     "divide(subtract(27.1, 26.4), 26.4)",
+     "subtract(table_max(\"hóa chất\", none), table_min(\"hóa chất\", none))"
+    ],
+    "table_sai_cu_phap": [
+     "table_average(\"Tỷ suất sinh lợi trên doanh thu thuần\", 2018)",
+     "table_sum(\"năm kết thúc ngày 31 tháng 12 năm 2014 quý 3\", \"lợi nhuận ( lỗ ) ròng\")",
+     "table_sum(\"thuê hoạt động trụ sở chính toàn cầu ( 1 )\", \"các khoản thanh toán đến hạn trong vòng 1 năm\")"
+    ],
+    "nhan_bang_khong_khop": [
+     "table_max(\"FY 2017\", none)",
+     "table_average(\"Valuation 2020\", none)",
+     "table_sum(\"2017\", none)"
+    ],
+    "nhan_bang_mo_ho": [
+     "table_max(\"Lãi hoạt động\", none)",
+     "table_max(\"Lợi nhuận hoạt động\", none)"
+    ],
+    "sai_so_tham_so": [
+     "table_average(\"2015\", \"2016\", \"2017\", \"2018\", \"2019F\")",
+     "table_sum(\"số dư tại ngày 1 tháng 1 năm 2007\", \"các khoản tăng thêm dựa trên các vị thế thuế liên quan đến năm hiện tại\", \"các khoản tăng thêm cho các vị thế th"
+    ]
+   }
+  },
+  "vi_sao_sai": {
+   "tong": 85,
+   "theo_kieu": {
+    "dung_phep_sai_so_lieu": 49,
+    "thieu_buoc": 12,
+    "dung_so_buoc_sai_phep": 11,
+    "bo_qua_table": 5,
+    "thua_buoc": 4,
+    "lam_dung_table": 4
+   },
+   "ty_le": {
+    "dung_phep_sai_so_lieu": 0.0986,
+    "thieu_buoc": 0.0241,
+    "dung_so_buoc_sai_phep": 0.0221,
+    "bo_qua_table": 0.0101,
+    "thua_buoc": 0.008,
+    "lam_dung_table": 0.008
+   },
+   "vi_du": {
+    "dung_phep_sai_so_lieu": [
+     {
+      "hoi": "lợi nhuận ròng dự báo năm 2020 giảm bao nhiêu phần trăm so với năm 2019?",
+      "model": "subtract(349, 331), divide(#0, 349)",
+      "gold": "subtract(331, 349), divide(#0, 349)"
+     },
+     {
+      "hoi": "So sánh biên lợi nhuận gộp quý 3/2020 với quý 3/2019, biên lợi nhuận gộp giảm bao nhiêu ph",
+      "model": "subtract(62, 34), divide(#0, 62)",
+      "gold": "subtract(34, 62), divide(#0, 62)"
+     },
+     {
+      "hoi": "chênh lệch giữa lntt dự phóng năm 2020 và lãi hoạt động dự phóng là bao nhiêu tỷ đồng?",
+      "model": "subtract(655, 652)",
+      "gold": "subtract(652, 655)"
+     }
+    ],
+    "thieu_buoc": [
+     {
+      "hoi": "Tỷ lệ tăng trưởng trong thu nhập ròng của các công ty con tại Bermuda từ năm 2007 đến 2008",
+      "model": "divide(1535, 1527)",
+      "gold": "subtract(684, 1535), divide(#0, 1535)"
+     },
+     {
+      "hoi": "Tính mức giảm của ROE từ năm 2020 đến 2021.",
+      "model": "subtract(20.4, 19.2)",
+      "gold": "subtract(19.2, 20.4), divide(#0, 20.4)"
+     },
+     {
+      "hoi": "Tác động tổng cộng lên DVA của việc tăng 1 điểm cơ bản trong chênh lệch tín dụng của JPMor",
+      "model": "add(32, 38)",
+      "gold": "add(32, 38), multiply(#0, 1000000)"
+     }
+    ],
+    "dung_so_buoc_sai_phep": [
+     {
+      "hoi": "Mức lỗ chuyển đổi ngoại tệ tối thiểu là bao nhiêu, tính bằng triệu?",
+      "model": "table_min(\"chênh lệch tỷ giá hối đoái\", none)",
+      "gold": "table_max(chênh lệch tỷ giá hối đoái, none)"
+     },
+     {
+      "hoi": "Tính mức tăng doanh thu mảng hạ sốt – giảm đau từ năm 2020 đến 2021 theo dự phóng.",
+      "model": "add(947, 987)",
+      "gold": "subtract(987, 947)"
+     },
+     {
+      "hoi": "tính đến ngày 31 tháng 12 năm 2017, giá trị của các phần thưởng cổ phiếu được cấp là bao n",
+      "model": "add(5.6, 0)",
+      "gold": "multiply(160196, 58.02)"
+     }
+    ],
+    "bo_qua_table": [
+     {
+      "hoi": "Biên lãi gộp trung bình trong giai đoạn 2015 đến 2019F là bao nhiêu phần trăm?",
+      "model": "add(18.2, 10.7), add(#0, 13.8), add(#0, 11.3), add(#0, 11.3), divide(#0, 5)",
+      "gold": "table_average(Biên lãi gộp (%), none)"
+     },
+     {
+      "hoi": "tính tổng eps của ppc trong 4 năm từ 2016 đến 2019.",
+      "model": "add(1724, 2680)",
+      "gold": "table_sum(EPS, none)"
+     },
+     {
+      "hoi": "Tính bằng triệu đô la cho năm 2013 và 2012, mức nợ ròng tối đa từ các hợp đồng phái sinh t",
+      "model": "add(22176, 27885)",
+      "gold": "table_max(nợ phái sinh ròng theo các thỏa thuận song phương, none)"
+     }
+    ],
+    "thua_buoc": [
+     {
+      "hoi": "Sự thay đổi trong thu nhập ròng từ hiệu ứng tích lũy của việc áp dụng là gì?",
+      "model": "subtract(54, 30), subtract(#0, 1), add(54, 30), subtract(#0, 1)",
+      "gold": "add(30, 1)"
+     },
+     {
+      "hoi": "Cổ phiếu loại B có vượt trội hơn cổ phiếu loại A dựa trên tổng lợi nhuận 5 năm không?",
+      "model": "subtract(296.67, 102.53), subtract(217.56, 78.53), subtract(#0, #1)",
+      "gold": "greater(217.56, 296.67)"
+     },
+     {
+      "hoi": "Tính tỷ lệ ROE năm 2021 dự báo so với năm 2020 ?",
+      "model": "subtract(16.4, 13.2), divide(#0, 13.2)",
+      "gold": "divide(16.4, 13.2)"
+     }
+    ],
+    "lam_dung_table": [
+     {
+      "hoi": "Phần nào trong tài sản ròng thu được liên quan đến giá trị thương hiệu (goodwill)?",
+      "model": "table_max(\"lợi thế thương mại\", none)",
+      "gold": "divide(13536, 16594)"
+     },
+     {
+      "hoi": "phần nào trong tổng nghĩa vụ giải quyết phá sản liên quan đến nghĩa vụ vốn cổ phần một lần",
+      "model": "table_sum(\"Nghĩa vụ vốn chủ sở hữu một lần\", none)",
+      "gold": "divide(1246, 5424)"
+     },
+     {
+      "hoi": "Mức giảm quan sát được trong các khoản bổ sung cho các vị trí thuế của các năm trước, tính",
+      "model": "table_min(\"các khoản giảm trừ cho các vị thế thuế của các năm trước\", none)",
+      "gold": "subtract(12, 10)"
+     }
+    ]
+   }
+  },
+  "minutes": 9.5
+ },
+ "model": "unsloth/Qwen3-8B",
+ "temperature": 0.1,
+ "max_tokens": 4096,
+ "max_seq_length": 17000,
+ "ctx_truncated": false,
+ "enable_thinking": null,
+ "ty_le_bi_cat_token": 0.0533,
+ "bi_cat_theo_buoc": {
+  "step1": {
+   "n": 497,
+   "bi_cat": 28,
+   "ty_le": 0.0563
+  },
+  "vot-bi-cat": {
+   "n": 28,
+   "bi_cat": 0,
+   "ty_le": 0.0
+  }
+ },
+ "nap_an_toan": false,
+ "config": {
+  "MODEL_NAME": "unsloth/Qwen3-8B",
+  "MODEL_TAG": "Qwen3-8B",
+  "TEMPERATURE": 0.1,
+  "MAX_TOKENS": 4096,
+  "REPETITION_PENALTY": 1.0,
+  "MAX_SEQ_LENGTH": 17000,
+  "BATCH_SIZE": 512,
+  "GPU_MEM_UTIL": 0.85,
+  "MAX_NUM_SEQS": 48,
+  "RANDOM_SEED": 42
+ },
+ "env": {
+  "python": "3.13.15",
+  "commit": "61f4cef",
+  "branch": "main",
+  "dirty": false,
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "vram_gb": 39.5,
+  "cc": "8.0",
+  "transformers": "4.57.6",
+  "trl": "0.24.0",
+  "peft": "0.20.0",
+  "vllm": "0.23.0",
+  "unsloth": "2026.9.4",
+  "sentence_transformers": "5.7.0",
+  "numpy": "2.1.3"
+ },
+ "prompt_level": "basic",
+ "self_eval": false,
+ "system_prompt_chars": 2745
+}

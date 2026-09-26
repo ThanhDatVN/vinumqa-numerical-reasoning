@@ -1,0 +1,324 @@
+{
+ "stage": "05c_ace_basic_random_base",
+ "label": "Đối chứng — bullet ngẫu nhiên, prompt cơ bản",
+ "stamp": "20260922_0845",
+ "n": 497,
+ "metrics": {
+  "label": "bullet ngẫu nhiên",
+  "n": 497,
+  "EA": 0.5996,
+  "PA_strict": 0.5573,
+  "PA_loose": 0.4869,
+  "EA_tol1e-3": 0.6016,
+  "no_program": 0.0,
+  "exec_none": 0.1449,
+  "outcome": {
+   "program_khong_chay_duoc": 72,
+   "dung": 277,
+   "sai": 127,
+   "dung_nhung_khac_program": 21
+  },
+  "by_steps": {
+   "1": [
+    319,
+    201,
+    189
+   ],
+   "2": [
+    161,
+    93,
+    86
+   ],
+   "3": [
+    10,
+    3,
+    2
+   ],
+   "4": [
+    4,
+    0,
+    0
+   ],
+   "5": [
+    3,
+    1,
+    0
+   ]
+  },
+  "by_phep": {
+   "nhiều (2)": [
+    161,
+    93,
+    86
+   ],
+   "divide": [
+    115,
+    77,
+    75
+   ],
+   "subtract": [
+    96,
+    56,
+    53
+   ],
+   "table_*": [
+    61,
+    37,
+    30
+   ],
+   "add": [
+    29,
+    21,
+    20
+   ],
+   "multiply": [
+    19,
+    12,
+    12
+   ],
+   "nhiều (3)": [
+    8,
+    1,
+    1
+   ],
+   "nhiều (4)": [
+    4,
+    0,
+    0
+   ],
+   "nhiều (5)": [
+    3,
+    1,
+    0
+   ],
+   "greater": [
+    1,
+    0,
+    0
+   ]
+  },
+  "vi_sao_khong_co_program": {
+   "bi_cat_giua_suy_nghi": 0,
+   "sai_dinh_dang": 0,
+   "ty_le_bi_cat": 0.0,
+   "ty_le_sai_dinh_dang": 0.0
+  },
+  "vi_sao_khong_chay_duoc": {
+   "tong": 72,
+   "theo_ly_do": {
+    "cu_phap_di_dang": 32,
+    "phep_long_nhau": 23,
+    "nhan_bang_khong_khop": 10,
+    "table_sai_cu_phap": 4,
+    "nhan_bang_mo_ho": 3
+   },
+   "ty_le": {
+    "cu_phap_di_dang": 0.0644,
+    "phep_long_nhau": 0.0463,
+    "nhan_bang_khong_khop": 0.0201,
+    "table_sai_cu_phap": 0.008,
+    "nhan_bang_mo_ho": 0.006
+   },
+   "vi_du": {
+    "cu_phap_di_dang": [
+     "add(5.07, 9.42) → #0",
+     "subtract(342, 301) → #0; divide(#0, 301)",
+     "subtract(92, 1000000) + divide(#0, 1000000)"
+    ],
+    "phep_long_nhau": [
+     "add(subtract(54, 30), 1)",
+     "divide(subtract(684, 1535), 1535)",
+     "subtract(table_max(\"hóa chất\", none), table_min(\"hóa chất\", none))"
+    ],
+    "nhan_bang_khong_khop": [
+     "table_sum(\"quỹ đất sẵn sàng cho thuê\", none)",
+     "table_max(\"Phương pháp\", none)",
+     "table_sum(\"năm kết thúc vào ngày 31 tháng 12\", none)"
+    ],
+    "table_sai_cu_phap": [
+     "table_max(\"địa điểm\", \"woburn ma\")",
+     "table_average(\"FY (Dec.)\", \"12/18\")",
+     "table_average(\"Tỷ lệ LNHĐKD (%)\", \"2019\")"
+    ],
+    "nhan_bang_mo_ho": [
+     "table_max(\"Tăng trưởng so với cùng kỳ (%)\", none)",
+     "table_max(\"Lãi hoạt động\", none)",
+     "table_max(\"Lợi nhuận hoạt động\", none)"
+    ]
+   }
+  },
+  "vi_sao_sai": {
+   "tong": 127,
+   "theo_kieu": {
+    "dung_phep_sai_so_lieu": 60,
+    "thua_buoc": 24,
+    "thieu_buoc": 13,
+    "bo_qua_table": 11,
+    "lam_dung_table": 10,
+    "dung_so_buoc_sai_phep": 9
+   },
+   "ty_le": {
+    "dung_phep_sai_so_lieu": 0.1207,
+    "thua_buoc": 0.0483,
+    "thieu_buoc": 0.0262,
+    "bo_qua_table": 0.0221,
+    "lam_dung_table": 0.0201,
+    "dung_so_buoc_sai_phep": 0.0181
+   },
+   "vi_du": {
+    "dung_phep_sai_so_lieu": [
+     {
+      "hoi": "lợi nhuận ròng dự báo năm 2020 giảm bao nhiêu phần trăm so với năm 2019?",
+      "model": "subtract(349, 331), divide(#0, 349)",
+      "gold": "subtract(331, 349), divide(#0, 349)"
+     },
+     {
+      "hoi": "Giá thấp nhất của cổ phiếu MKTX đã tăng bao nhiêu phần trăm từ năm 2011 đến tháng 3 năm 20",
+      "model": "subtract(29.26, 19.78), divide(#0, 19.78)",
+      "gold": "subtract(29.26, 24.57), divide(#0, 24.57)"
+     },
+     {
+      "hoi": "Tăng trưởng doanh thu của ngành Bất động sản cao hơn bao nhiêu điểm phần trăm so với mức t",
+      "model": "subtract(52, 22.3)",
+      "gold": "subtract(52.04, 22.3)"
+     }
+    ],
+    "thua_buoc": [
+     {
+      "hoi": "Tỷ lệ phần trăm các cam kết tương lai cho hợp đồng chi tiêu vốn dịch vụ, bảo trì và nâng c",
+      "model": "add(248107, 433161), divide(#0, 1381518)",
+      "gold": "divide(433161, 15973855)"
+     },
+     {
+      "hoi": "tỷ suất lợi nhuận tổng cộng trong năm năm của Goldman Sachs Group Inc. là bao nhiêu?",
+      "model": "subtract(248.36, 100.00), divide(#0, 100.00)",
+      "gold": "subtract(248.36, 100)"
+     },
+     {
+      "hoi": "Tỷ lệ ROE (%) của HPG trong năm 2020 dự kiến giảm bao nhiêu so với năm 2019?",
+      "model": "subtract(17.1, 14.6), divide(#0, 17.1)",
+      "gold": "subtract(14.6, 17.1)"
+     }
+    ],
+    "thieu_buoc": [
+     {
+      "hoi": "tốc độ tăng trưởng lợi nhuận sau thuế dự kiến cho năm 2020 so với năm 2019 là bao nhiêu ph",
+      "model": "divide(19296, 18511)",
+      "gold": "subtract(19296, 18511), divide(#0, 18511)"
+     },
+     {
+      "hoi": "Tính mức giảm của ROE từ năm 2020 đến 2021.",
+      "model": "subtract(20.4, 19.2)",
+      "gold": "subtract(19.2, 20.4), divide(#0, 20.4)"
+     },
+     {
+      "hoi": "Tác động tổng cộng lên DVA của việc tăng 1 điểm cơ bản trong chênh lệch tín dụng của JPMor",
+      "model": "add(32, 38)",
+      "gold": "add(32, 38), multiply(#0, 1000000)"
+     }
+    ],
+    "bo_qua_table": [
+     {
+      "hoi": "Tính trung bình biên lãi hoạt động (%) của BCM trong 3 năm 2018, 2019 và 2020 dự báo.",
+      "model": "add(31.4, 22.1), add(#0, 27.7), divide(#0, 3)",
+      "gold": "table_average(Biên lãi hoạt động (%), none)"
+     },
+     {
+      "hoi": "Tính bằng triệu đô la cho năm 2013 và 2012, mức nợ ròng tối đa từ các hợp đồng phái sinh t",
+      "model": "add(22176, 27885)",
+      "gold": "table_max(nợ phái sinh ròng theo các thỏa thuận song phương, none)"
+     },
+     {
+      "hoi": "Lợi nhuận hoạt động kinh doanh (HĐKD) trung bình tính bằng tỷ đồng từ năm tài chính 2018 đ",
+      "model": "add(706, 691), add(#0, 797), add(#0, 779), add(#0, 806), divide(#0, 5)",
+      "gold": "table_average(Lợi nhuận HĐKD ( tỷ đồng), none)"
+     }
+    ],
+    "lam_dung_table": [
+     {
+      "hoi": "Dựa trên thông tin rằng Thu nhập lãi thuần, tổng thu nhập hoạt động trong quý 3 năm 2020 l",
+      "model": "table_sum(\"Thu nhập lãi thuần\", none)",
+      "gold": "divide(9151, 0.741)"
+     },
+     {
+      "hoi": "Phần nào trong tài sản ròng thu được liên quan đến giá trị thương hiệu (goodwill)?",
+      "model": "table_max(\"lợi thế thương mại\", none)",
+      "gold": "divide(13536, 16594)"
+     },
+     {
+      "hoi": "Dựa trên doanh thu và lãi gộp, biên lãi gộp của năm 2017 là bao nhiêu?",
+      "model": "table_min(\"Biên lãi gộp (%)\", none)",
+      "gold": "divide(4107, 29710)"
+     }
+    ],
+    "dung_so_buoc_sai_phep": [
+     {
+      "hoi": "Mức lỗ chuyển đổi ngoại tệ tối thiểu là bao nhiêu, tính bằng triệu?",
+      "model": "table_min(\"chênh lệch tỷ giá hối đoái\", none)",
+      "gold": "table_max(chênh lệch tỷ giá hối đoái, none)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm thay đổi trong các khoản phí bản quyền được ghi nhận trong giá vốn hàng bá",
+      "model": "subtract(9.3, 8.4), divide(#0, 8.4)",
+      "gold": "subtract(9.3, 8.4), add(#0, 8.4)"
+     },
+     {
+      "hoi": "Tỷ suất sinh lợi trên doanh thu thuần của PPC năm 2018 là bao nhiêu?",
+      "model": "table_average(\"Tỷ suất sinh lợi trên doanh thu thuần\", none)",
+      "gold": "table_max(Tỷ suất sinh lợi trên doanh thu thuần, none)"
+     }
+    ]
+   }
+  }
+ },
+ "model": "unsloth/Qwen3-8B",
+ "temperature": 0.1,
+ "max_tokens": 4096,
+ "max_seq_length": 17000,
+ "ctx_truncated": false,
+ "enable_thinking": null,
+ "ty_le_bi_cat_token": 0.0446,
+ "bi_cat_theo_buoc": {
+  "step1": {
+   "n": 497,
+   "bi_cat": 23,
+   "ty_le": 0.0463
+  },
+  "vot-bi-cat": {
+   "n": 19,
+   "bi_cat": 0,
+   "ty_le": 0.0
+  }
+ },
+ "nap_an_toan": false,
+ "config": {
+  "MODEL_NAME": "unsloth/Qwen3-8B",
+  "MODEL_TAG": "Qwen3-8B",
+  "TEMPERATURE": 0.1,
+  "MAX_TOKENS": 4096,
+  "REPETITION_PENALTY": 1.0,
+  "MAX_SEQ_LENGTH": 17000,
+  "BATCH_SIZE": 512,
+  "GPU_MEM_UTIL": 0.85,
+  "MAX_NUM_SEQS": 48,
+  "RANDOM_SEED": 42
+ },
+ "env": {
+  "python": "3.13.15",
+  "commit": "d7339e0",
+  "branch": "main",
+  "dirty": false,
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "vram_gb": 39.5,
+  "cc": "8.0",
+  "transformers": "4.57.6",
+  "trl": "0.24.0",
+  "peft": "0.20.0",
+  "vllm": "0.23.0",
+  "unsloth": "2026.9.4",
+  "sentence_transformers": "5.7.0",
+  "numpy": "2.1.3"
+ },
+ "note": "đối chứng bullet ngẫu nhiên"
+}

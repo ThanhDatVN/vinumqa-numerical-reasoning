@@ -213,15 +213,31 @@ dùng. `tools/ve_bieu_do.py` đọc thẳng các file này nên hình trong tài
 
 ## 5. Tái lập
 
-### Chạy dưới máy
+### Dựng lại kết quả mà không cần GPU
+
+Kết quả từng mẫu của cả 13 nấc nằm sẵn trong `results/stages/` (6,5 MB). Mọi con số và
+hình trong tài liệu tính lại được từ đó trên CPU:
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/ -q          # 248 test, ~10 giây
-python tools/kiem_tra.py --day-du   # bộ kiểm toàn dự án
+python tools/ve_bieu_do.py          # dựng lại 6 hình của docs/hinh
 ```
 
-### Chạy thực nghiệm
+Sáu hình dựng lại trùng từng byte với bản đang có trong repo.
+
+Mỗi nấc gồm hai file: `<nấc>.jsonl` (từng mẫu — câu hỏi, chương trình sinh ra, giá trị
+thực thi, EA/PA, phân loại lỗi, và với nấc K mẫu là cả năm ứng viên) và
+`<nấc>_meta.json` (chỉ số tổng hợp, cấu hình sinh, phiên bản thư viện, commit, GPU).
+Adapter SFT, checkpoint huấn luyện và log thô không đưa vào git vì dung lượng.
+
+### Kiểm thử
+
+```bash
+python -m pytest tests/ -q          # 245 test, ~6 giây, không cần mô hình
+python tools/kiem_tra.py --day-du   # 8 phép kiểm toàn dự án
+```
+
+### Chạy lại thực nghiệm
 
 Mỗi notebook trong `notebooks/` là một nấc độc lập, chạy trên Google Colab với A100-40GB.
 Ô đầu tiên tự lấy mã nguồn từ GitHub và gắn Google Drive; kết quả ghi xuống Drive dưới

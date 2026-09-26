@@ -1,0 +1,292 @@
+{
+ "stage": "08_tu_nhat_quan",
+ "label": "Mới — self-consistency K mẫu (ví dụ cố định)",
+ "stamp": "20260921_0446",
+ "n": 497,
+ "metrics": {
+  "label": "08_tu_nhat_quan",
+  "n": 497,
+  "EA": 0.7324,
+  "PA_strict": 0.6781,
+  "PA_loose": 0.6338,
+  "EA_tol1e-3": 0.7364,
+  "no_program": 0.0,
+  "exec_none": 0.0,
+  "outcome": {
+   "sai": 133,
+   "dung": 337,
+   "dung_nhung_khac_program": 27
+  },
+  "by_steps": {
+   "1": [
+    319,
+    230,
+    214
+   ],
+   "2": [
+    161,
+    124,
+    114
+   ],
+   "3": [
+    10,
+    7,
+    6
+   ],
+   "4": [
+    4,
+    2,
+    2
+   ],
+   "5": [
+    3,
+    1,
+    1
+   ]
+  },
+  "by_phep": {
+   "nhiều (2)": [
+    161,
+    124,
+    114
+   ],
+   "divide": [
+    115,
+    82,
+    81
+   ],
+   "subtract": [
+    96,
+    58,
+    58
+   ],
+   "table_*": [
+    61,
+    56,
+    44
+   ],
+   "add": [
+    29,
+    23,
+    21
+   ],
+   "multiply": [
+    19,
+    13,
+    12
+   ],
+   "nhiều (3)": [
+    8,
+    5,
+    4
+   ],
+   "nhiều (4)": [
+    4,
+    2,
+    2
+   ],
+   "nhiều (5)": [
+    3,
+    1,
+    1
+   ],
+   "greater": [
+    1,
+    0,
+    0
+   ]
+  },
+  "vi_sao_khong_co_program": {
+   "bi_cat_giua_suy_nghi": 0,
+   "sai_dinh_dang": 0,
+   "ty_le_bi_cat": 0.0,
+   "ty_le_sai_dinh_dang": 0.0
+  },
+  "vi_sao_khong_chay_duoc": null,
+  "vi_sao_sai": {
+   "tong": 133,
+   "theo_kieu": {
+    "dung_phep_sai_so_lieu": 58,
+    "thua_buoc": 42,
+    "dung_so_buoc_sai_phep": 11,
+    "thieu_buoc": 11,
+    "lam_dung_table": 8,
+    "bo_qua_table": 3
+   },
+   "ty_le": {
+    "dung_phep_sai_so_lieu": 0.1167,
+    "thua_buoc": 0.0845,
+    "dung_so_buoc_sai_phep": 0.0221,
+    "thieu_buoc": 0.0221,
+    "lam_dung_table": 0.0161,
+    "bo_qua_table": 0.006
+   },
+   "vi_du": {
+    "dung_phep_sai_so_lieu": [
+     {
+      "hoi": "tốc độ tăng trưởng lợi nhuận sau thuế dự kiến cho năm 2020 so với năm 2019 là bao nhiêu ph",
+      "model": "subtract(30854, 19296), divide(#0, 19296)",
+      "gold": "subtract(19296, 18511), divide(#0, 18511)"
+     },
+     {
+      "hoi": "lợi nhuận ròng dự báo năm 2020 giảm bao nhiêu phần trăm so với năm 2019?",
+      "model": "subtract(349, 331), divide(#0, 349)",
+      "gold": "subtract(331, 349), divide(#0, 349)"
+     },
+     {
+      "hoi": "Giá thấp nhất của cổ phiếu MKTX đã tăng bao nhiêu phần trăm từ năm 2011 đến tháng 3 năm 20",
+      "model": "subtract(29.26, 19.78), divide(#0, 19.78)",
+      "gold": "subtract(29.26, 24.57), divide(#0, 24.57)"
+     }
+    ],
+    "thua_buoc": [
+     {
+      "hoi": "Sự thay đổi trong thu nhập ròng từ hiệu ứng tích lũy của việc áp dụng là gì?",
+      "model": "add(-54, 30), add(#0, 1)",
+      "gold": "add(30, 1)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm các cam kết tương lai cho hợp đồng chi tiêu vốn dịch vụ, bảo trì và nâng c",
+      "model": "add(248107, 433161), divide(#0, 1381518)",
+      "gold": "divide(433161, 15973855)"
+     },
+     {
+      "hoi": "EPS của PME năm 2019F giảm bao nhiêu so với năm 2018?",
+      "model": "subtract(4104, 4073), divide(#0, 4104)",
+      "gold": "subtract(4073, 4104)"
+     }
+    ],
+    "dung_so_buoc_sai_phep": [
+     {
+      "hoi": "Mức lỗ chuyển đổi ngoại tệ tối thiểu là bao nhiêu, tính bằng triệu?",
+      "model": "table_min(Chênh lệch tỷ giá hối đoái, none)",
+      "gold": "table_max(chênh lệch tỷ giá hối đoái, none)"
+     },
+     {
+      "hoi": "Dựa trên dự báo năm 2021, chi phí tài chính của năm 2020 là bao nhiêu tỷ đồng?",
+      "model": "add(1, 0.10), divide(182, #0)",
+      "gold": "subtract(1, 0.10), divide(182, #0)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm thay đổi trong các khoản phí bản quyền được ghi nhận trong giá vốn hàng bá",
+      "model": "subtract(9.3, 8.4), divide(#0, 8.4)",
+      "gold": "subtract(9.3, 8.4), add(#0, 8.4)"
+     }
+    ],
+    "thieu_buoc": [
+     {
+      "hoi": "Tính mức giảm của ROE từ năm 2020 đến 2021.",
+      "model": "subtract(20.4, 19.2)",
+      "gold": "subtract(19.2, 20.4), divide(#0, 20.4)"
+     },
+     {
+      "hoi": "Tác động tổng cộng lên DVA của việc tăng 1 điểm cơ bản trong chênh lệch tín dụng của JPMor",
+      "model": "add(32, 38)",
+      "gold": "add(32, 38), multiply(#0, 1000000)"
+     },
+     {
+      "hoi": "Sự khác biệt về tỷ lệ phần trăm lợi tức cổ đông tích lũy 5 năm trên cổ phiếu phổ thông của",
+      "model": "subtract(311.81, 198.18), divide(#0, 198.18)",
+      "gold": "subtract(198.18, 100), divide(#0, 100), subtract(311.81, 100), divide(#2, 100), subtract(#"
+     }
+    ],
+    "lam_dung_table": [
+     {
+      "hoi": "Phần nào trong tài sản ròng thu được liên quan đến giá trị thương hiệu (goodwill)?",
+      "model": "table_max(Lợi thế thương mại, none)",
+      "gold": "divide(13536, 16594)"
+     },
+     {
+      "hoi": "phần nào của tài sản Woburn được sử dụng bởi American Tower Corporation?",
+      "model": "table_max(woburn ma, none)",
+      "gold": "divide(57800, 163000)"
+     },
+     {
+      "hoi": "phần nào trong tổng nghĩa vụ giải quyết phá sản liên quan đến nghĩa vụ vốn cổ phần một lần",
+      "model": "table_sum(Nghĩa vụ vốn chủ sở hữu một lần, none)",
+      "gold": "divide(1246, 5424)"
+     }
+    ],
+    "bo_qua_table": [
+     {
+      "hoi": "Tính trung bình doanh thu của HPG từ năm 2015 đến năm 2019.",
+      "model": "add(27453, 33283), add(#0, 46162), add(#1, 55836), add(#2, 63658), divide(#3, 5)",
+      "gold": "table_average(Doanh thu, none)"
+     },
+     {
+      "hoi": "Số dư kết thúc trung bình trong số dư dòng tiền chiết khấu là bao nhiêu?",
+      "model": "add(6469, 6001), add(#0, 5441), divide(#0, 3)",
+      "gold": "table_average(cuối năm, none)"
+     },
+     {
+      "hoi": "độ biến động trung bình kỳ vọng được sử dụng trong công thức black scholes là bao nhiêu?",
+      "model": "add(84, 73), add(#0, 65), divide(#0, 3)",
+      "gold": "table_average(biến động dự kiến, none)"
+     }
+    ]
+   }
+  },
+  "minutes": 32.6
+ },
+ "model": "unsloth/Qwen3-8B",
+ "temperature": 0.1,
+ "max_tokens": 4096,
+ "max_seq_length": 17000,
+ "ctx_truncated": false,
+ "enable_thinking": null,
+ "ty_le_bi_cat_token": 0.0173,
+ "bi_cat_theo_buoc": {
+  "step1": {
+   "n": 2485,
+   "bi_cat": 43,
+   "ty_le": 0.0173
+  },
+  "sua": {
+   "n": 5,
+   "bi_cat": 0,
+   "ty_le": 0.0
+  }
+ },
+ "nap_an_toan": false,
+ "config": {
+  "MODEL_NAME": "unsloth/Qwen3-8B",
+  "MODEL_TAG": "Qwen3-8B",
+  "TEMPERATURE": 0.1,
+  "MAX_TOKENS": 4096,
+  "REPETITION_PENALTY": 1.0,
+  "MAX_SEQ_LENGTH": 17000,
+  "BATCH_SIZE": 512,
+  "GPU_MEM_UTIL": 0.85,
+  "MAX_NUM_SEQS": 48,
+  "RANDOM_SEED": 42
+ },
+ "env": {
+  "python": "3.13.15",
+  "commit": "61f4cef",
+  "branch": "main",
+  "dirty": false,
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "vram_gb": 39.5,
+  "cc": "8.0",
+  "transformers": "4.57.6",
+  "trl": "0.24.0",
+  "peft": "0.20.0",
+  "vllm": "0.23.0",
+  "unsloth": "2026.9.4",
+  "sentence_transformers": "5.7.0",
+  "numpy": "2.1.3"
+ },
+ "prompt_level": "engineered",
+ "self_eval": false,
+ "so_mau": 5,
+ "temperature_moi": 0.7,
+ "top_p": 0.95,
+ "vi_du_dong": false,
+ "sua_khi_loi": true,
+ "tran_best_of_k": {
+  "EA_tran": 0.8169,
+  "PA_tran": 0.7686,
+  "n": 497
+ }
+}

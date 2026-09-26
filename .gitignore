@@ -25,8 +25,19 @@ FINReseaning_FJCAI2026.pdf
 # ket qua tai tu Drive ve de phan tich — KHONG commit
 vinumqa_runs/
 
-# ket qua tai tu Drive ve de phan tich — KHONG commit
-results/
+# Kết quả chạy thực nghiệm.
+# Phần NẶNG (adapter, checkpoint, dữ liệu SFT, log thô) không đưa vào git.
+# Phần NHẸ — file nấc và báo cáo cuối — được giữ lại để mọi con số trong docs/
+# dựng lại được mà không cần GPU: xem tools/ve_bieu_do.py
+/results/*
+!/results/stages/
+!/results/playbook_ace_base.txt
+!/results/playbook_ace_basic_base.txt
+!/results/bang_ket_qua_20260922_1922.csv
+!/results/kiem_dinh_20260922_1922.csv
+/results/stages/*
+!/results/stages/*.jsonl
+!/results/stages/*_meta.json
 
 # file cua trinh soan thao
 *.code-workspace

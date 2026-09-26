@@ -1,0 +1,1666 @@
+{
+ "stage": "05c_ace_basic_base",
+ "label": "Nấc 5c — ACE trên prompt cơ bản",
+ "stamp": "20260922_0845",
+ "n": 497,
+ "metrics": {
+  "label": "05c_ace_basic_base",
+  "n": 497,
+  "EA": 0.6217,
+  "PA_strict": 0.5734,
+  "PA_loose": 0.495,
+  "EA_tol1e-3": 0.6258,
+  "no_program": 0.0,
+  "exec_none": 0.1187,
+  "outcome": {
+   "sai": 129,
+   "dung": 285,
+   "program_khong_chay_duoc": 59,
+   "dung_nhung_khac_program": 24
+  },
+  "by_steps": {
+   "1": [
+    319,
+    204,
+    190
+   ],
+   "2": [
+    161,
+    103,
+    94
+   ],
+   "3": [
+    10,
+    2,
+    1
+   ],
+   "4": [
+    4,
+    0,
+    0
+   ],
+   "5": [
+    3,
+    0,
+    0
+   ]
+  },
+  "by_phep": {
+   "nhiều (2)": [
+    161,
+    103,
+    94
+   ],
+   "divide": [
+    115,
+    78,
+    76
+   ],
+   "subtract": [
+    96,
+    53,
+    51
+   ],
+   "table_*": [
+    61,
+    41,
+    34
+   ],
+   "add": [
+    29,
+    23,
+    22
+   ],
+   "multiply": [
+    19,
+    10,
+    8
+   ],
+   "nhiều (3)": [
+    8,
+    1,
+    0
+   ],
+   "nhiều (4)": [
+    4,
+    0,
+    0
+   ],
+   "nhiều (5)": [
+    3,
+    0,
+    0
+   ],
+   "greater": [
+    1,
+    0,
+    0
+   ]
+  },
+  "vi_sao_khong_co_program": {
+   "bi_cat_giua_suy_nghi": 0,
+   "sai_dinh_dang": 0,
+   "ty_le_bi_cat": 0.0,
+   "ty_le_sai_dinh_dang": 0.0
+  },
+  "vi_sao_khong_chay_duoc": {
+   "tong": 59,
+   "theo_ly_do": {
+    "cu_phap_di_dang": 29,
+    "phep_long_nhau": 16,
+    "nhan_bang_khong_khop": 5,
+    "table_sai_cu_phap": 5,
+    "sai_so_tham_so": 2,
+    "nhan_bang_mo_ho": 2
+   },
+   "ty_le": {
+    "cu_phap_di_dang": 0.0584,
+    "phep_long_nhau": 0.0322,
+    "nhan_bang_khong_khop": 0.0101,
+    "table_sai_cu_phap": 0.0101,
+    "sai_so_tham_so": 0.004,
+    "nhan_bang_mo_ho": 0.004
+   },
+   "vi_du": {
+    "cu_phap_di_dang": [
+     "add(248107, 433161) + divide(#0, 1381518)",
+     "add(5.07, 9.42) + add(#0, 15.46) + add(#0, 17.80) + divide(#0, 4)",
+     "subtract(248.36, 100) → #0"
+    ],
+    "phep_long_nhau": [
+     "divide(subtract(248.36, 100.00), 100.00)",
+     "subtract(table_max(\"hóa chất\", none), table_min(\"hóa chất\", none))",
+     "divide(39763, add(43408, 17573))"
+    ],
+    "nhan_bang_khong_khop": [
+     "table_min(\"thấp\", none), table_min(\"thấp\", none), subtract(29.26, 19.78), divide(#0, 19.78)",
+     "table_max(\"Giá trị hợp lý mỗi cổ phiếu\", none)",
+     "table_sum(\"số lượng chứng khoán còn lại có sẵn để phát hành trong tương lai theo các kế hoạch thưởng cổ phiếu ( không bao gồm chứng khoán được phản ánh trong cộ"
+    ],
+    "table_sai_cu_phap": [
+     "table_sum(\"Thu nhập lãi thuần\", \"3Q20\")",
+     "table_sum(\"woburn ma\", \"diện tích ( feet vuông )\")",
+     "table_sum(\"các kế hoạch bồi thường vốn chủ sở hữu được chủ sở hữu chứng khoán chấp thuận\", \"số lượng chứng khoán sẽ được phát hành khi thực hiện quyền chọn đang"
+    ],
+    "sai_so_tham_so": [
+     "table_sum(\"Dự án căn hộ cao cấp Vũng Tàu Gateway\", \"Dự án khu dân cư Hiệp Phước (Đồng Nai)\", \"Dự án DIC Star Apart Hotel Vũng Tàu (Dự án CSJ – Giai đoạn 1)\", no",
+     "table_sum(\"Lĩnh vực 1\", \"Lĩnh vực 2\", \"Lĩnh vực 3\")"
+    ],
+    "nhan_bang_mo_ho": [
+     "table_max(\"Lãi hoạt động\", none)",
+     "table_max(\"quý kết thúc ngày 31 tháng 3\", none), table_min(\"quý kết thúc ngày 31 tháng 3\", none), subtract(101.88, 93.21), divide(#0, 101.88)"
+    ]
+   }
+  },
+  "vi_sao_sai": {
+   "tong": 129,
+   "theo_kieu": {
+    "dung_phep_sai_so_lieu": 63,
+    "thua_buoc": 26,
+    "thieu_buoc": 14,
+    "dung_so_buoc_sai_phep": 11,
+    "lam_dung_table": 11,
+    "bo_qua_table": 4
+   },
+   "ty_le": {
+    "dung_phep_sai_so_lieu": 0.1268,
+    "thua_buoc": 0.0523,
+    "thieu_buoc": 0.0282,
+    "dung_so_buoc_sai_phep": 0.0221,
+    "lam_dung_table": 0.0221,
+    "bo_qua_table": 0.008
+   },
+   "vi_du": {
+    "dung_phep_sai_so_lieu": [
+     {
+      "hoi": "lợi nhuận ròng dự báo năm 2020 giảm bao nhiêu phần trăm so với năm 2019?",
+      "model": "subtract(349, 331), divide(#0, 349)",
+      "gold": "subtract(331, 349), divide(#0, 349)"
+     },
+     {
+      "hoi": "Tăng trưởng doanh thu của ngành Bất động sản cao hơn bao nhiêu điểm phần trăm so với mức t",
+      "model": "subtract(52, 22.3)",
+      "gold": "subtract(52.04, 22.3)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm cải thiện các khoản phải thu chưa lập hóa đơn trên các hợp đồng xây dựng t",
+      "model": "subtract(33.1, 22.7), divide(#0, 33.1)",
+      "gold": "subtract(22.7, 33.1), divide(#0, 33.1)"
+     }
+    ],
+    "thua_buoc": [
+     {
+      "hoi": "Sự thay đổi trong thu nhập ròng từ hiệu ứng tích lũy của việc áp dụng là gì?",
+      "model": "add(-54, 30), add(#0, 1)",
+      "gold": "add(30, 1)"
+     },
+     {
+      "hoi": "Tỷ lệ ROE (%) của HPG trong năm 2020 dự kiến giảm bao nhiêu so với năm 2019?",
+      "model": "subtract(17.1, 14.6), divide(#0, 17.1)",
+      "gold": "subtract(14.6, 17.1)"
+     },
+     {
+      "hoi": "Tỷ lệ giảm của chi phí thuế hiệu quả giữa năm 2015 và 2016 là bao nhiêu?",
+      "model": "subtract(36.3, 32.9), divide(#0, 36.3)",
+      "gold": "subtract(36.3%, 32.9%)"
+     }
+    ],
+    "thieu_buoc": [
+     {
+      "hoi": "Tính mức giảm của ROE từ năm 2020 đến 2021.",
+      "model": "subtract(20.4, 19.2)",
+      "gold": "subtract(19.2, 20.4), divide(#0, 20.4)"
+     },
+     {
+      "hoi": "Tác động tổng cộng lên DVA của việc tăng 1 điểm cơ bản trong chênh lệch tín dụng của JPMor",
+      "model": "add(32, 38)",
+      "gold": "add(32, 38), multiply(#0, 1000000)"
+     },
+     {
+      "hoi": "Tổng giá trị chứng khoán đã phát hành được phê duyệt bởi các cổ đông là bao nhiêu (tính bằ",
+      "model": "add(2590898, 352796)",
+      "gold": "multiply(2590898, 22.08), divide(#0, 1000000)"
+     }
+    ],
+    "dung_so_buoc_sai_phep": [
+     {
+      "hoi": "Mức lỗ chuyển đổi ngoại tệ tối thiểu là bao nhiêu, tính bằng triệu?",
+      "model": "table_min(\"chênh lệch tỷ giá hối đoái\", none)",
+      "gold": "table_max(chênh lệch tỷ giá hối đoái, none)"
+     },
+     {
+      "hoi": "tính đến ngày 31 tháng 12 năm 2017, giá trị của các phần thưởng cổ phiếu được cấp là bao n",
+      "model": "add(5600000, 0)",
+      "gold": "multiply(160196, 58.02)"
+     },
+     {
+      "hoi": "Tỷ lệ phần trăm thay đổi trong các khoản phí bản quyền được ghi nhận trong giá vốn hàng bá",
+      "model": "subtract(9.3, 8.4), divide(#0, 8.4)",
+      "gold": "subtract(9.3, 8.4), add(#0, 8.4)"
+     }
+    ],
+    "lam_dung_table": [
+     {
+      "hoi": "Tổng tỷ trọng của phương pháp P/E và P/B trong định giá là bao nhiêu?",
+      "model": "table_sum(\"p/e\", none)",
+      "gold": "add(0.20, 0.30)"
+     },
+     {
+      "hoi": "Phần nào trong tài sản ròng thu được liên quan đến giá trị thương hiệu (goodwill)?",
+      "model": "table_max(\"lợi thế thương mại\", none)",
+      "gold": "divide(13536, 16594)"
+     },
+     {
+      "hoi": "Tính tỷ lệ P/E trung bình trong giai đoạn 2015-2019.",
+      "model": "table_average(\"P/E (x)\", none)",
+      "gold": "add(14.8, 18.3), add(#0, 20.9), add(#1, 16.1), add(#2, 9.8), divide(#3, 5)"
+     }
+    ],
+    "bo_qua_table": [
+     {
+      "hoi": "Tỷ suất sinh lời trên vốn chủ sở hữu (ROE) trung bình từ năm 2016 đến 2019F là bao nhiêu?",
+      "model": "add(4.5, 9.1), add(#0, 7.8), add(#0, 7.5), divide(#0, 4)",
+      "gold": "table_average(ROE (%), none)"
+     },
+     {
+      "hoi": "Số dư kết thúc trung bình trong số dư dòng tiền chiết khấu là bao nhiêu?",
+      "model": "add(5441, 6001), add(#0, 6469), divide(#0, 3)",
+      "gold": "table_average(cuối năm, none)"
+     },
+     {
+      "hoi": "độ biến động trung bình kỳ vọng được sử dụng trong công thức black scholes là bao nhiêu?",
+      "model": "add(84, 73), add(#0, 65), divide(#0, 3)",
+      "gold": "table_average(biến động dự kiến, none)"
+     }
+    ]
+   }
+  },
+  "minutes": 10.3
+ },
+ "model": "unsloth/Qwen3-8B",
+ "temperature": 0.1,
+ "max_tokens": 4096,
+ "max_seq_length": 17000,
+ "ctx_truncated": false,
+ "enable_thinking": null,
+ "ty_le_bi_cat_token": 0.0446,
+ "bi_cat_theo_buoc": {
+  "step1": {
+   "n": 497,
+   "bi_cat": 23,
+   "ty_le": 0.0463
+  },
+  "vot-bi-cat": {
+   "n": 19,
+   "bi_cat": 0,
+   "ty_le": 0.0
+  }
+ },
+ "nap_an_toan": false,
+ "config": {
+  "MODEL_NAME": "unsloth/Qwen3-8B",
+  "MODEL_TAG": "Qwen3-8B",
+  "TEMPERATURE": 0.1,
+  "MAX_TOKENS": 4096,
+  "REPETITION_PENALTY": 1.0,
+  "MAX_SEQ_LENGTH": 17000,
+  "BATCH_SIZE": 512,
+  "GPU_MEM_UTIL": 0.85,
+  "MAX_NUM_SEQS": 48,
+  "RANDOM_SEED": 42
+ },
+ "env": {
+  "python": "3.13.15",
+  "commit": "d7339e0",
+  "branch": "main",
+  "dirty": false,
+  "torch": "2.11.0+cu128",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "vram_gb": 39.5,
+  "cc": "8.0",
+  "transformers": "4.57.6",
+  "trl": "0.24.0",
+  "peft": "0.20.0",
+  "vllm": "0.23.0",
+  "unsloth": "2026.9.4",
+  "sentence_transformers": "5.7.0",
+  "numpy": "2.1.3"
+ },
+ "prompt_level": "basic",
+ "self_eval": false,
+ "base": "base",
+ "prev_stage": "01_basic",
+ "playbook": "## Chiến lược số học\n- [cl-00001] Khi bài toán yêu cầu tính toán nhiều bước, sử dụng add(a, b), add(#0, c), divide(#n, m) để có kết quả cuối cùng. (h=47, harm=4)\n- [cl-00002] Khi bài toán yêu cầu tính toán nhiều bước, hãy sử dụng các phép toán tuần tự với kết quả trước đó, ví dụ: add(a, b), add(#0, c), divide(#n, 5).\n\n## Đọc bảng\n- [db-00001] Khi hỏi TỶ LỆ thay đổi giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) để tính toán. (h=1, harm=0)\n- [db-00002] Khi hỏi tỷ lệ phần trăm của một giá trị so với tổng, dùng divide(phan, tong) với phan là giá trị cần tính và tong là tổng.\n- [db-00003] Khi hỏi giá trị lớn nhất hoặc nhỏ nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none) hoặc table_min(ten_chi_tieu, none).\n\n## Sinh program\n- [sp-00001] Khi hỏi TỶ LỆ tăng/giảm giữa hai kỳ, dùng subtract(gia_tri_moi, gia_tri_cu), divide(#0, gia_tri_cu) và không nhân 100. (h=9, harm=1)\n- [sp-00002] Khi tính trung bình của một chỉ tiêu trong bảng, dùng table_average(ten_chi_tieu, none). (h=2, harm=0)\n- [sp-00003] Khi tính trung bình của hai giá trị, dùng add(gia_tri_1, gia_tri_2), divide(#0, 2).\n- [sp-00004] Khi tính tổng của một chỉ tiêu trong bảng, dùng table_sum(ten_chi_tieu, none).\n- [sp-00005] Khi cộng nhiều giá trị rời rạc, sử dụng add(a, b), add(#0, c) mà không lồng phép toán.\n- [sp-00006] Khi hỏi sự chênh lệch giữa giá trị lớn nhất và nhỏ nhất của một chỉ tiêu trong bảng, dùng table_max(ten_chi_tieu, none), table_min(ten_chi_tieu, none), subtract(#0, #1). (h=1, harm=0)\n- [sp-00007] Khi hỏi tỷ số giữa hai đại lượng, dùng divide(tu_so, mau_so) với tu_so là giá trị cần tính và mau_so là giá trị tham chiếu. (h=3, harm=0)\n\n## Lỗi thường gặp\n- [lt-00001] Khi cộng nhiều giá trị rời rạc để tính tỷ lệ, sử dụng add(a, b), add(#0, c) và divide(#n, mau_so) để có kết quả cuối cùng. (h=6, harm=0)\n- [lt-00002] Khi hỏi chênh lệch tuyệt đối giữa hai giá trị, dùng subtract(gia_tri_moi, gia_tri_cu). (h=1, harm=0)\n\n## Mẹo ngữ cảnh\n- [mn-00001] Khi cộng nhiều giá trị rời rạc, dùng add(a, b), add(#0, c) và sau đó divide(phan, tong) để tính tỷ lệ phần trăm. (h=1, harm=0)\n- [mn-00002] Khi bài toán yêu cầu tính toán nhiều bước, sử dụng phép toán tuần tự với kết quả trước đó, ví dụ: subtract(a, b), divide(#0, 100) để có kết quả cuối cùng.\n",
+ "n_bullets": 16,
+ "tier1": [
+  "db-00001",
+  "sp-00001",
+  "sp-00002",
+  "sp-00003",
+  "sp-00004"
+ ],
+ "train_subset": 600,
+ "top_k": [
+  3,
+  4
+ ],
+ "reflector_backend": "openai",
+ "reflector_model": "gpt-4o-mini",
+ "dedup_thresh": 0.98,
+ "min_ops": 1,
+ "ace_tren_prompt": "basic",
+ "ace_selfeval": false,
+ "doi_chung_thoai_hoa": false,
+ "ty_le_bi_cat": 0.0446,
+ "embed_model": "intfloat/multilingual-e5-base",
+ "eval_log": [
+  {
+   "round": -1,
+   "label": "dev/rỗng",
+   "n": 240,
+   "EA": 0.475,
+   "PA_strict": 0.4333,
+   "PA_loose": 0.325,
+   "EA_tol1e-3": 0.475,
+   "no_program": 0.0,
+   "exec_none": 0.3875,
+   "outcome": {
+    "program_khong_chay_duoc": 93,
+    "dung": 104,
+    "dung_nhung_khac_program": 10,
+    "sai": 33
+   },
+   "by_steps": {
+    "1": [
+     119,
+     87,
+     86
+    ],
+    "2": [
+     77,
+     16,
+     12
+    ],
+    "3": [
+     26,
+     11,
+     6
+    ],
+    "4": [
+     6,
+     0,
+     0
+    ],
+    "5": [
+     11,
+     0,
+     0
+    ],
+    "6": [
+     1,
+     0,
+     0
+    ]
+   },
+   "by_phep": {
+    "nhiều (2)": [
+     76,
+     16,
+     12
+    ],
+    "divide": [
+     42,
+     34,
+     34
+    ],
+    "table_*": [
+     36,
+     25,
+     21
+    ],
+    "subtract": [
+     36,
+     21,
+     21
+    ],
+    "nhiều (3)": [
+     21,
+     8,
+     6
+    ],
+    "nhiều (5)": [
+     11,
+     0,
+     0
+    ],
+    "nhiều (4)": [
+     6,
+     0,
+     0
+    ],
+    "add": [
+     6,
+     5,
+     5
+    ],
+    "multiply": [
+     5,
+     5,
+     5
+    ],
+    "nhiều (6)": [
+     1,
+     0,
+     0
+    ]
+   },
+   "vi_sao_khong_co_program": null,
+   "vi_sao_khong_chay_duoc": {
+    "tong": 93,
+    "theo_ly_do": {
+     "cu_phap_di_dang": 59,
+     "phep_long_nhau": 24,
+     "table_sai_cu_phap": 5,
+     "nhan_bang_khong_khop": 2,
+     "nhan_bang_mo_ho": 2,
+     "sai_so_tham_so": 1
+    },
+    "ty_le": {
+     "cu_phap_di_dang": 0.2458,
+     "phep_long_nhau": 0.1,
+     "table_sai_cu_phap": 0.0208,
+     "nhan_bang_khong_khop": 0.0083,
+     "nhan_bang_mo_ho": 0.0083,
+     "sai_so_tham_so": 0.0042
+    },
+    "vi_du": {
+     "cu_phap_di_dang": [
+      "add(204079, 766451) + add(822690, 768588) + 1631181",
+      "add(1520.5, 1522.6) → divide(#0, 2)",
+      "subtract(15261, 6142) → #0; divide(#0, 6142)"
+     ],
+     "phep_long_nhau": [
+      "subtract(subtract(311.13, 100), subtract(165.84, 100))",
+      "divide(subtract(40678, 2526), 40678)",
+      "divide(subtract(34.8, 38.3), 38.3)"
+     ],
+     "table_sai_cu_phap": [
+      "table_sum(\"Năm\", 2020)",
+      "table_average(\"VN-Index\", \"Trung bình\")",
+      "table_sum(\"tài sản giao dịch năm 2008\", \"tổng số dư nợ gốc chưa thanh toán vượt quá giá trị hợp lý\")"
+     ],
+     "nhan_bang_khong_khop": [
+      "table_max(\"2008\", none), subtract(28.85, #0), divide(#0, #1)",
+      "table_sum(\"2008\", none)"
+     ],
+     "nhan_bang_mo_ho": [
+      "table_max(\"LNHĐKD (%)\", none)",
+      "table_max(\"LNST\", none)"
+     ],
+     "sai_so_tham_so": [
+      "table_average(\"FY 2014\", \"FY 2015\", \"FY 2016\", \"FY 2017\", \"FY 2018\")"
+     ]
+    }
+   },
+   "vi_sao_sai": {
+    "tong": 33,
+    "theo_kieu": {
+     "dung_phep_sai_so_lieu": 16,
+     "thieu_buoc": 10,
+     "dung_so_buoc_sai_phep": 2,
+     "lam_dung_table": 2,
+     "bo_qua_table": 2,
+     "thua_buoc": 1
+    },
+    "ty_le": {
+     "dung_phep_sai_so_lieu": 0.0667,
+     "thieu_buoc": 0.0417,
+     "dung_so_buoc_sai_phep": 0.0083,
+     "lam_dung_table": 0.0083,
+     "bo_qua_table": 0.0083,
+     "thua_buoc": 0.0042
+    },
+    "vi_du": {
+     "dung_phep_sai_so_lieu": [
+      {
+       "hoi": "Giá trung bình chuẩn Henry Hub cho khí tự nhiên đã giảm bao nhiêu phần trăm từ năm 2007 đế",
+       "model": "subtract(6.86, 3.99), divide(#0, 6.86)",
+       "gold": "subtract(3.99, 6.86), divide(#0, 6.86)"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ lợi nhuận tích lũy phần trăm của công ty LKQ và chỉ số S&P 500 trong",
+       "model": "subtract(204, 100), divide(#0, 100), subtract(178, 100), divide(#1, 100), subtract(#0, #1)",
+       "gold": "subtract(204, 100), divide(#0, 100), subtract(178, 100), divide(#2, 100), subtract(#1, #3)"
+      },
+      {
+       "hoi": "Chênh lệch giữa giá trị VaR 5% của cổ phiếu rủi ro nhất (DXG) và cổ phiếu ít rủi ro nhất (",
+       "model": "subtract(-6.6, -3.7)",
+       "gold": "subtract(-6.6%, -3.7%)"
+      }
+     ],
+     "thieu_buoc": [
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm tổng lợi tức cổ đông tích lũy của Ball Corporation so với ",
+       "model": "subtract(178.93, 111.99)",
+       "gold": "subtract(178.93, 100), divide(#0, 100), subtract(111.99, 100), divide(#2, 100), subtract(#"
+      },
+      {
+       "hoi": "Tỷ lệ phần trăm thay đổi trong thu nhập ròng (lỗ) trên cơ sở pro forma giữa năm 2006 và 20",
+       "model": "divide(17388, -38957)",
+       "gold": "subtract(17388, -38957), divide(#0, 38957)"
+      },
+      {
+       "hoi": "Giá mục tiêu ngắn hạn của cổ phiếu HDC cao hơn giá đóng cửa ngày 17/07/2020 bao nhiêu?",
+       "model": "divide(20.6, 100)",
+       "gold": "add(100%, 20.6%), divide(19900, #0), subtract(19900, #1)"
+      }
+     ],
+     "dung_so_buoc_sai_phep": [
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm lợi tức tổng cộng tích lũy trong giai đoạn năm năm kết thú",
+       "model": "divide(193.5, 100.0), subtract(#0, 1), divide(230.9, 100.0), subtract(#1, 1), subtract(#2,",
+       "gold": "subtract(193.5, 100), divide(#0, 100), subtract(230.9, 100), divide(#2, 100), subtract(#1,"
+      },
+      {
+       "hoi": "Có bao nhiêu quyền chọn được phát hành theo kế hoạch năm 2001 tính đến ngày 31 tháng 12 nă",
+       "model": "add(3366230, 0)",
+       "gold": "subtract(24000000, 3366230)"
+      }
+     ],
+     "lam_dung_table": [
+      {
+       "hoi": "Giá vốn hàng bán trong năm 2009 là bao nhiêu?",
+       "model": "table_sum(\"doanh thu từ các hoạt động bị chấm dứt\", none)",
+       "gold": "subtract(188, 80)"
+      },
+      {
+       "hoi": "Giá trị trung bình của các chứng khoán đầu tư sẵn sàng để bán (AFS) trong các năm 2016-201",
+       "model": "table_average(\"chứng khoán đầu tư sẵn sàng để bán (“afs”) (trung bình)\", none)",
+       "gold": "add(228681, 200247), add(#0, 236670), divide(#1, 3)"
+      }
+     ],
+     "bo_qua_table": [
+      {
+       "hoi": "chênh lệch giữa eps cao nhất và thấp nhất trong giai đoạn 2015-2018 là bao nhiêu?",
+       "model": "subtract(4254, 2770)",
+       "gold": "table_max(LNST (VNDbn), none), table_min(LNST (VNDbn), none), subtract(#0, #1)"
+      },
+      {
+       "hoi": "Sự chênh lệch giữa biên lợi nhuận hoạt động trung bình và cao nhất là bao nhiêu?",
+       "model": "add(11.4, 7.8), add(#0, 7.4), divide(#0, 3), subtract(11.4, #0)",
+       "gold": "table_average(biên lợi nhuận hoạt động, none), table_max(biên lợi nhuận hoạt động, none), "
+      }
+     ],
+     "thua_buoc": [
+      {
+       "hoi": "So sánh ROE năm 2019 với năm 2016, năm 2019 cao hơn năm 2016 bao nhiêu phần trăm?",
+       "model": "subtract(18.9, 6.1), divide(#0, 6.1)",
+       "gold": "subtract(18.9, 6.1)"
+      }
+     ]
+    }
+   },
+   "composite": 0.4583
+  },
+  {
+   "label": "dev/v5",
+   "n": 240,
+   "EA": 0.5583,
+   "PA_strict": 0.5083,
+   "PA_loose": 0.3875,
+   "EA_tol1e-3": 0.5583,
+   "no_program": 0.0042,
+   "exec_none": 0.1958,
+   "outcome": {
+    "sai": 59,
+    "dung": 122,
+    "program_khong_chay_duoc": 46,
+    "dung_nhung_khac_program": 12,
+    "khong_co_program": 1
+   },
+   "by_steps": {
+    "1": [
+     119,
+     85,
+     84
+    ],
+    "2": [
+     77,
+     43,
+     37
+    ],
+    "3": [
+     26,
+     5,
+     0
+    ],
+    "4": [
+     6,
+     0,
+     0
+    ],
+    "5": [
+     11,
+     1,
+     1
+    ],
+    "6": [
+     1,
+     0,
+     0
+    ]
+   },
+   "by_phep": {
+    "nhiều (2)": [
+     76,
+     43,
+     37
+    ],
+    "divide": [
+     42,
+     32,
+     31
+    ],
+    "table_*": [
+     36,
+     28,
+     25
+    ],
+    "subtract": [
+     36,
+     20,
+     20
+    ],
+    "nhiều (3)": [
+     21,
+     2,
+     0
+    ],
+    "nhiều (5)": [
+     11,
+     1,
+     1
+    ],
+    "nhiều (4)": [
+     6,
+     0,
+     0
+    ],
+    "add": [
+     6,
+     4,
+     4
+    ],
+    "multiply": [
+     5,
+     4,
+     4
+    ],
+    "nhiều (6)": [
+     1,
+     0,
+     0
+    ]
+   },
+   "vi_sao_khong_co_program": null,
+   "vi_sao_khong_chay_duoc": {
+    "tong": 46,
+    "theo_ly_do": {
+     "cu_phap_di_dang": 30,
+     "phep_long_nhau": 10,
+     "table_sai_cu_phap": 3,
+     "nhan_bang_khong_khop": 3
+    },
+    "ty_le": {
+     "cu_phap_di_dang": 0.125,
+     "phep_long_nhau": 0.0417,
+     "table_sai_cu_phap": 0.0125,
+     "nhan_bang_khong_khop": 0.0125
+    },
+    "vi_du": {
+     "cu_phap_di_dang": [
+      "add(204079, 766451) → #0; add(#0, 822690) → #1; add(#1, 768588) → #2; add(#2, 1631181) → #3",
+      "add(0.3, 0.1) + add(0.2, 0.3) + add(0.3, 0.2) + add(0.2, 0.2) + divide(#0, 7)",
+      "add(495, 59) + add(30, 29)"
+     ],
+     "phep_long_nhau": [
+      "divide(60000, divide(2000, 3))",
+      "divide(19900, add(1, 0.206)), subtract(19900, #0)",
+      "add(table_sum(\"tổng các khoản thế chấp nhà ở\", 2013), table_sum(\"tổng các khoản thế chấp nhà ở\", 2012))"
+     ],
+     "table_sai_cu_phap": [
+      "table_sum(\"Năm\", \"2020\")",
+      "table_sum(\"FY 2015\", \"P/E (x)\"), table_sum(\"FY 2016\", \"P/E (x)\"), table_sum(\"FY 2017\", \"P/E (x)\"), table_sum(\"FY 2018\", \"P/E (x)\"), add(#0, #1), add(#2, #3), di",
+      "add(904, 266), add(1211, 331), add(2043, 598), add(1988, 820), add(6961, 5601), table_sum(2012, 2016), divide(#0, 5)"
+     ],
+     "nhan_bang_khong_khop": [
+      "table_average(\"VN-Index\", none)",
+      "table_sum(\"kế hoạch năm 2001\", none)",
+      "table_average(\"Châu Âu\", none)"
+     ]
+    }
+   },
+   "vi_sao_sai": {
+    "tong": 59,
+    "theo_kieu": {
+     "dung_phep_sai_so_lieu": 27,
+     "thua_buoc": 13,
+     "thieu_buoc": 9,
+     "lam_dung_table": 5,
+     "dung_so_buoc_sai_phep": 4,
+     "bo_qua_table": 1
+    },
+    "ty_le": {
+     "dung_phep_sai_so_lieu": 0.1125,
+     "thua_buoc": 0.0542,
+     "thieu_buoc": 0.0375,
+     "lam_dung_table": 0.0208,
+     "dung_so_buoc_sai_phep": 0.0167,
+     "bo_qua_table": 0.0042
+    },
+    "vi_du": {
+     "dung_phep_sai_so_lieu": [
+      {
+       "hoi": "Giá trung bình chuẩn Henry Hub cho khí tự nhiên đã giảm bao nhiêu phần trăm từ năm 2007 đế",
+       "model": "subtract(6.86, 3.99), divide(#0, 6.86)",
+       "gold": "subtract(3.99, 6.86), divide(#0, 6.86)"
+      },
+      {
+       "hoi": "Tỷ lệ tăng trưởng giá cổ phiếu từ giá trị cao nhất trong quý kết thúc ngày 31 tháng 12 năm",
+       "model": "subtract(37.28, 28.85), divide(#0, 37.28)",
+       "gold": "subtract(37.28, 28.85), divide(#0, 28.85)"
+      },
+      {
+       "hoi": "Tỷ lệ phần trăm thay đổi trong chi phí phát hành nợ chưa khấu hao liên quan đến các trái p",
+       "model": "subtract(-26, -27), divide(#0, -27)",
+       "gold": "subtract(15, 19), divide(#0, 19)"
+      }
+     ],
+     "thua_buoc": [
+      {
+       "hoi": "Tỷ suất lợi nhuận tổng trong 5 năm trên cổ phiếu Ball là bao nhiêu?",
+       "model": "subtract(178.93, 100.00), divide(#0, 100.00)",
+       "gold": "subtract(134.96, 100.00)"
+      },
+      {
+       "hoi": "So sánh biên lợi nhuận hoạt động kinh doanh (LN HĐKD) năm 2020 với năm 2019, mức thay đổi ",
+       "model": "subtract(38.3, 34.8), divide(#0, 38.3)",
+       "gold": "subtract(38.3, 34.8)"
+      },
+      {
+       "hoi": "Chênh lệch giữa giá trị VaR 5% của cổ phiếu rủi ro nhất (DXG) và cổ phiếu ít rủi ro nhất (",
+       "model": "subtract(-6.6, -3.7), divide(#0, 1)",
+       "gold": "subtract(-6.6%, -3.7%)"
+      }
+     ],
+     "thieu_buoc": [
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm lợi tức cổ đông tích lũy 5 năm tổng cộng của Cadence Desig",
+       "model": "subtract(311.13, 165.84), divide(#0, 165.84)",
+       "gold": "subtract(311.13, 100), divide(#0, 100), subtract(165.84, 100), divide(#2, 100), subtract(#"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ lợi nhuận tích lũy phần trăm của công ty LKQ và chỉ số S&P 500 trong",
+       "model": "subtract(204, 178)",
+       "gold": "subtract(204, 100), divide(#0, 100), subtract(178, 100), divide(#2, 100), subtract(#1, #3)"
+      },
+      {
+       "hoi": "Lợi nhuận hoạt động trung bình của kết quả không gian từ 2010 đến 2012 là bao nhiêu?",
+       "model": "add(1030, 1063), add(#0, 1083), divide(#0, 3)",
+       "gold": "subtract(1083, 1063), add(#0, 1030), add(#1, 3), divide(#2, 2)"
+      }
+     ],
+     "lam_dung_table": [
+      {
+       "hoi": "tỷ suất sinh lời trên vốn chủ sở hữu (roe) trung bình từ năm 2015 đến năm 2019 (dự báo) là",
+       "model": "table_sum(\"ROE (%)\", none)",
+       "gold": "add(24.6, 27.7), add(#0, 17.1), add(#1, 15.8), add(#2, 16.8), divide(#3, 5)"
+      },
+      {
+       "hoi": "Giá vốn hàng bán trong năm 2009 là bao nhiêu?",
+       "model": "table_sum(\"doanh thu từ các hoạt động bị chấm dứt\", none)",
+       "gold": "subtract(188, 80)"
+      },
+      {
+       "hoi": "Trong năm 2008, giá trị ghi sổ được báo cáo trên bảng cân đối kế toán hợp nhất để tổng hợp",
+       "model": "table_max(\"tổng số dư nợ gốc chưa thanh toán vượt quá giá trị hợp lý\", none)",
+       "gold": "divide(16254, 6501)"
+      }
+     ],
+     "dung_so_buoc_sai_phep": [
+      {
+       "hoi": "Phần nào trong tổng số đơn hàng tồn đọng liên quan đến phân khúc Newport News?",
+       "model": "add(6158, 7709)",
+       "gold": "divide(9133, 18038)"
+      },
+      {
+       "hoi": "So sánh P/E của PLX năm 2019 với mức P/E bình quân ngành, PLX cao hơn hay thấp hơn bao nhi",
+       "model": "subtract(17.1, 11.6)",
+       "gold": "divide(17.1, 11.6)"
+      },
+      {
+       "hoi": "tỷ lệ thay đổi phần trăm giá trị hợp lý của msrs trong năm 2007 là bao nhiêu?",
+       "model": "subtract(8632, 7546), divide(#0, 7546)",
+       "gold": "multiply(8632, 7546), divide(#0, 7546)"
+      }
+     ],
+     "bo_qua_table": [
+      {
+       "hoi": "chênh lệch giữa eps cao nhất và thấp nhất trong giai đoạn 2015-2018 là bao nhiêu?",
+       "model": "subtract(4254, 2770)",
+       "gold": "table_max(LNST (VNDbn), none), table_min(LNST (VNDbn), none), subtract(#0, #1)"
+      }
+     ]
+    }
+   },
+   "composite": 0.5383,
+   "round": 4,
+   "bullets": 4
+  },
+  {
+   "label": "dev/v10",
+   "n": 240,
+   "EA": 0.575,
+   "PA_strict": 0.5417,
+   "PA_loose": 0.4125,
+   "EA_tol1e-3": 0.575,
+   "no_program": 0.0,
+   "exec_none": 0.175,
+   "outcome": {
+    "sai": 60,
+    "dung": 130,
+    "dung_nhung_khac_program": 8,
+    "program_khong_chay_duoc": 42
+   },
+   "by_steps": {
+    "1": [
+     119,
+     87,
+     87
+    ],
+    "2": [
+     77,
+     48,
+     41
+    ],
+    "3": [
+     26,
+     3,
+     2
+    ],
+    "4": [
+     6,
+     0,
+     0
+    ],
+    "5": [
+     11,
+     0,
+     0
+    ],
+    "6": [
+     1,
+     0,
+     0
+    ]
+   },
+   "by_phep": {
+    "nhiều (2)": [
+     76,
+     48,
+     41
+    ],
+    "divide": [
+     42,
+     33,
+     33
+    ],
+    "table_*": [
+     36,
+     25,
+     25
+    ],
+    "subtract": [
+     36,
+     21,
+     21
+    ],
+    "nhiều (3)": [
+     21,
+     1,
+     0
+    ],
+    "nhiều (5)": [
+     11,
+     0,
+     0
+    ],
+    "nhiều (4)": [
+     6,
+     0,
+     0
+    ],
+    "add": [
+     6,
+     5,
+     5
+    ],
+    "multiply": [
+     5,
+     5,
+     5
+    ],
+    "nhiều (6)": [
+     1,
+     0,
+     0
+    ]
+   },
+   "vi_sao_khong_co_program": null,
+   "vi_sao_khong_chay_duoc": {
+    "tong": 42,
+    "theo_ly_do": {
+     "cu_phap_di_dang": 27,
+     "phep_long_nhau": 7,
+     "nhan_bang_khong_khop": 5,
+     "sai_so_tham_so": 1,
+     "nhan_bang_mo_ho": 1,
+     "tham_chieu_sai": 1
+    },
+    "ty_le": {
+     "cu_phap_di_dang": 0.1125,
+     "phep_long_nhau": 0.0292,
+     "nhan_bang_khong_khop": 0.0208,
+     "sai_so_tham_so": 0.0042,
+     "nhan_bang_mo_ho": 0.0042,
+     "tham_chieu_sai": 0.0042
+    },
+    "vi_du": {
+     "cu_phap_di_dang": [
+      "add(0.3, 0.1) add(#0, 0.2) add(#0, 0.3) add(#0, 0.3) add(#0, 0.2) add(#0, 0.1) divide(#0, 7)",
+      "subtract(178.93, 100.00) → #0",
+      "subtract(404, 285) → divide(#0, 285)"
+     ],
+     "phep_long_nhau": [
+      "divide(subtract(40678, 2526), 40678)",
+      "subtract(divide(subtract(230.9, 100), 100), divide(subtract(193.5, 100), 100))",
+      "divide(19900, add(1, 0.206))"
+     ],
+     "nhan_bang_khong_khop": [
+      "table_sum(\"Tổng số lượng TTTM\", none)",
+      "table_average(\"VN-Index\", none)",
+      "table_sum(\"cổ phiếu phổ thông theo các kế hoạch cổ phiếu và quyền chọn\", none)"
+     ],
+     "sai_so_tham_so": [
+      "table_sum(\"2004\", \"2005\", \"2006\")"
+     ],
+     "nhan_bang_mo_ho": [
+      "table_sum(\"tăng trong kỳ —chi phí khấu hao và phân bổ\", none)"
+     ],
+     "tham_chieu_sai": [
+      "table_sum(\"2012\", none), table_sum(\"2013\", none), table_sum(\"2014\", none), table_sum(\"2015\", none), table_sum(\"2016 và sau đó\", none), add(#0, #1), add(#2, #3),"
+     ]
+    }
+   },
+   "vi_sao_sai": {
+    "tong": 60,
+    "theo_kieu": {
+     "dung_phep_sai_so_lieu": 26,
+     "thua_buoc": 11,
+     "thieu_buoc": 9,
+     "lam_dung_table": 7,
+     "dung_so_buoc_sai_phep": 4,
+     "bo_qua_table": 3
+    },
+    "ty_le": {
+     "dung_phep_sai_so_lieu": 0.1083,
+     "thua_buoc": 0.0458,
+     "thieu_buoc": 0.0375,
+     "lam_dung_table": 0.0292,
+     "dung_so_buoc_sai_phep": 0.0167,
+     "bo_qua_table": 0.0125
+    },
+    "vi_du": {
+     "dung_phep_sai_so_lieu": [
+      {
+       "hoi": "Giá trung bình chuẩn Henry Hub cho khí tự nhiên đã giảm bao nhiêu phần trăm từ năm 2007 đế",
+       "model": "subtract(6.86, 3.99), divide(#0, 6.86)",
+       "gold": "subtract(3.99, 6.86), divide(#0, 6.86)"
+      },
+      {
+       "hoi": "Tỷ lệ tăng trưởng giá cổ phiếu từ giá trị cao nhất trong quý kết thúc ngày 31 tháng 12 năm",
+       "model": "subtract(28.85, 37.28), divide(#0, 37.28)",
+       "gold": "subtract(37.28, 28.85), divide(#0, 28.85)"
+      },
+      {
+       "hoi": "Tỷ lệ phần trăm thay đổi trong chi phí phát hành nợ chưa khấu hao liên quan đến các trái p",
+       "model": "subtract(26, 27), divide(#0, 27)",
+       "gold": "subtract(15, 19), divide(#0, 19)"
+      }
+     ],
+     "thua_buoc": [
+      {
+       "hoi": "So sánh biên lợi nhuận hoạt động kinh doanh (LN HĐKD) năm 2020 với năm 2019, mức thay đổi ",
+       "model": "subtract(38.3, 34.8), divide(#0, 38.3)",
+       "gold": "subtract(38.3, 34.8)"
+      },
+      {
+       "hoi": "Tỷ lệ Lợi nhuận hoạt động kinh doanh (LN HĐKD) năm 2019 đã thay đổi như thế nào so với năm",
+       "model": "subtract(2739, 2216), divide(#0, 2216)",
+       "gold": "subtract(17.9, 16.2)"
+      },
+      {
+       "hoi": "Doanh thu của công ty IMP tăng trưởng như thế nào từ năm 2014 đến năm 2019?",
+       "model": "subtract(1314, 897), divide(#0, 897)",
+       "gold": "subtract(1314, 897)"
+      }
+     ],
+     "thieu_buoc": [
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm lợi tức cổ đông tích lũy 5 năm tổng cộng của Cadence Desig",
+       "model": "subtract(311.13, 100), subtract(165.84, 100), subtract(#0, #1)",
+       "gold": "subtract(311.13, 100), divide(#0, 100), subtract(165.84, 100), divide(#2, 100), subtract(#"
+      },
+      {
+       "hoi": "tổng số các khoản đáo hạn nợ dài hạn hàng năm trong vòng năm năm là bao nhiêu?",
+       "model": "add(204079, 766451)",
+       "gold": "add(204079, 766451), add(#0, 822690), add(#1, 768588), add(#2, 1631181)"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm tổng lợi tức cổ đông tích lũy của Ball Corporation so với ",
+       "model": "subtract(178.93, 111.99), divide(#0, 111.99)",
+       "gold": "subtract(178.93, 100), divide(#0, 100), subtract(111.99, 100), divide(#2, 100), subtract(#"
+      }
+     ],
+     "lam_dung_table": [
+      {
+       "hoi": "Lợi nhuận hoạt động trung bình của kết quả không gian từ 2010 đến 2012 là bao nhiêu?",
+       "model": "table_sum(\"Lợi nhuận hoạt động\", none), divide(#0, 3)",
+       "gold": "subtract(1083, 1063), add(#0, 1030), add(#1, 3), divide(#2, 2)"
+      },
+      {
+       "hoi": "Giá vốn hàng bán trong năm 2009 là bao nhiêu?",
+       "model": "table_sum(\"doanh thu từ các hoạt động bị chấm dứt\", none)",
+       "gold": "subtract(188, 80)"
+      },
+      {
+       "hoi": "Trong năm 2008, giá trị ghi sổ được báo cáo trên bảng cân đối kế toán hợp nhất để tổng hợp",
+       "model": "table_sum(\"tổng số dư nợ gốc chưa thanh toán vượt quá giá trị hợp lý\", none)",
+       "gold": "divide(16254, 6501)"
+      }
+     ],
+     "dung_so_buoc_sai_phep": [
+      {
+       "hoi": "Phần nào trong tổng số đơn hàng tồn đọng liên quan đến phân khúc Newport News?",
+       "model": "add(6158, 7709)",
+       "gold": "divide(9133, 18038)"
+      },
+      {
+       "hoi": "So sánh P/E của PLX năm 2019 với mức P/E bình quân ngành, PLX cao hơn hay thấp hơn bao nhi",
+       "model": "subtract(17.1, 11.6)",
+       "gold": "divide(17.1, 11.6)"
+      },
+      {
+       "hoi": "Có bao nhiêu quyền chọn được phát hành theo kế hoạch năm 2001 tính đến ngày 31 tháng 12 nă",
+       "model": "add(3366230, 0)",
+       "gold": "subtract(24000000, 3366230)"
+      }
+     ],
+     "bo_qua_table": [
+      {
+       "hoi": "Chênh lệch P/B trung bình của các ngân hàng với mức trung bình P/B của các ngân hàng Việt ",
+       "model": "add(1.64, 2.3), add(3.7, 2.1), add(#0, #1), divide(#0, 4), subtract(2.3, #0)",
+       "gold": "table_average(P/B (x), none), subtract(#0, 2.3)"
+      },
+      {
+       "hoi": "Sự chênh lệch giữa biên lợi nhuận hoạt động trung bình và cao nhất là bao nhiêu?",
+       "model": "add(11.4, 7.8), add(#0, 7.4), divide(#0, 3), subtract(11.4, #0)",
+       "gold": "table_average(biên lợi nhuận hoạt động, none), table_max(biên lợi nhuận hoạt động, none), "
+      },
+      {
+       "hoi": "Tổng doanh thu từ năm 12/15 đến 12/19F là bao nhiêu tỷ đồng?",
+       "model": "add(125, 147), add(#0, 146), add(#0, 532), add(#0, 189)",
+       "gold": "table_sum(Revenue (VNDbn), none)"
+      }
+     ]
+    }
+   },
+   "composite": 0.5617,
+   "round": 9,
+   "bullets": 8
+  },
+  {
+   "label": "dev/v15",
+   "n": 240,
+   "EA": 0.5875,
+   "PA_strict": 0.5417,
+   "PA_loose": 0.425,
+   "EA_tol1e-3": 0.5875,
+   "no_program": 0.0,
+   "exec_none": 0.1625,
+   "outcome": {
+    "sai": 60,
+    "dung": 130,
+    "program_khong_chay_duoc": 39,
+    "dung_nhung_khac_program": 11
+   },
+   "by_steps": {
+    "1": [
+     119,
+     85,
+     84
+    ],
+    "2": [
+     77,
+     48,
+     41
+    ],
+    "3": [
+     26,
+     8,
+     5
+    ],
+    "4": [
+     6,
+     0,
+     0
+    ],
+    "5": [
+     11,
+     0,
+     0
+    ],
+    "6": [
+     1,
+     0,
+     0
+    ]
+   },
+   "by_phep": {
+    "nhiều (2)": [
+     76,
+     48,
+     41
+    ],
+    "divide": [
+     42,
+     33,
+     33
+    ],
+    "table_*": [
+     36,
+     26,
+     24
+    ],
+    "subtract": [
+     36,
+     21,
+     21
+    ],
+    "nhiều (3)": [
+     21,
+     5,
+     3
+    ],
+    "nhiều (5)": [
+     11,
+     0,
+     0
+    ],
+    "nhiều (4)": [
+     6,
+     0,
+     0
+    ],
+    "add": [
+     6,
+     4,
+     4
+    ],
+    "multiply": [
+     5,
+     4,
+     4
+    ],
+    "nhiều (6)": [
+     1,
+     0,
+     0
+    ]
+   },
+   "vi_sao_khong_co_program": null,
+   "vi_sao_khong_chay_duoc": {
+    "tong": 39,
+    "theo_ly_do": {
+     "cu_phap_di_dang": 28,
+     "phep_long_nhau": 6,
+     "nhan_bang_khong_khop": 4,
+     "table_sai_cu_phap": 1
+    },
+    "ty_le": {
+     "cu_phap_di_dang": 0.1167,
+     "phep_long_nhau": 0.025,
+     "nhan_bang_khong_khop": 0.0167,
+     "table_sai_cu_phap": 0.0042
+    },
+    "vi_du": {
+     "cu_phap_di_dang": [
+      "add(1520.5, 1522.6) → #0; divide(#0, 2)",
+      "subtract(205, 160) → divide(#0, 160)",
+      "add(0.3, 0.1) + add(#0, 0.2) + add(#0, 0.3) + add(#0, 0.3) + add(#0, 0.2) + add(#0, 0.1) + divide(#0, 7)"
+     ],
+     "phep_long_nhau": [
+      "divide(60000, multiply(2000, 1/3))",
+      "divide(add(249, 125), 22203)",
+      "divide(35900, add(1, 0.436))"
+     ],
+     "nhan_bang_khong_khop": [
+      "table_sum(\"2008\", none), table_sum(\"2009\", none), table_sum(\"2010\", none), table_sum(\"2011\", none), table_sum(\"2012\", none), table_sum(\"sau đó\", none), add(#0, ",
+      "table_sum(\"kế hoạch năm 2001\", none)",
+      "add(904, 1211), add(#0, 2043), add(#0, 1988), add(#0, 6961), table_sum(\"tính bằng triệu đô la\", none)"
+     ],
+     "table_sai_cu_phap": [
+      "table_sum(\"Năm\", \"2020\")"
+     ]
+    }
+   },
+   "vi_sao_sai": {
+    "tong": 60,
+    "theo_kieu": {
+     "dung_phep_sai_so_lieu": 27,
+     "thua_buoc": 12,
+     "thieu_buoc": 11,
+     "lam_dung_table": 6,
+     "dung_so_buoc_sai_phep": 3,
+     "bo_qua_table": 1
+    },
+    "ty_le": {
+     "dung_phep_sai_so_lieu": 0.1125,
+     "thua_buoc": 0.05,
+     "thieu_buoc": 0.0458,
+     "lam_dung_table": 0.025,
+     "dung_so_buoc_sai_phep": 0.0125,
+     "bo_qua_table": 0.0042
+    },
+    "vi_du": {
+     "dung_phep_sai_so_lieu": [
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm lợi tức cổ đông tích lũy 5 năm tổng cộng của Cadence Desig",
+       "model": "subtract(311.13, 100), divide(#0, 100), subtract(165.84, 100), divide(#1, 100), subtract(#",
+       "gold": "subtract(311.13, 100), divide(#0, 100), subtract(165.84, 100), divide(#2, 100), subtract(#"
+      },
+      {
+       "hoi": "tổng số các khoản đáo hạn nợ dài hạn hàng năm trong vòng năm năm là bao nhiêu?",
+       "model": "add(204079, 766451), add(#0, 822690), add(#0, 768588), add(#0, 1631181)",
+       "gold": "add(204079, 766451), add(#0, 822690), add(#1, 768588), add(#2, 1631181)"
+      },
+      {
+       "hoi": "Vào tháng 11 năm 2015, tỷ lệ phần trăm của các khoản chiết khấu và chi phí phát hành nợ so",
+       "model": "subtract(7000, 6900), divide(#0, 16296)",
+       "gold": "subtract(7, 6.9), divide(#0, 7.0)"
+      }
+     ],
+     "thua_buoc": [
+      {
+       "hoi": "Tỷ suất lợi nhuận tổng trong 5 năm trên cổ phiếu Ball là bao nhiêu?",
+       "model": "subtract(178.93, 100.00), divide(#0, 100.00)",
+       "gold": "subtract(134.96, 100.00)"
+      },
+      {
+       "hoi": "So sánh biên lợi nhuận hoạt động kinh doanh (LN HĐKD) năm 2020 với năm 2019, mức thay đổi ",
+       "model": "subtract(38.3, 34.8), divide(#0, 38.3)",
+       "gold": "subtract(38.3, 34.8)"
+      },
+      {
+       "hoi": "Tỷ lệ Lợi nhuận hoạt động kinh doanh (LN HĐKD) năm 2019 đã thay đổi như thế nào so với năm",
+       "model": "subtract(17.9, 16.2), divide(#0, 16.2)",
+       "gold": "subtract(17.9, 16.2)"
+      }
+     ],
+     "thieu_buoc": [
+      {
+       "hoi": "Tổng chi phí hoạt động tính theo tỷ lệ phần trăm doanh thu trong năm 2013 là bao nhiêu?",
+       "model": "divide(2526, 40678)",
+       "gold": "subtract(40678, 2526), divide(#0, 40678)"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ lợi nhuận tích lũy phần trăm của công ty LKQ và chỉ số S&P 500 trong",
+       "model": "subtract(204, 178)",
+       "gold": "subtract(204, 100), divide(#0, 100), subtract(178, 100), divide(#2, 100), subtract(#1, #3)"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm tổng lợi tức cổ đông tích lũy của Ball Corporation so với ",
+       "model": "subtract(178.93, 111.99)",
+       "gold": "subtract(178.93, 100), divide(#0, 100), subtract(111.99, 100), divide(#2, 100), subtract(#"
+      }
+     ],
+     "lam_dung_table": [
+      {
+       "hoi": "Giá vốn hàng bán trong năm 2009 là bao nhiêu?",
+       "model": "table_sum(\"thu nhập trước thuế từ các hoạt động bị chấm dứt\", none)",
+       "gold": "subtract(188, 80)"
+      },
+      {
+       "hoi": "Tỷ suất sinh lời trên vốn chủ sở hữu (ROE) trung bình trong giai đoạn 2014-2018 là bao nhi",
+       "model": "table_average(\"ROE (%)\", none)",
+       "gold": "add(38.2, 21.6), add(#0, 16.9), add(#1, 23.7), add(#2, 26.1), divide(#3, 5)"
+      },
+      {
+       "hoi": "Trong năm 2008, giá trị ghi sổ được báo cáo trên bảng cân đối kế toán hợp nhất để tổng hợp",
+       "model": "table_sum(\"tổng số dư nợ gốc chưa thanh toán vượt quá giá trị hợp lý\", none)",
+       "gold": "divide(16254, 6501)"
+      }
+     ],
+     "dung_so_buoc_sai_phep": [
+      {
+       "hoi": "Phần nào trong tổng số đơn hàng tồn đọng liên quan đến phân khúc Newport News?",
+       "model": "add(6158, 7709)",
+       "gold": "divide(9133, 18038)"
+      },
+      {
+       "hoi": "So sánh P/E của PLX năm 2019 với mức P/E bình quân ngành, PLX cao hơn hay thấp hơn bao nhi",
+       "model": "subtract(17.1, 11.6)",
+       "gold": "divide(17.1, 11.6)"
+      },
+      {
+       "hoi": "tỷ lệ thay đổi phần trăm giá trị hợp lý của msrs trong năm 2007 là bao nhiêu?",
+       "model": "subtract(8632, 7546), divide(#0, 7546)",
+       "gold": "multiply(8632, 7546), divide(#0, 7546)"
+      }
+     ],
+     "bo_qua_table": [
+      {
+       "hoi": "Sự chênh lệch giữa biên lợi nhuận hoạt động trung bình và cao nhất là bao nhiêu?",
+       "model": "add(11.4, 7.8), add(#0, 7.4), divide(#1, 3), subtract(11.4, #2)",
+       "gold": "table_average(biên lợi nhuận hoạt động, none), table_max(biên lợi nhuận hoạt động, none), "
+      }
+     ]
+    }
+   },
+   "composite": 0.5692,
+   "round": 14,
+   "bullets": 14
+  },
+  {
+   "label": "dev/v19",
+   "n": 240,
+   "EA": 0.625,
+   "PA_strict": 0.5833,
+   "PA_loose": 0.4375,
+   "EA_tol1e-3": 0.625,
+   "no_program": 0.0042,
+   "exec_none": 0.1542,
+   "outcome": {
+    "sai": 53,
+    "dung": 140,
+    "dung_nhung_khac_program": 10,
+    "program_khong_chay_duoc": 36,
+    "khong_co_program": 1
+   },
+   "by_steps": {
+    "1": [
+     119,
+     92,
+     92
+    ],
+    "2": [
+     77,
+     50,
+     42
+    ],
+    "3": [
+     26,
+     6,
+     5
+    ],
+    "4": [
+     6,
+     0,
+     0
+    ],
+    "5": [
+     11,
+     2,
+     1
+    ],
+    "6": [
+     1,
+     0,
+     0
+    ]
+   },
+   "by_phep": {
+    "nhiều (2)": [
+     76,
+     50,
+     42
+    ],
+    "divide": [
+     42,
+     33,
+     33
+    ],
+    "table_*": [
+     36,
+     28,
+     28
+    ],
+    "subtract": [
+     36,
+     22,
+     22
+    ],
+    "nhiều (3)": [
+     21,
+     5,
+     4
+    ],
+    "nhiều (5)": [
+     11,
+     2,
+     1
+    ],
+    "nhiều (4)": [
+     6,
+     0,
+     0
+    ],
+    "add": [
+     6,
+     5,
+     5
+    ],
+    "multiply": [
+     5,
+     5,
+     5
+    ],
+    "nhiều (6)": [
+     1,
+     0,
+     0
+    ]
+   },
+   "vi_sao_khong_co_program": null,
+   "vi_sao_khong_chay_duoc": {
+    "tong": 36,
+    "theo_ly_do": {
+     "cu_phap_di_dang": 22,
+     "phep_long_nhau": 9,
+     "table_sai_cu_phap": 2,
+     "nhan_bang_khong_khop": 2,
+     "sai_so_tham_so": 1
+    },
+    "ty_le": {
+     "cu_phap_di_dang": 0.0917,
+     "phep_long_nhau": 0.0375,
+     "table_sai_cu_phap": 0.0083,
+     "nhan_bang_khong_khop": 0.0083,
+     "sai_so_tham_so": 0.0042
+    },
+    "vi_du": {
+     "cu_phap_di_dang": [
+      "subtract(404, 285) → divide(#0, 285)",
+      "add(495, 59) + add(30, 29)",
+      "add(1395, 2507) + add(#0, 2879) + add(#0, 4645)"
+     ],
+     "phep_long_nhau": [
+      "divide(60000, multiply(2000, 0.333333))",
+      "subtract(subtract(230.9, 100), subtract(193.5, 100))",
+      "divide(19900, add(1, 0.206))"
+     ],
+     "table_sai_cu_phap": [
+      "table_sum(\"Năm\", \"2020\")",
+      "table_sum(\"địa điểm\", \"diện tích xấp xỉ (feet vuông)\"), subtract(254000, 165000), divide(#1, #0)"
+     ],
+     "nhan_bang_khong_khop": [
+      "table_max(\"Năm tài chính (31/12)\", none), table_min(\"Năm tài chính (31/12)\", none), subtract(#0, #1)",
+      "table_sum(\"kế hoạch năm 2001\", none)"
+     ],
+     "sai_so_tham_so": [
+      "table_average(VIC, NVL, DXG, none)"
+     ]
+    }
+   },
+   "vi_sao_sai": {
+    "tong": 53,
+    "theo_kieu": {
+     "dung_phep_sai_so_lieu": 28,
+     "thua_buoc": 10,
+     "thieu_buoc": 8,
+     "lam_dung_table": 4,
+     "dung_so_buoc_sai_phep": 3
+    },
+    "ty_le": {
+     "dung_phep_sai_so_lieu": 0.1167,
+     "thua_buoc": 0.0417,
+     "thieu_buoc": 0.0333,
+     "lam_dung_table": 0.0167,
+     "dung_so_buoc_sai_phep": 0.0125
+    },
+    "vi_du": {
+     "dung_phep_sai_so_lieu": [
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm lợi tức cổ đông tích lũy 5 năm tổng cộng của Cadence Desig",
+       "model": "subtract(311.13, 100), divide(#0, 100), subtract(165.84, 100), divide(#1, 100), subtract(#",
+       "gold": "subtract(311.13, 100), divide(#0, 100), subtract(165.84, 100), divide(#2, 100), subtract(#"
+      },
+      {
+       "hoi": "tổng số các khoản đáo hạn nợ dài hạn hàng năm trong vòng năm năm là bao nhiêu?",
+       "model": "add(204079, 766451), add(#0, 822690), add(#0, 768588), add(#0, 1631181)",
+       "gold": "add(204079, 766451), add(#0, 822690), add(#1, 768588), add(#2, 1631181)"
+      },
+      {
+       "hoi": "Giá trung bình chuẩn Henry Hub cho khí tự nhiên đã giảm bao nhiêu phần trăm từ năm 2007 đế",
+       "model": "subtract(6.86, 3.99), divide(#0, 6.86)",
+       "gold": "subtract(3.99, 6.86), divide(#0, 6.86)"
+      }
+     ],
+     "thua_buoc": [
+      {
+       "hoi": "Tổng suất sinh lời trung bình của 7 cổ phiếu riêng lẻ là bao nhiêu?",
+       "model": "add(0.3, 0.1), add(#0, 0.2), add(#0, 0.3), add(#0, 0.3), add(#0, 0.2), add(#0, 0.1), divid",
+       "gold": "add(0.3, 0.1), add(#0, 0.2), add(#1, 0.3), add(#2, 0.3), add(#3, 0.2), add(#4, 0.1)"
+      },
+      {
+       "hoi": "Tỷ suất lợi nhuận tổng trong 5 năm trên cổ phiếu Ball là bao nhiêu?",
+       "model": "subtract(178.93, 100.00), divide(#0, 100.00)",
+       "gold": "subtract(134.96, 100.00)"
+      },
+      {
+       "hoi": "So sánh biên lợi nhuận hoạt động kinh doanh (LN HĐKD) năm 2020 với năm 2019, mức thay đổi ",
+       "model": "subtract(38.3, 34.8), divide(#0, 38.3)",
+       "gold": "subtract(38.3, 34.8)"
+      }
+     ],
+     "thieu_buoc": [
+      {
+       "hoi": "Tổng chi phí hoạt động tính theo tỷ lệ phần trăm doanh thu trong năm 2013 là bao nhiêu?",
+       "model": "divide(2526, 40678)",
+       "gold": "subtract(40678, 2526), divide(#0, 40678)"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ lợi nhuận tích lũy phần trăm của công ty LKQ và chỉ số S&P 500 trong",
+       "model": "subtract(204, 178)",
+       "gold": "subtract(204, 100), divide(#0, 100), subtract(178, 100), divide(#2, 100), subtract(#1, #3)"
+      },
+      {
+       "hoi": "Sự khác biệt về tỷ lệ phần trăm tổng lợi tức cổ đông tích lũy của Ball Corporation so với ",
+       "model": "subtract(178.93, 111.99), divide(#0, 111.99)",
+       "gold": "subtract(178.93, 100), divide(#0, 100), subtract(111.99, 100), divide(#2, 100), subtract(#"
+      }
+     ],
+     "lam_dung_table": [
+      {
+       "hoi": "Trong năm 2008, giá trị ghi sổ được báo cáo trên bảng cân đối kế toán hợp nhất để tổng hợp",
+       "model": "table_sum(\"tổng số dư nợ gốc chưa thanh toán vượt quá giá trị hợp lý\", none)",
+       "gold": "divide(16254, 6501)"
+      },
+      {
+       "hoi": "Giá trị trung bình của các chứng khoán đầu tư sẵn sàng để bán (AFS) trong các năm 2016-201",
+       "model": "table_average(\"chứng khoán đầu tư sẵn sàng để bán (“afs”) (trung bình)\", none)",
+       "gold": "add(228681, 200247), add(#0, 236670), divide(#1, 3)"
+      },
+      {
+       "hoi": "Với doanh thu dự báo cho năm 2021, biên lợi nhuận ròng dự kiến là bao nhiêu, dựa trên lãi ",
+       "model": "table_max(\"Tỷ lệ LNHDXD (%)\", none)",
+       "gold": "divide(422, 3134)"
+      }
+     ],
+     "dung_so_buoc_sai_phep": [
+      {
+       "hoi": "Phần nào trong tổng số đơn hàng tồn đọng liên quan đến phân khúc Newport News?",
+       "model": "add(6158, 7709)",
+       "gold": "divide(9133, 18038)"
+      },
+      {
+       "hoi": "So sánh P/E của PLX năm 2019 với mức P/E bình quân ngành, PLX cao hơn hay thấp hơn bao nhi",
+       "model": "subtract(17.1, 11.6)",
+       "gold": "divide(17.1, 11.6)"
+      },
+      {
+       "hoi": "tỷ lệ thay đổi phần trăm giá trị hợp lý của msrs trong năm 2007 là bao nhiêu?",
+       "model": "subtract(8632, 7546), divide(#0, 7546)",
+       "gold": "multiply(8632, 7546), divide(#0, 7546)"
+      }
+     ]
+    }
+   },
+   "composite": 0.6083,
+   "round": 18,
+   "bullets": 16
+  }
+ ],
+ "qg_rejections": {
+  "duoi_1_phep_toan": 17,
+  "kiem_chung:ngoai_khoang_tang_truong": 1,
+  "multiply_100_tinh_phan_tram": 8,
+  "verify_khong_sua_duoc": 66,
+  "trung_cau_truc:sp-00001@trung_dieu_kien=1.00": 9,
+  "kiem_chung:sai_cong_thuc_trung_binh_0/2": 3,
+  "trung_cau_truc:sp-00002@trung_dieu_kien=1.00": 2,
+  "trung_cau_truc:db-00001@trung_dieu_kien=1.00": 7,
+  "cum_tu_cam:kết quả là": 1,
+  "bi_cach_ly": 50,
+  "chua_so_lieu_cu_the": 1,
+  "cum_C11_khac_da_du_bullet": 2,
+  "kiem_chung:chay_thu_that_bai": 2,
+  "trung_ngu_nghia@0.98": 4,
+  "trung_cau_truc:sp-00005@trung_dieu_kien=0.83": 1,
+  "trung_cau_truc:sp-00005@trung_dieu_kien=1.00": 10,
+  "trung_cau_truc:db-00001@trung_dieu_kien=0.80": 1,
+  "kiem_chung:sai_cong_thuc_tang_truong_0/2": 2,
+  "trung_cau_truc:sp-00004@trung_dieu_kien=1.00": 2,
+  "trung_cau_truc:db-00001@trung_dieu_kien=0.75": 1,
+  "trung_ngu_nghia@0.99": 2,
+  "trung_cau_truc:sp-00006@trung_dieu_kien=1.00": 1,
+  "trung_cau_truc:db-00002@trung_dieu_kien=1.00": 3,
+  "trung_cau_truc:sp-00007@trung_dieu_kien=1.00": 4,
+  "trung_tu_vung": 6,
+  "trung_cau_truc:sp-00004@trung_dieu_kien=0.80": 1,
+  "trung_cau_truc:cl-00001@trung_dieu_kien=1.00": 1,
+  "trung_cau_truc:cl-00002@trung_dieu_kien=1.00": 2,
+  "trung_cau_truc:lt-00001@trung_dieu_kien=1.00": 1,
+  "trung_cau_truc:lt-00002@trung_dieu_kien=1.00": 1
+ }
+}
