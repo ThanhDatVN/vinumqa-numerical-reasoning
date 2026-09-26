@@ -243,6 +243,23 @@ Mỗi notebook trong `notebooks/` là một nấc độc lập, chạy trên Goo
 Ô đầu tiên tự lấy mã nguồn từ GitHub và gắn Google Drive; kết quả ghi xuống Drive dưới
 dạng `<nấc>.jsonl` + `<nấc>_meta.json` nên nấc sau đọc lại được nấc trước.
 
+Mỗi notebook ghi ra một hoặc hai nấc; số notebook và số nấc không trùng nhau ở một
+chỗ — `08_phuong_phap_moi` sinh ra cả `08_tu_nhat_quan` lẫn `09_vidu_dong` vì hai nấc
+đó chỉ khác nhau ở nguồn ví dụ và dùng chung một lần nạp mô hình.
+
+| notebook | nấc ghi ra |
+| --- | --- |
+| `00_data_audit` | — (kiểm dữ liệu) |
+| `01_baseline_basic` | `01_basic` |
+| `02_prompt_engineering` | `02_prompt_eng` |
+| `03_sft_qwen3` | `03_sft` |
+| `04_self_evaluation` | `04_selfeval_base` |
+| `05_ace` | `05_ace_base`, `05c_ace_basic_base` + hai nhánh đối chứng |
+| `06_combination` | `06_comb_E_A`, `04_selfeval_base_moi` |
+| `07_final_report` | — (tổng hợp) |
+| `08_phuong_phap_moi` | `08_tu_nhat_quan`, `09_vidu_dong` |
+| `10_bo_chon` | `10_bo_chon` |
+
 Thứ tự phụ thuộc:
 
 ```

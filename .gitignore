@@ -35,6 +35,7 @@ vinumqa_runs/
 !/results/playbook_ace_basic_base.txt
 !/results/bang_ket_qua_20260922_1922.csv
 !/results/kiem_dinh_20260922_1922.csv
+!/results/bao_cao_20260922_1922.png
 /results/stages/*
 !/results/stages/*.jsonl
 !/results/stages/*_meta.json
